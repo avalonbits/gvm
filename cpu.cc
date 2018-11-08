@@ -17,33 +17,32 @@ void CPU::LoadProgram(const std::vector<Word>& program) {
 }
 
 void CPU::Run() {
-    uint32_t count = 1000000000;
-    uint32_t count_save = count;
-    auto start = std::chrono::high_resolution_clock::now();
-    for (auto pc = pc_; count > 0 && pc_ < kTotalWords; ++pc_) {
+    for (; pc_ < kTotalWords; ++pc_) {
         const auto& word = mem_[pc_];
-        switch (word & 0xFF) {  // first 8 bits define the instruction
+        const auto opcode = word & 0xFF;
+        const auto dest = (word >> 8) & 0xF;
+        const auto op1 = (word >> 12) & 0xF;
+        switch (opcode) {  // first 8 bits define the instruction
             case ISA::HALT:
-                pc_ = pc;
-                --count;
+                return;
                 break;
             case ISA::NOP:
                 break;
             case ISA::LOAD_RR:
-                reg_[(word >> 8) & 0xF] = reg_[(word >> 12) & 0xF];
+                reg_[dest] = reg_[op1];
                 break;
             case ISA::LOAD_RI:
-                reg_[(word >> 8) & 0xF] = word >> 12;
+                reg_[dest] = op1;
                 break;
-            case ISA::ADD_RR:
-                reg_[(word >> 8) & 0xF] = reg_[(word >> 12) & 0xF] + reg_[(word >> 16) & 0xF];
+            case ISA::ADD_RR: {
+                const auto op2 = (word >> 12) & 0xF;
+                reg_[dest] = reg_[op1] + reg_[op2];
                 break;
+            }
             default:
                 assert(false);
         }
     }
-    std::chrono::nanoseconds elapsed = std::chrono::high_resolution_clock::now() - start;
-    std::cerr << static_cast<double>(elapsed.count()) / 6 / count_save;
 }
 
 }  // namespace gvm
