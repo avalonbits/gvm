@@ -17,8 +17,9 @@ class CPU {
             std::memset(mem_, 0, kTotalWords * sizeof(uint32_t));
         }
 
-        void LoadProgram(const std::vector<Word>& program);
+        void LoadProgram(uint32_t start, const std::vector<Word>& program);
         void Run();
+        void Run(uint32_t start);
 
     private:
         uint32_t pc_;

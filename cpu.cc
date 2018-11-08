@@ -8,11 +8,11 @@
 #include "isa.h"
 
 namespace gvm {
-void CPU::LoadProgram(const std::vector<Word>& program) {
+void CPU::LoadProgram(uint32_t start, const std::vector<Word>& program) {
     assert(!program.empty());
-    pc_ = 0;
-    for (uint32_t i = 0; i < program.size(); ++i) {
-        mem_[0] = program[i];
+    assert(program.size() + start < kTotalWords);
+    for (uint32_t i = start; i < program.size(); ++i) {
+        mem_[i] = program[i];
     }
 }
 

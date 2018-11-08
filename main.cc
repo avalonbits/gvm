@@ -9,7 +9,7 @@
 int main(void) {
     std::unique_ptr<gvm::CPU> cpu(new gvm::CPU());
 
-    cpu->LoadProgram({
+    cpu->LoadProgram(0, {
         gvm::LoadRI(0, 16),
         gvm::LoadRI(1, 32),
         gvm::AddRR(0, 0, 1),
