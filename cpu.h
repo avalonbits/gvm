@@ -2,6 +2,7 @@
 #define _GVM_CPU_H_
 
 #include <cstring>
+#include <string>
 #include <vector>
 
 #include "isa.h"
@@ -24,6 +25,8 @@ class CPU {
   void LoadProgram(uint32_t start, const std::vector<Word>& program);
   void Run();
   void Run(uint32_t start);
+
+  const std::string PrintRegisters();
 
  private:
   uint32_t pc_;

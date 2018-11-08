@@ -1,8 +1,8 @@
 #include "cpu.h"
 
 #include <cassert>
-#include <chrono>
 #include <iostream>
+#include <sstream>
 #include <vector>
 
 #include "isa.h"
@@ -30,11 +30,19 @@ void CPU::Run(uint32_t start) {
         break;
       case ISA::NOP:
         break;
-      case ISA::LOAD_RR:
+      case ISA::MOV_RR:
         reg_[(word >> 8) & 0xF] = reg_[(word >> 12) & 0xF];
         break;
-      case ISA::LOAD_RI:
+      case ISA::MOV_RI:
         reg_[(word >> 8) & 0xF] = word >> 12;
+        break;
+      case ISA::LOAD_RR:
+        break;
+      case ISA::LOAD_RI:
+        break;
+      case ISA::STOR_RR:
+        break;
+      case ISA::STOR_RI:
         break;
       case ISA::ADD_RR:
         reg_[(word >> 8) & 0xF] = reg_[(word >> 12) & 0xF] + reg_[(word >> 16) & 0xF];
@@ -43,6 +51,18 @@ void CPU::Run(uint32_t start) {
         assert(false);
    }
  }
+}
+
+const std::string CPU::PrintRegisters() {
+  std::stringstream ss;
+
+  ss << "[";
+  for (uint32_t i = 0; i < kRegCount; ++i) {
+    if (i != 0) ss << " ";
+    ss << reg_[i];
+  }
+  ss << "]\n";
+  return ss.str();
 }
 
 }  // namespace gvm

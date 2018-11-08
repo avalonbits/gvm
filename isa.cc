@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include "cpu.h"
+
 namespace gvm {
 
 Word Nop() {
@@ -12,17 +14,44 @@ Word Halt() {
   return Word(ISA::HALT);
 }
 
-Word LoadRR(uint32_t dest, uint32_t src) {
+Word MovRR(uint32_t dest, uint32_t src) {
   assert(dest < kRegCount);
   assert(src < kRegCount);
   assert(dest != src);
+  return Word(ISA::MOV_RR | dest << 8 | src << 12);
+}
+
+Word MovRI(uint32_t dest, uint32_t value) {
+  assert(dest < kRegCount);
+  assert(value == (value & 0xFFFFF));  // mask 20 bits.
+  return Word(ISA::MOV_RI|dest << 8 | value << 12);
+}
+
+Word LoadRI(uint32_t dest, uint32_t memaddr) {
+  assert(dest < kRegCount);
+  assert((memaddr & 0xFFFFF) == memaddr);
+  assert(memaddr % kWordSize == 0);  // kWordSize aligned memory.
+  return Word(ISA::LOAD_RI | dest << 8 | memaddr << 12);
+}
+
+Word LoadRR(uint32_t dest, uint32_t src) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
   return Word(ISA::LOAD_RR | dest << 8 | src << 12);
 }
 
-Word LoadRI(uint32_t dest, uint32_t value) {
+Word StorRI(uint32_t memaddr, uint32_t src) {
+  assert((memaddr & 0xFFFFF) == memaddr);
+  assert(memaddr % kWordSize == 0);  // kWordSize aligned memory.
+  assert(src < kRegCount);
+  return Word(ISA::STOR_RI | memaddr << 8 | src << 28);
+
+}
+
+Word StorRR(uint32_t dest, uint32_t src) {
   assert(dest < kRegCount);
-  assert(value == (value & 0xFFFFF));  // mask 20 bits.
-  return Word(ISA::LOAD_RI |dest << 8 | value << 12);
+  assert(src < kRegCount);
+  return Word(ISA::STOR_RR | dest << 8 | src << 12);
 }
 
 Word AddRR(uint32_t dest, uint32_t op1, uint32_t op2) {
