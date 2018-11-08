@@ -1,6 +1,7 @@
 #include "cpu.h"
 
 #include <cassert>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -39,10 +40,12 @@ void CPU::Run(uint32_t start) {
       case ISA::LOAD_RR:
         break;
       case ISA::LOAD_RI:
+        reg_[(word >> 8) & 0xF] = mem_[(word >> 12)];
         break;
       case ISA::STOR_RR:
         break;
       case ISA::STOR_RI:
+        mem_[(word >> 8) & 0xFFFFF] = reg_[word >> 28];
         break;
       case ISA::ADD_RR:
         reg_[(word >> 8) & 0xF] = reg_[(word >> 12) & 0xF] + reg_[(word >> 16) & 0xF];
@@ -62,6 +65,23 @@ const std::string CPU::PrintRegisters() {
     ss << reg_[i];
   }
   ss << "]\n";
+  return ss.str();
+}
+
+const std::string CPU::PrintMemory(uint32_t from, uint32_t to) {
+  assert(from <= to);
+  assert(from % 4 == 0);
+  assert(to % 4 == 0);
+  assert(from < kTotalWords);
+  assert(to < kTotalWords);
+
+  std::stringstream ss;
+
+  ss << "Memofry from 0x" << std::hex << from << " to 0x" << std::hex << to
+     << ":\n";
+  for (uint32_t i = from; i <= to; i += 4) {
+    ss << "0x" << std::hex << i << ": " << std::dec << mem_[i] << "\n";
+  }
   return ss.str();
 }
 

@@ -27,6 +27,7 @@ class CPU {
   void Run(uint32_t start);
 
   const std::string PrintRegisters();
+  const std::string PrintMemory(uint32_t from, uint32_t to);
 
  private:
   uint32_t pc_;
