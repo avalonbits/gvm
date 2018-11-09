@@ -36,7 +36,10 @@ Word LoadRI(uint32_t dest, uint32_t memadr);
 Word LoadRR(uint32_t dest, uint32_t src);
 Word StorRI(uint32_t memaddr, uint32_t src);
 Word StorRR(uint32_t dest, uint32_t src);
+Word StorIX(uint32_t dest, uint32_t offset, uint32_t src);
 Word AddRR(uint32_t dest, uint32_t op1, uint32_t op2);
+Word SubRR(uint32_t dest, uint32_t op1, uint32_t op2);
+Word Jmp(uint32_t memaddr);
 
 }  // namepsace gvm
 

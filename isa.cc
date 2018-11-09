@@ -1,6 +1,7 @@
 #include "isa.h"
 
 #include <cassert>
+#include <iostream>
 
 #include "cpu.h"
 
@@ -23,7 +24,7 @@ Word MovRR(uint32_t dest, uint32_t src) {
 
 Word MovRI(uint32_t dest, uint32_t value) {
   assert(dest < kRegCount);
-  assert(value == (value & 0xFFFFF));  // mask 20 bits.
+  value = value & 0xFFFFF;
   return Word(ISA::MOV_RI|dest << 8 | value << 12);
 }
 
@@ -60,5 +61,18 @@ Word AddRR(uint32_t dest, uint32_t op1, uint32_t op2) {
   assert(op2 < kRegCount);
   return Word(ISA::ADD_RR | dest << 8 | op1 << 12 | op2 << 16);
 }
+
+Word SubRR(uint32_t dest, uint32_t op1, uint32_t op2) {
+  assert(dest < kRegCount);
+  assert(op1 < kRegCount);
+  assert(op2 < kRegCount);
+  return Word(ISA::SUB_RR | dest << 8 | op1 << 12 | op2 << 16);
+}
+
+Word Jmp(uint32_t memaddr) {
+  assert(memaddr == (memaddr & 0xFFFFFF));
+  return Word(ISA::JMP | memaddr << 8);
+}
+
 
 }  // namespace gvm
