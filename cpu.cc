@@ -62,103 +62,107 @@ void CPU::LoadProgram(uint32_t start, const std::vector<Word>& program) {
   }
 }
 
-void CPU::Run() {
-  Run(0);
+void CPU::SetPC(uint32_t pc) {
+  assert(pc % kTotalWords == 0);
+  pc_ = pc / kWordSize;
+  assert(pc_ < kTotalWords);
 }
 
-
-void CPU::Run(uint32_t start) {
-  assert(start % kTotalWords == 0);
-  start = start / kWordSize;
-  assert(start < kTotalWords);
-  for (pc_ = start; pc_ < kTotalWords; ++pc_) {
-    std::cerr << "0x" << std::hex << (pc_*kWordSize) << "\n";
-    const auto& word = mem_[pc_];
-    switch (word & 0xFF) {  // first 8 bits define the instruction.
-      case ISA::HALT:
-        return;
-        break;
-      case ISA::NOP:
-        break;
-      case ISA::MOV_RR:
-        reg_[reg1(word)] = reg_[reg2(word)];
-        break;
-      case ISA::MOV_RI: {
-        uint32_t v = word >> 12;
-        if (((v >> 11) & 1) == 1) v = 0xFFFFF000 | v;
-        reg_[reg1(word)] = v;
-        break;
-      }
-      case ISA::LOAD_RR:
-        reg_[reg1(word)] = mem_[reg_[reg2(word)]/kWordSize];
-        break;
-      case ISA::LOAD_RI:
-        reg_[reg1(word)] = mem_[((word >> 12) & 0xFFFFF)/kWordSize];
-        break;
-      case ISA::STOR_RR:
-        mem_[reg_[reg1(word)]/kWordSize] = reg_[reg2(word)];
-        break;
-      case ISA::STOR_RI:
-        mem_[((word >> 12) & 0xFFFFF)/kWordSize] = reg_[reg1(word)];
-        break;
-      case ISA::ADD_RR: {
-        const uint32_t v = reg_[reg2(word)] + reg_[reg3(word)];
-        reg_[reg1(word)] = v;
-        SetZ(sflags_, v == 0);
-        SetN(sflags_, v >> 31);
-        break;
-      }
-      case ISA::SUB_RR: {
-        const uint32_t op2 = (~reg_[reg3(word)] + 1);
-        const uint32_t v = reg_[reg2(word)] + op2;
-        reg_[reg1(word)] = v;
-        SetZ(sflags_, v == 0);
-        SetN(sflags_, v >> 31);
-        break;
-      }
-      case ISA::JMP:
-        pc_ = pc_ + reladdr(word >> 8) - 1;
-        break;
-      case ISA::JNE:
-        if (!IsSetZ(sflags_)) pc_ = pc_ + reladdr(word >> 8) - 1;
-        break;
-      case ISA::JEQ:
-        if (IsSetZ(sflags_)) pc_ = pc_ + reladdr(word >> 8) - 1;
-        break;
-      case ISA::JGT:
-        if (!IsSetZ(sflags_) && !IsSetN(sflags_)) {
-          pc_ = pc_ + reladdr(word >> 8) - 1;
-        }
-        break;
-       case ISA::JGE:
-        if (IsSetZ(sflags_) || !IsSetN(sflags_)) {
-          pc_ = pc_ + reladdr(word >> 8) - 1;
-        }
-        break;
-      case ISA::JLT:
-        if (!IsSetZ(sflags_) && IsSetN(sflags_)) {
-          pc_ = pc_ + reladdr(word >> 8) - 1;
-        }
-        break;
-      case ISA::JLE:
-        if (IsSetZ(sflags_) || IsSetN(sflags_)) {
-          pc_ = pc_ + reladdr(word >> 8) - 1;
-        }
-        break;
-      case ISA::CALL:
-        mem_[--sp_] = pc_;
-        mem_[--sp_] = fp_;
-        fp_ = sp_;
-        pc_ = pc_ + reladdr(word >> 8) - 1;
-        break;
-      case ISA::RET:
-        sp_ = fp_;
-        fp_ = mem_[sp_++];
-        pc_ = mem_[sp_++];
-        break;
-      default:
-        assert(false);
+const bool  CPU::Step() {
+  std::cerr << "0x" << std::hex << (pc_*kWordSize) << "\n";
+  const auto& word = mem_[pc_];
+  switch (word & 0xFF) {  // first 8 bits define the instruction.
+    case ISA::HALT:
+      return false;
+      break;
+    case ISA::NOP:
+      break;
+    case ISA::MOV_RR:
+      reg_[reg1(word)] = reg_[reg2(word)];
+      break;
+    case ISA::MOV_RI: {
+      uint32_t v = word >> 12;
+      if (((v >> 11) & 1) == 1) v = 0xFFFFF000 | v;
+      reg_[reg1(word)] = v;
+      break;
     }
+    case ISA::LOAD_RR:
+      reg_[reg1(word)] = mem_[reg_[reg2(word)]/kWordSize];
+      break;
+    case ISA::LOAD_RI:
+      reg_[reg1(word)] = mem_[((word >> 12) & 0xFFFFF)/kWordSize];
+      break;
+    case ISA::STOR_RR:
+      mem_[reg_[reg1(word)]/kWordSize] = reg_[reg2(word)];
+      break;
+    case ISA::STOR_RI:
+      mem_[((word >> 12) & 0xFFFFF)/kWordSize] = reg_[reg1(word)];
+      break;
+    case ISA::ADD_RR: {
+      const uint32_t v = reg_[reg2(word)] + reg_[reg3(word)];
+      reg_[reg1(word)] = v;
+      SetZ(sflags_, v == 0);
+      SetN(sflags_, v >> 31);
+      break;
+    }
+    case ISA::SUB_RR: {
+      const uint32_t op2 = (~reg_[reg3(word)] + 1);
+      const uint32_t v = reg_[reg2(word)] + op2;
+      reg_[reg1(word)] = v;
+      SetZ(sflags_, v == 0);
+      SetN(sflags_, v >> 31);
+      break;
+    }
+    case ISA::JMP:
+      pc_ = pc_ + reladdr(word >> 8) - 1;
+      break;
+    case ISA::JNE:
+      if (!IsSetZ(sflags_)) pc_ = pc_ + reladdr(word >> 8) - 1;
+      break;
+    case ISA::JEQ:
+      if (IsSetZ(sflags_)) pc_ = pc_ + reladdr(word >> 8) - 1;
+      break;
+    case ISA::JGT:
+      if (!IsSetZ(sflags_) && !IsSetN(sflags_)) {
+        pc_ = pc_ + reladdr(word >> 8) - 1;
+      }
+      break;
+    case ISA::JGE:
+      if (IsSetZ(sflags_) || !IsSetN(sflags_)) {
+        pc_ = pc_ + reladdr(word >> 8) - 1;
+      }
+      break;
+    case ISA::JLT:
+      if (!IsSetZ(sflags_) && IsSetN(sflags_)) {
+        pc_ = pc_ + reladdr(word >> 8) - 1;
+      }
+      break;
+    case ISA::JLE:
+      if (IsSetZ(sflags_) || IsSetN(sflags_)) {
+        pc_ = pc_ + reladdr(word >> 8) - 1;
+      }
+      break;
+    case ISA::CALL:
+      mem_[--sp_] = pc_;
+      mem_[--sp_] = fp_;
+      fp_ = sp_;
+      pc_ = pc_ + reladdr(word >> 8) - 1;
+      break;
+    case ISA::RET:
+      sp_ = fp_;
+      fp_ = mem_[sp_++];
+      pc_ = mem_[sp_++];
+      break;
+    default:
+      assert(false);
+  }
+  ++pc_;
+  return true;
+}
+
+void CPU::Run() {
+  while (pc_ < kTotalWords) {
+    if (!Step()) break;
   }
 }
 

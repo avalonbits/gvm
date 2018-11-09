@@ -30,10 +30,10 @@ int main(void) {
   cpu->LoadProgram(0x2000, {
       gvm::StorRI(0x1004, 1),
       gvm::LoadRI(2, 0x1004),
-      gvm::LoadRI(3, 0x1000),
+      gvm::LoadRI(3, 0x1004),
       gvm::SubRR(4, 1, 0),
       gvm::MovRR(12, 4),
-      gvm::AddRR(12, 12, 0),
+      gvm::AddRR(12, 12, 14),
       gvm::Halt()
   });
   cpu->Run();

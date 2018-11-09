@@ -24,8 +24,9 @@ class CPU {
   CPU& operator=(const CPU&) = delete;
 
   void LoadProgram(uint32_t start, const std::vector<Word>& program);
+  void SetPC(uint32_t pc);
+  const bool Step();
   void Run();
-  void Run(uint32_t start);
 
   const std::string PrintRegisters();
   const std::string PrintMemory(uint32_t from, uint32_t to);
