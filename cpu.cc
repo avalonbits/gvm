@@ -172,10 +172,6 @@ const bool CPU::Step() {
   return true;
 }
 
-void CPU::Run() {
-  while (Step()) {}
-}
-
 const std::string CPU::PrintRegisters(bool hex) {
   std::stringstream ss;
 
