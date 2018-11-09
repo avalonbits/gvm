@@ -26,7 +26,11 @@ class CPU {
   void LoadProgram(uint32_t start, const std::vector<Word>& program);
   void SetPC(uint32_t pc);
   const bool Step();
-  void Run() { while(Step()) {} }
+  uint32_t Run() {
+    uint32_t i = 1;
+    while(Step()) { ++i; }
+    return i;
+  }
 
   const std::string PrintRegisters(bool hex = false);
   const std::string PrintMemory(uint32_t from, uint32_t to);

@@ -1,10 +1,19 @@
+#include <chrono>
 #include <iostream>
 #include <memory>
 
 #include "cpu.h"
+#include "cxxopts.hpp"
 #include "isa.h"
 
-int main(void) {
+int main(int argc, char* argv[]) {
+  cxxopts::Options options("gvm", "A 32-bit virtual machine.");
+  options.add_options()
+      ("benchmark", "Run a benchmark with the loaded program.")
+      ("runs", "Number of runs to execute the code.", cxxopts::value<uint32_t>())
+      ;
+  auto result = options.parse(argc, argv);
+
   std::unique_ptr<gvm::CPU> cpu(new gvm::CPU());
   cpu->LoadProgram(0, {
       gvm::MovRI(12, -16),
@@ -36,8 +45,28 @@ int main(void) {
       gvm::AddRR(12, 12, 14),
       gvm::Halt()
   });
-  cpu->Run();
-  std::cerr << cpu->PrintRegisters(/*hex=*/true);
-  std::cerr << cpu->PrintMemory(0x1000, 0x1004);
-  std::cerr << cpu->PrintStatusFlags();
+  if (result.count("benchmark") == 0 || !result["benchmark"].as<bool>()) {
+    cpu->Run();
+    std::cerr << cpu->PrintRegisters(/*hex=*/true);
+    std::cerr << cpu->PrintMemory(0x1000, 0x1004);
+    std::cerr << cpu->PrintStatusFlags();
+  } else {
+    const auto instruction_count = cpu->Run();
+    const auto start = std::chrono::high_resolution_clock::now();
+    const uint32_t runs = result.count("runs") == 0
+        ? 1 << 20
+        : result["runs"].as<uint32_t>();
+    for (uint32_t i = 0; i < runs; ++i) {
+      cpu->SetPC(0);
+      while (cpu->Step()) {}
+    }
+    const auto end = std::chrono::high_resolution_clock::now();
+    const std::chrono::nanoseconds diff = end - start;
+    const auto prog_time = static_cast<double>(diff.count()) / runs;
+    const auto instruction_time = prog_time / instruction_count;
+
+    std::cerr << "Instruction count: " << instruction_count << "\n";
+    std::cerr << "Average program time: " << prog_time << "ns.\n";
+    std::cerr << "Average instruction time: " << instruction_time << "ns.\n";
+  }
 }
