@@ -45,6 +45,12 @@ constexpr bool IsSetC(uint8_t flag) {
   return static_cast<bool>(flag & 4);
 }
 
+constexpr uint32_t reladdr(const uint32_t v24bit) {
+  return (v24bit >> 23) & 1 ? -((~(0xFF000000 | v24bit) + 1)/kWordSize)
+                            : v24bit/kWordSize;
+}
+
+
 }  // namespace
 
 void CPU::LoadProgram(uint32_t start, const std::vector<Word>& program) {
@@ -108,21 +114,18 @@ void CPU::Run(uint32_t start) {
         SetN(sflags_, v >> 31);
         break;
       }
-      case ISA::JMP: {
-        uint32_t v = word >> 8;
-        if (((word >> 23) & 1) == 1) {
-          v = ~(0xFF000000 | v) + 1;
-          pc_ = pc_ - v/kWordSize - 1;
-        } else {
-          pc_ = pc_ + v/kWordSize - 1;
-        }
-        std::cerr << "0x" << std::hex << (pc_*4) << "\n";
+      case ISA::JMP:
+        pc_ = pc_ + reladdr(word >> 8) - 1;
         break;
-      }
+      case ISA::JNE:
+        if (!IsSetZ(sflags_)) pc_ = pc_ + reladdr(word >> 8) - 1;
+        break;
+      case ISA::JEQ:
+        if (IsSetZ(sflags_)) pc_ = pc_ + reladdr(word >> 8) - 1;
       default:
         assert(false);
-   }
- }
+    }
+  }
 }
 
 const std::string CPU::PrintRegisters() {
