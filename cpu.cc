@@ -166,13 +166,18 @@ void CPU::Run() {
   }
 }
 
-const std::string CPU::PrintRegisters() {
+const std::string CPU::PrintRegisters(bool hex) {
   std::stringstream ss;
 
   ss << "[";
   for (uint32_t i = 0; i < kRegCount; ++i) {
     if (i != 0) ss << " ";
-    const auto r = reg_[i];
+    const uint32_t r = (i >= 14) ? 4 *reg_[i] : reg_[i];
+    if (hex) {
+      ss << std::hex << "0x";
+    } else {
+      ss << std::dec;
+    }
     r >> 31 == 1 ? ss << int32_t(r)
                  : ss << r;
   }
@@ -194,6 +199,13 @@ const std::string CPU::PrintMemory(uint32_t from, uint32_t to) {
   for (uint32_t i = from; i <= to; i+=4) {
     ss << "0x" << std::hex << i << ": " << std::dec << mem_[i/kWordSize] << "\n";
   }
+  return ss.str();
+}
+
+const std::string CPU::PrintStatusFlags() {
+  std::stringstream ss;
+  ss << "[Zero(" << IsSetZ(sflags_) << ") Neg(" << IsSetN(sflags_)
+     << ") Carry(" << IsSetC(sflags_) << ")]\n";
   return ss.str();
 }
 

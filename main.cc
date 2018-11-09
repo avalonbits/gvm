@@ -37,6 +37,7 @@ int main(void) {
       gvm::Halt()
   });
   cpu->Run();
-  std::cerr << cpu->PrintRegisters();
+  std::cerr << cpu->PrintRegisters(/*hex=*/true);
   std::cerr << cpu->PrintMemory(0x1000, 0x1004);
+  std::cerr << cpu->PrintStatusFlags();
 }
