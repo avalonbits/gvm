@@ -45,8 +45,7 @@ Word StorRI(uint32_t memaddr, uint32_t src) {
   assert((memaddr & 0xFFFFF) == memaddr);
   assert(memaddr % kWordSize == 0);  // kWordSize aligned memory.
   assert(src < kRegCount);
-  return Word(ISA::STOR_RI | memaddr << 8 | src << 28);
-
+  return Word(ISA::STOR_RI | src << 8 | memaddr << 12);
 }
 
 Word StorRR(uint32_t dest, uint32_t src) {

@@ -9,6 +9,19 @@
 #include "isa.h"
 
 namespace gvm {
+
+namespace {
+constexpr uint32_t reg1(uint32_t word) {
+  return (word >> 8) & 0xF;
+}
+constexpr uint32_t reg2(uint32_t word) {
+  return (word >> 12) & 0xF;
+}
+constexpr uint32_t reg3(uint32_t word) {
+  return (word >> 16) & 0xF;
+}
+}  // namespace
+
 void CPU::LoadProgram(uint32_t start, const std::vector<Word>& program) {
   start = start / kWordSize;
   assert(!program.empty());
@@ -35,39 +48,36 @@ void CPU::Run(uint32_t start) {
       case ISA::NOP:
         break;
       case ISA::MOV_RR:
-        reg_[(word >> 8) & 0xF] = reg_[(word >> 12) & 0xF];
+        reg_[reg1(word)] = reg_[reg2(word)];
         break;
       case ISA::MOV_RI: {
         uint32_t v = word >> 12;
-        if (((v >> 11) & 0x01) == 1) v = 0xFFFFF000 | v;
-        reg_[(word >> 8) & 0xF] = v;
+        if (((v >> 11) & 1) == 1) v = 0xFFFFF000 | v;
+        reg_[reg1(word)] = v;
         break;
       }
       case ISA::LOAD_RR:
-        reg_[(word >> 8) & 0xF] = mem_[reg_[(word >> 12) & 0xF]/kWordSize];
+        reg_[reg1(word)] = mem_[reg_[reg2(word)]/kWordSize];
         break;
       case ISA::LOAD_RI:
-        reg_[(word >> 8) & 0xF] = mem_[((word >> 12) & 0xFFFFF)/kWordSize];
+        reg_[reg1(word)] = mem_[((word >> 12) & 0xFFFFF)/kWordSize];
         break;
       case ISA::STOR_RR:
-        mem_[reg_[(word >> 8) & 0xF]/kWordSize] = reg_[(word >> 12) & 0xF];
+        mem_[reg_[reg1(word)]/kWordSize] = reg_[reg2(word)];
         break;
       case ISA::STOR_RI:
-        mem_[((word >> 8) & 0xFFFFF)/kWordSize] = reg_[word >> 28];
+        mem_[((word >> 12) & 0xFFFFF)/kWordSize] = reg_[reg1(word)];
         break;
-      case ISA::ADD_RR: {
-        const uint32_t op1 = (word >> 12) & 0xF;
-        const uint32_t op2 = (word >> 16) & 0xF;
-        reg_[(word >> 8) & 0xF] = reg_[op1] + reg_[op2];
+      case ISA::ADD_RR:
+        reg_[reg1(word)] = reg_[reg2(word)] + reg_[reg3(word)];
         break;
-      }
       case ISA::SUB_RR: {
-        const uint32_t op2 = (~reg_[(word >> 16) & 0xF] + 1);
-        reg_[(word >> 8) & 0xF] = reg_[(word >> 12) & 0xF] + op2;
+        const uint32_t op2 = (~reg_[reg3(word)] + 1);
+        reg_[reg1(word)] = reg_[reg2(word)] + op2;
         break;
       }
       case ISA::JMP:
-        pc_ = (((word >> 8) & 0xFFFFFF)/kWordSize) - 1;
+        pc_ = ((word >> 8)/kWordSize) - 1;
         break;
       default:
         assert(false);
