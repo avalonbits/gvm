@@ -147,9 +147,13 @@ void CPU::Run(uint32_t start) {
         break;
       case ISA::CALL:
         mem_[--sp_] = pc_;
+        mem_[--sp_] = fp_;
+        fp_ = sp_;
         pc_ = pc_ + reladdr(word >> 8) - 1;
         break;
       case ISA::RET:
+        sp_ = fp_;
+        fp_ = mem_[sp_++];
         pc_ = mem_[sp_++];
         break;
       default:

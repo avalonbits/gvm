@@ -12,7 +12,7 @@ int main(void) {
       gvm::Call(0x7FF8),
       gvm::MovRI(1, 32),
       gvm::AddRR(0, 0, 1),
-      gvm::MovRI(14, 0x1000),
+      gvm::MovRI(11, 0x1000),
       gvm::Jmp(0x3FE8)
   });
 
@@ -32,8 +32,8 @@ int main(void) {
       gvm::LoadRI(2, 0x1004),
       gvm::LoadRI(3, 0x1000),
       gvm::SubRR(4, 1, 0),
-      gvm::MovRR(15, 4),
-      gvm::AddRR(15, 15, 0),
+      gvm::MovRR(12, 4),
+      gvm::AddRR(12, 12, 0),
       gvm::Halt()
   });
   cpu->Run();
