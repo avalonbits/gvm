@@ -21,16 +21,28 @@ constexpr uint32_t reg3(uint32_t word) {
   return (word >> 16) & 0xF;
 }
 
-constexpr void SetZ(uint8_t& flag, uint8_t zero) {
-  flag = flag | (zero & 1);
+constexpr void SetZ(uint8_t& flag, bool zero) {
+  if (zero) {
+    flag = flag | 1;
+  } else {
+    flag = flag & (~1);
+  }
 }
 
-constexpr void SetN(uint8_t& flag, uint8_t negative) {
-  flag = flag | ((negative & 1) << 1);
+constexpr void SetN(uint8_t& flag, bool negative) {
+  if (negative) {
+    flag = flag | 2;
+  } else {
+    flag = flag & (~2);
+  }
 }
 
-constexpr void SetC(uint8_t& flag, uint8_t carry) {
-  flag = flag | ((carry & 1) << 2);
+constexpr void SetC(uint8_t& flag, bool carry) {
+  if (carry) {
+    flag = flag | 4;
+  } else {
+    flag = flag & (~4);
+  }
 }
 
 constexpr bool IsSetZ(uint8_t flag) {
@@ -68,8 +80,8 @@ void CPU::SetPC(uint32_t pc) {
   assert(pc_ < kTotalWords);
 }
 
-const bool  CPU::Step() {
-  std::cerr << "0x" << std::hex << (pc_*kWordSize) << "\n";
+const bool CPU::Step() {
+  if (pc_ >= kTotalWords) return false;
   const auto& word = mem_[pc_];
   switch (word & 0xFF) {  // first 8 bits define the instruction.
     case ISA::HALT:
@@ -102,7 +114,7 @@ const bool  CPU::Step() {
       const uint32_t v = reg_[reg2(word)] + reg_[reg3(word)];
       reg_[reg1(word)] = v;
       SetZ(sflags_, v == 0);
-      SetN(sflags_, v >> 31);
+      SetN(sflags_, v >> 31 == 1);
       break;
     }
     case ISA::SUB_RR: {
@@ -110,7 +122,7 @@ const bool  CPU::Step() {
       const uint32_t v = reg_[reg2(word)] + op2;
       reg_[reg1(word)] = v;
       SetZ(sflags_, v == 0);
-      SetN(sflags_, v >> 31);
+      SetN(sflags_, v >> 31 == 1);
       break;
     }
     case ISA::JMP:
@@ -161,9 +173,7 @@ const bool  CPU::Step() {
 }
 
 void CPU::Run() {
-  while (pc_ < kTotalWords) {
-    if (!Step()) break;
-  }
+  while (Step()) {}
 }
 
 const std::string CPU::PrintRegisters(bool hex) {

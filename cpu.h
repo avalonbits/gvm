@@ -28,7 +28,7 @@ class CPU {
   const bool Step();
   void Run();
 
-  const std::string PrintRegisters(bool hex);
+  const std::string PrintRegisters(bool hex = false);
   const std::string PrintMemory(uint32_t from, uint32_t to);
   const std::string PrintStatusFlags();
 
