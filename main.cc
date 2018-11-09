@@ -11,11 +11,15 @@ int main(void) {
       gvm::MovRI(1, 32),
       gvm::AddRR(0, 0, 1),
       gvm::MovRI(14, 0x1000),
-      gvm::Jmp(0x1FF0)
+      gvm::Jmp(0x3FF0)
+  });
+
+  cpu->LoadProgram(0x4000, {
+      gvm::StorRR(14, 0),
+      gvm::Jmp(-0x2004)
   });
 
   cpu->LoadProgram(0x2000, {
-      gvm::StorRR(14, 0),
       gvm::StorRI(0x1004, 1),
       gvm::LoadRI(2, 0x1004),
       gvm::LoadRI(3, 0x1000),

@@ -69,7 +69,7 @@ Word SubRR(uint32_t dest, uint32_t op1, uint32_t op2) {
 }
 
 Word Jmp(uint32_t memaddr) {
-  assert(memaddr == (memaddr & 0xFFFFFF));
+  memaddr = memaddr & 0xFFFFFF;
   return Word(ISA::JMP | memaddr << 8);
 }
 

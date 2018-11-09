@@ -111,11 +111,12 @@ void CPU::Run(uint32_t start) {
       case ISA::JMP: {
         uint32_t v = word >> 8;
         if (((word >> 23) & 1) == 1) {
-          v = ~v + 1;
+          v = ~(0xFF000000 | v) + 1;
           pc_ = pc_ - v/kWordSize - 1;
         } else {
           pc_ = pc_ + v/kWordSize - 1;
         }
+        std::cerr << "0x" << std::hex << (pc_*4) << "\n";
         break;
       }
       default:
