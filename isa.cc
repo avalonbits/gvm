@@ -103,4 +103,13 @@ Word Jle(uint32_t memaddr) {
   return Word(ISA::JLE | memaddr << 8);
 }
 
+Word Call(uint32_t memaddr) {
+  memaddr = memaddr & 0xFFFFFF;
+  return Word(ISA::CALL | memaddr << 8);
+}
+
+Word Ret() {
+  return Word(ISA::RET);  
+}
+
 }  // namespace gvm

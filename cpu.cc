@@ -66,11 +66,13 @@ void CPU::Run() {
   Run(0);
 }
 
+
 void CPU::Run(uint32_t start) {
   assert(start % kTotalWords == 0);
   start = start / kWordSize;
   assert(start < kTotalWords);
   for (pc_ = start; pc_ < kTotalWords; ++pc_) {
+    std::cerr << "0x" << std::hex << (pc_*kWordSize) << "\n";
     const auto& word = mem_[pc_];
     switch (word & 0xFF) {  // first 8 bits define the instruction.
       case ISA::HALT:
@@ -138,10 +140,17 @@ void CPU::Run(uint32_t start) {
           pc_ = pc_ + reladdr(word >> 8) - 1;
         }
         break;
-       case ISA::JLE:
+      case ISA::JLE:
         if (IsSetZ(sflags_) || IsSetN(sflags_)) {
           pc_ = pc_ + reladdr(word >> 8) - 1;
         }
+        break;
+      case ISA::CALL:
+        mem_[--sp_] = pc_;
+        pc_ = pc_ + reladdr(word >> 8) - 1;
+        break;
+      case ISA::RET:
+        pc_ = mem_[sp_++];
         break;
       default:
         assert(false);

@@ -7,11 +7,19 @@
 int main(void) {
   std::unique_ptr<gvm::CPU> cpu(new gvm::CPU());
   cpu->LoadProgram(0, {
-      gvm::MovRI(0, -16),
+      gvm::MovRI(12, -16),
+      gvm::MovRI(13, 1),
+      gvm::Call(0x7FF8),
       gvm::MovRI(1, 32),
       gvm::AddRR(0, 0, 1),
       gvm::MovRI(14, 0x1000),
-      gvm::Jmp(0x3FF0)
+      gvm::Jmp(0x3FE8)
+  });
+
+  cpu->LoadProgram(0x8000, {
+      gvm::AddRR(12, 12, 13),
+      gvm::Jne(-4),
+      gvm::Ret(), 
   });
 
   cpu->LoadProgram(0x4000, {

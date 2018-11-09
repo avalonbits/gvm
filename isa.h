@@ -30,6 +30,8 @@ enum ISA {
     JGE     = 18,  // 0b00010010
     JLT     = 19,  // 0b00010011
     JLE     = 20,  // 0b00010100
+    CALL    = 21,  // 0b00010101
+    RET     = 22,  // 0b00010110
 };
 
 typedef uint32_t Word;
@@ -51,7 +53,8 @@ Word Jgt(uint32_t memaddr);
 Word Jge(uint32_t memaddr);
 Word Jlt(uint32_t memaddr);
 Word Jle(uint32_t memaddr);
-
+Word Call(uint32_t memaddr);
+Word Ret();
 }  // namepsace gvm
 
 #endif
