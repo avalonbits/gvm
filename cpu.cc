@@ -41,7 +41,7 @@ void CPU::Run(uint32_t start) {
   assert(start < kTotalWords);
   for (pc_ = start; pc_ < kTotalWords; ++pc_) {
     const auto& word = mem_[pc_];
-    switch (word & 0xFF) {  // first 8 bits define the instruction
+    switch (word & 0xFF) {  // first 8 bits define the instruction.
       case ISA::HALT:
         return;
         break;
