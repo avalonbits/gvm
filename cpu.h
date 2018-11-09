@@ -33,6 +33,7 @@ class CPU {
   uint32_t pc_;
   uint32_t reg_[kRegCount];
   uint32_t mem_[kTotalWords];
+  uint8_t sflags_;
 };
 
 }  // namespace gvm

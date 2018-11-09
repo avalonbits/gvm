@@ -11,7 +11,7 @@ int main(void) {
       gvm::MovRI(1, 32),
       gvm::AddRR(0, 0, 1),
       gvm::MovRI(14, 0x1000),
-      gvm::Jmp(0x2000)
+      gvm::Jmp(0x1FF0)
   });
 
   cpu->LoadProgram(0x2000, {
