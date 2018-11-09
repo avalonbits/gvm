@@ -83,5 +83,24 @@ Word Jeq(uint32_t memaddr) {
   return Word(ISA::JEQ | memaddr << 8);
 }
 
+Word Jgt(uint32_t memaddr) {
+  memaddr = memaddr & 0xFFFFFF;
+  return Word(ISA::JGT | memaddr << 8);
+}
+
+Word Jge(uint32_t memaddr) {
+  memaddr = memaddr & 0xFFFFFF;
+  return Word(ISA::JGE | memaddr << 8);
+}
+
+Word Jlt(uint32_t memaddr) {
+  memaddr = memaddr & 0xFFFFFF;
+  return Word(ISA::JLT | memaddr << 8);
+}
+
+Word Jle(uint32_t memaddr) {
+  memaddr = memaddr & 0xFFFFFF;
+  return Word(ISA::JLE | memaddr << 8);
+}
 
 }  // namespace gvm

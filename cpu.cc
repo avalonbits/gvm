@@ -122,6 +122,27 @@ void CPU::Run(uint32_t start) {
         break;
       case ISA::JEQ:
         if (IsSetZ(sflags_)) pc_ = pc_ + reladdr(word >> 8) - 1;
+        break;
+      case ISA::JGT:
+        if (!IsSetZ(sflags_) && !IsSetN(sflags_)) {
+          pc_ = pc_ + reladdr(word >> 8) - 1;
+        }
+        break;
+       case ISA::JGE:
+        if (IsSetZ(sflags_) || !IsSetN(sflags_)) {
+          pc_ = pc_ + reladdr(word >> 8) - 1;
+        }
+        break;
+      case ISA::JLT:
+        if (!IsSetZ(sflags_) && IsSetN(sflags_)) {
+          pc_ = pc_ + reladdr(word >> 8) - 1;
+        }
+        break;
+       case ISA::JLE:
+        if (IsSetZ(sflags_) || IsSetN(sflags_)) {
+          pc_ = pc_ + reladdr(word >> 8) - 1;
+        }
+        break;
       default:
         assert(false);
     }

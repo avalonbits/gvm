@@ -26,6 +26,10 @@ enum ISA {
     SUB_RI  = 14,  // 0b00001110
     JNE     = 15,  // 0b00001111
     JEQ     = 16,  // 0b00010000
+    JGT     = 17,  // 0b00010001
+    JGE     = 18,  // 0b00010010
+    JLT     = 19,  // 0b00010011
+    JLE     = 20,  // 0b00010100
 };
 
 typedef uint32_t Word;
@@ -43,6 +47,10 @@ Word AddRR(uint32_t dest, uint32_t op1, uint32_t op2);
 Word SubRR(uint32_t dest, uint32_t op1, uint32_t op2);
 Word Jmp(uint32_t memaddr);
 Word Jne(uint32_t memaddr);
+Word Jgt(uint32_t memaddr);
+Word Jge(uint32_t memaddr);
+Word Jlt(uint32_t memaddr);
+Word Jle(uint32_t memaddr);
 
 }  // namepsace gvm
 
