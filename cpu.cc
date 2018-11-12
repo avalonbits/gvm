@@ -20,6 +20,12 @@ constexpr uint32_t reg2(uint32_t word) {
 constexpr uint32_t reg3(uint32_t word) {
   return (word >> 16) & 0xF;
 }
+constexpr uint32_t v16bit(uint32_t word) {
+  return (word >> 16) & 0xFFFF;
+}
+constexpr uint32_t ext16bit(uint32_t word) {
+  return (0x00008000 & word) ? (0xFFFF0000 | word) : word;
+}
 
 constexpr void SetZ(uint8_t& flag, bool zero) {
   if (zero) {
@@ -104,11 +110,17 @@ const bool CPU::Step() {
     case ISA::LOAD_RI:
       reg_[reg1(word)] = mem_[((word >> 12) & 0xFFFFF)/kWordSize];
       break;
+    case ISA::LOAD_IX:
+      reg_[reg1(word)] = mem_[(reg_[reg2(word)] + v16bit(word))/kWordSize];
+      break;
     case ISA::STOR_RR:
       mem_[reg_[reg1(word)]/kWordSize] = reg_[reg2(word)];
       break;
     case ISA::STOR_RI:
       mem_[((word >> 12) & 0xFFFFF)/kWordSize] = reg_[reg1(word)];
+      break;
+    case ISA::STOR_IX:
+      mem_[(reg_[reg1(word)] + v16bit(word))/kWordSize] = reg_[reg2(word)];
       break;
     case ISA::ADD_RR: {
       const uint32_t v = reg_[reg2(word)] + reg_[reg3(word)];
@@ -117,8 +129,23 @@ const bool CPU::Step() {
       SetN(sflags_, v >> 31 == 1);
       break;
     }
+    case ISA::ADD_RI: {
+      const uint32_t v = reg_[reg2(word)] + v16bit(word);
+      reg_[reg1(word)] = v;
+      SetZ(sflags_, v == 0);
+      SetN(sflags_, v >> 31 == 1);
+      break;
+    }
     case ISA::SUB_RR: {
       const uint32_t op2 = (~reg_[reg3(word)] + 1);
+      const uint32_t v = reg_[reg2(word)] + op2;
+      reg_[reg1(word)] = v;
+      SetZ(sflags_, v == 0);
+      SetN(sflags_, v >> 31 == 1);
+      break;
+    }
+    case ISA::SUB_RI: {
+      const uint32_t op2 = (~v16bit(word) + 1);
       const uint32_t v = reg_[reg2(word)] + op2;
       reg_[reg1(word)] = v;
       SetZ(sflags_, v == 0);
@@ -164,6 +191,33 @@ const bool CPU::Step() {
       sp_ = fp_;
       fp_ = mem_[sp_++];
       pc_ = mem_[sp_++];
+      break;
+    case ISA::AND_RR:
+      reg_[reg1(word)] = reg_[reg2(word)] & reg_[reg2(word)];
+      break;
+    case ISA::AND_RI:
+      reg_[reg1(word)] = reg_[reg2(word)] & ext16bit(v16bit(word));
+      break;
+    case ISA::ORR_RR:
+      reg_[reg1(word)] = reg_[reg2(word)] | reg_[reg2(word)];
+      break;
+    case ISA::ORR_RI:
+      reg_[reg1(word)] = reg_[reg2(word)] | ext16bit(v16bit(word));
+      break;
+    case ISA::XOR_RR:
+      reg_[reg1(word)] = reg_[reg2(word)] ^ reg_[reg2(word)];
+      break;
+    case ISA::XOR_RI:
+      reg_[reg1(word)] = reg_[reg2(word)] ^ ext16bit(v16bit(word));
+      break;
+    case ISA::LSL_RR:
+      reg_[reg1(word)] = reg_[reg2(word)] << reg_[reg2(word)];
+      break;
+    case ISA::LSR_RR:
+      reg_[reg1(word)] = reg_[reg2(word)] >> reg_[reg2(word)];
+      break;
+    case ISA::ASR_RR:
+      reg_[reg1(word)] = static_cast<int32_t>(reg_[reg2(word)]) >> reg_[reg2(word)];
       break;
     default:
       assert(false);
