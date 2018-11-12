@@ -32,6 +32,15 @@ enum ISA {
     JLE     = 20,  // 0b00010100
     CALL    = 21,  // 0b00010101
     RET     = 22,  // 0b00010110
+    AND_RR  = 23,  // 0b00010111
+    AND_RI  = 24,  // 0b00011000
+    ORR_RR  = 25,  // 0b00011001
+    ORR_RI  = 26,  // 0b00011010
+    XOR_RR  = 27,  // 0b00011011
+    XOR_RI  = 28,  // 0b00011100
+    LSL     = 29,  // 0b00011101
+    LSR     = 30,  // 0b00011110
+    ASR     = 31,  // 0b00011111
 };
 
 typedef uint32_t Word;
@@ -42,11 +51,14 @@ Word MovRR(uint32_t dest, uint32_t src);
 Word MovRI(uint32_t dest, uint32_t value);
 Word LoadRI(uint32_t dest, uint32_t memadr);
 Word LoadRR(uint32_t dest, uint32_t src);
+Word LoadIX(uint32_t dest, uint32_t src, uint32_t offset);
 Word StorRI(uint32_t memaddr, uint32_t src);
 Word StorRR(uint32_t dest, uint32_t src);
-Word StorIX(uint32_t dest, uint32_t offset, uint32_t src);
+Word StorIX(uint32_t dest, uint32_t src, uint32_t offset);
 Word AddRR(uint32_t dest, uint32_t op1, uint32_t op2);
+Word AddRI(uint32_t dest, uint32_t op1, uint32_t value);
 Word SubRR(uint32_t dest, uint32_t op1, uint32_t op2);
+Word SubRI(uint32_t dest, uint32_t op1, uint32_t value);
 Word Jmp(uint32_t memaddr);
 Word Jne(uint32_t memaddr);
 Word Jgt(uint32_t memaddr);
@@ -57,4 +69,4 @@ Word Call(uint32_t memaddr);
 Word Ret();
 }  // namepsace gvm
 
-#endif
+#endif  // _GVM_ISA_H_

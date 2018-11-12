@@ -47,4 +47,4 @@ class CPU {
 
 }  // namespace gvm
 
-#endif
+#endif  // _GVM_CPU_H_

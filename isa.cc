@@ -41,6 +41,13 @@ Word LoadRR(uint32_t dest, uint32_t src) {
   return Word(ISA::LOAD_RR | dest << 8 | src << 12);
 }
 
+Word LoadIX(uint32_t dest, uint32_t src, uint32_t offset) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  offset = offset & 0xFFFF;
+  return Word(ISA::LOAD_IX | dest << 8 | src << 12  | offset << 16);
+}
+
 Word StorRI(uint32_t memaddr, uint32_t src) {
   assert((memaddr & 0xFFFFF) == memaddr);
   assert(memaddr % kWordSize == 0);  // kWordSize aligned memory.
@@ -54,6 +61,13 @@ Word StorRR(uint32_t dest, uint32_t src) {
   return Word(ISA::STOR_RR | dest << 8 | src << 12);
 }
 
+Word StorIX(uint32_t dest, uint32_t src, uint32_t offset) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  offset = offset & 0xFFFF;
+  return Word(ISA::STOR_IX | dest << 8 | src << 12  | offset << 16);
+}
+
 Word AddRR(uint32_t dest, uint32_t op1, uint32_t op2) {
   assert(dest < kRegCount);
   assert(op1 < kRegCount);
@@ -61,11 +75,25 @@ Word AddRR(uint32_t dest, uint32_t op1, uint32_t op2) {
   return Word(ISA::ADD_RR | dest << 8 | op1 << 12 | op2 << 16);
 }
 
+Word AddRI(uint32_t dest, uint32_t op1, uint32_t value) {
+  assert(dest < kRegCount);
+  assert(op1 < kRegCount);
+  value = value & 0xFFFF;
+  return Word(ISA::ADD_RI | dest << 8 | op1 << 12 | value << 16);
+}
+
 Word SubRR(uint32_t dest, uint32_t op1, uint32_t op2) {
   assert(dest < kRegCount);
   assert(op1 < kRegCount);
   assert(op2 < kRegCount);
   return Word(ISA::SUB_RR | dest << 8 | op1 << 12 | op2 << 16);
+}
+
+Word SubRI(uint32_t dest, uint32_t op1, uint32_t value) {
+  assert(dest < kRegCount);
+  assert(op1 < kRegCount);
+  value = value & 0xFFFF;
+  return Word(ISA::SUB_RI | dest << 8 | op1 << 12 | value << 16);
 }
 
 Word Jmp(uint32_t memaddr) {
@@ -109,7 +137,7 @@ Word Call(uint32_t memaddr) {
 }
 
 Word Ret() {
-  return Word(ISA::RET);  
+  return Word(ISA::RET);
 }
 
 }  // namespace gvm
