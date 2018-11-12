@@ -140,4 +140,67 @@ Word Ret() {
   return Word(ISA::RET);
 }
 
+Word AndRR(uint32_t dest, uint32_t op1, uint32_t op2) {
+  assert(dest < kRegCount);
+  assert(op1 < kRegCount);
+  assert(op2 < kRegCount);
+  return Word(ISA::AND_RR | dest << 8 | op1 << 12 | op2 << 16);
+}
+
+Word AndRI(uint32_t dest, uint32_t op1, uint32_t value) {
+  assert(dest < kRegCount);
+  assert(op1 < kRegCount);
+  value = value & 0xFFFF;
+  return Word(ISA::AND_RI | dest << 8 | op1 << 12 | value << 16);
+}
+
+Word OrrRR(uint32_t dest, uint32_t op1, uint32_t op2) {
+  assert(dest < kRegCount);
+  assert(op1 < kRegCount);
+  assert(op2 < kRegCount);
+  return Word(ISA::ORR_RR | dest << 8 | op1 << 12 | op2 << 16);
+}
+
+Word OrrRI(uint32_t dest, uint32_t op1, uint32_t value) {
+  assert(dest < kRegCount);
+  assert(op1 < kRegCount);
+  value = value & 0xFFFF;
+  return Word(ISA::ORR_RI | dest << 8 | op1 << 12 | value << 16);
+}
+
+Word XorRR(uint32_t dest, uint32_t op1, uint32_t op2) {
+  assert(dest < kRegCount);
+  assert(op1 < kRegCount);
+  assert(op2 < kRegCount);
+  return Word(ISA::XOR_RR | dest << 8 | op1 << 12 | op2 << 16);
+}
+
+Word XorRI(uint32_t dest, uint32_t op1, uint32_t value) {
+  assert(dest < kRegCount);
+  assert(op1 < kRegCount);
+  value = value & 0xFFFF;
+  return Word(ISA::XOR_RI | dest << 8 | op1 << 12 | value << 16);
+}
+
+Word LslRR(uint32_t dest, uint32_t src, uint32_t offset) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  assert(offset < kRegCount);
+  return Word(ISA::LSL_RR | dest << 8 | src << 12 | offset  << 16);
+}
+
+Word LsrRR(uint32_t dest, uint32_t src, uint32_t offset) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  assert(offset < kRegCount);
+  return Word(ISA::LSR_RR | dest << 8 | src << 12 | offset  << 16);
+}
+
+Word AsrRR(uint32_t dest, uint32_t src, uint32_t offset) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  assert(offset < kRegCount);
+  return Word(ISA::ASR_RR | dest << 8 | src << 12 | offset  << 16);
+}
+
 }  // namespace gvm
