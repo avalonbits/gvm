@@ -1,6 +1,7 @@
 #include <chrono>
 #include <iostream>
 #include <memory>
+#include <SDL2/SDL.h>
 
 #include "cpu.h"
 #include "cxxopts.hpp"
@@ -13,6 +14,11 @@ int main(int argc, char* argv[]) {
       ("runs", "Number of runs to execute the code.", cxxopts::value<uint32_t>())
       ;
   auto result = options.parse(argc, argv);
+
+  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+    std::cerr << "SDL_Init Error: " << SDL_GetError() << "\n";
+    return -1;
+  }
 
   std::unique_ptr<gvm::CPU> cpu(new gvm::CPU());
   cpu->LoadProgram(0, {
@@ -69,4 +75,6 @@ int main(int argc, char* argv[]) {
     std::cerr << "Average program time: " << prog_time << "ns.\n";
     std::cerr << "Average instruction time: " << instruction_time << "ns.\n";
   }
+
+  SDL_Quit();
 }

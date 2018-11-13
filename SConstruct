@@ -1,3 +1,4 @@
 ccflags = ['-g', '-O3', '-Wall', '-Werror', '-std=c++14']
-env = Environment(CCFLAGS=' '.join(ccflags))
+libs = ['SDL2']
+env = Environment(CCFLAGS=' '.join(ccflags), LIBS=libs)
 env.Program('gvm', Glob('*.cc'))
