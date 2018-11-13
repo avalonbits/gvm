@@ -1,7 +1,6 @@
-#include <chrono>
 #include <iostream>
 #include <memory>
-#include <SDL2/SDL.h>
+#include <SFML/Graphics.hpp>
 
 #include "cpu.h"
 #include "cxxopts.hpp"
@@ -15,10 +14,13 @@ int main(int argc, char* argv[]) {
       ;
   auto result = options.parse(argc, argv);
 
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-    std::cerr << "SDL_Init Error: " << SDL_GetError() << "\n";
-    return -1;
-  }
+  sf::RenderWindow window(sf::VideoMode(1280, 720), "SFML works!");
+  window.setVerticalSyncEnabled(true);
+  sf::CircleShape shape(360.f);
+  shape.setFillColor(sf::Color::Green);
+  window.clear();
+  window.draw(shape);
+  window.display();
 
   std::unique_ptr<gvm::CPU> cpu(new gvm::CPU());
   cpu->LoadProgram(0, {
@@ -51,30 +53,24 @@ int main(int argc, char* argv[]) {
       gvm::AddRR(12, 12, 14),
       gvm::Halt()
   });
-  if (result.count("benchmark") == 0 || !result["benchmark"].as<bool>()) {
-    cpu->Run();
-    std::cerr << cpu->PrintRegisters(/*hex=*/true);
-    std::cerr << cpu->PrintMemory(0x1000, 0x1004);
-    std::cerr << cpu->PrintStatusFlags();
-  } else {
-    const auto instruction_count = cpu->Run();
-    const auto start = std::chrono::high_resolution_clock::now();
-    const uint32_t runs = result.count("runs") == 0
-        ? 1 << 20
-        : result["runs"].as<uint32_t>();
-    for (uint32_t i = 0; i < runs; ++i) {
-      cpu->SetPC(0);
-      while (cpu->Step()) {}
+
+  // run the program as long as the window is open
+  bool cpu_done = false;
+  while (window.isOpen()) {
+  	// check all the window's events that were triggered since the
+    // last iteration of the loop
+    sf::Event event;
+    while (window.pollEvent(event)) {
+      // "close requested" event: we close the window
+      if (event.type == sf::Event::Closed) {
+        window.close();
+      }
     }
-    const auto end = std::chrono::high_resolution_clock::now();
-    const std::chrono::nanoseconds diff = end - start;
-    const auto prog_time = static_cast<double>(diff.count()) / runs;
-    const auto instruction_time = prog_time / instruction_count;
-
-    std::cerr << "Instruction count: " << instruction_count << "\n";
-    std::cerr << "Average program time: " << prog_time << "ns.\n";
-    std::cerr << "Average instruction time: " << instruction_time << "ns.\n";
+    cpu_done = cpu_done || cpu->Step();
   }
+  std::cerr << cpu->PrintRegisters(/*hex=*/true);
+  std::cerr << cpu->PrintMemory(0x1000, 0x1004);
+  std::cerr << cpu->PrintStatusFlags();
 
-  SDL_Quit();
+  return 0;
 }
