@@ -5,6 +5,7 @@
 #include "cpu.h"
 #include "cxxopts.hpp"
 #include "isa.h"
+#include "video_display.h"
 
 int main(int argc, char* argv[]) {
   cxxopts::Options options("gvm", "A 32-bit virtual machine.");
@@ -13,14 +14,7 @@ int main(int argc, char* argv[]) {
       ("runs", "Number of runs to execute the code.", cxxopts::value<uint32_t>())
       ;
   auto result = options.parse(argc, argv);
-
-  sf::RenderWindow window(sf::VideoMode(1280, 720), "SFML works!");
-  window.setVerticalSyncEnabled(true);
-  sf::CircleShape shape(360.f);
-  shape.setFillColor(sf::Color::Green);
-  window.clear();
-  window.draw(shape);
-  window.display();
+  gvm::VideoDisplay display(1280, 720);
 
   std::unique_ptr<gvm::CPU> cpu(new gvm::CPU());
   cpu->LoadProgram(0, {
@@ -36,7 +30,7 @@ int main(int argc, char* argv[]) {
   cpu->LoadProgram(0x8000, {
       gvm::AddRR(12, 12, 13),
       gvm::Jne(-4),
-      gvm::Ret(), 
+      gvm::Ret(),
   });
 
   cpu->LoadProgram(0x4000, {
@@ -54,20 +48,8 @@ int main(int argc, char* argv[]) {
       gvm::Halt()
   });
 
-  // run the program as long as the window is open
-  bool cpu_done = false;
-  while (window.isOpen()) {
-  	// check all the window's events that were triggered since the
-    // last iteration of the loop
-    sf::Event event;
-    while (window.pollEvent(event)) {
-      // "close requested" event: we close the window
-      if (event.type == sf::Event::Closed) {
-        window.close();
-      }
-    }
-    cpu_done = cpu_done || cpu->Step();
-  }
+  display.RenderLoop();
+
   std::cerr << cpu->PrintRegisters(/*hex=*/true);
   std::cerr << cpu->PrintMemory(0x1000, 0x1004);
   std::cerr << cpu->PrintStatusFlags();
