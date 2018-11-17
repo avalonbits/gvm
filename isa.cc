@@ -189,6 +189,13 @@ Word LslRR(uint32_t dest, uint32_t src, uint32_t offset) {
   return Word(ISA::LSL_RR | dest << 8 | src << 12 | offset  << 16);
 }
 
+Word LslRI(uint32_t dest, uint32_t src, uint32_t value) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  value = 0xFFFF;
+  return Word(ISA::LSL_RI | dest << 8 | src << 12 | value  << 16);
+}
+
 Word LsrRR(uint32_t dest, uint32_t src, uint32_t offset) {
   assert(dest < kRegCount);
   assert(src < kRegCount);
@@ -196,11 +203,25 @@ Word LsrRR(uint32_t dest, uint32_t src, uint32_t offset) {
   return Word(ISA::LSR_RR | dest << 8 | src << 12 | offset  << 16);
 }
 
+Word LsrRI(uint32_t dest, uint32_t src, uint32_t value) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  value = 0xFFFF;
+  return Word(ISA::LSR_RI | dest << 8 | src << 12 | value  << 16);
+}
+
 Word AsrRR(uint32_t dest, uint32_t src, uint32_t offset) {
   assert(dest < kRegCount);
   assert(src < kRegCount);
   assert(offset < kRegCount);
   return Word(ISA::ASR_RR | dest << 8 | src << 12 | offset  << 16);
+}
+
+Word AsrRI(uint32_t dest, uint32_t src, uint32_t value) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  value = 0xFFFF;
+  return Word(ISA::ASR_RI | dest << 8 | src << 12 | value  << 16);
 }
 
 }  // namespace gvm

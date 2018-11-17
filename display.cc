@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
     uint32_t word = 0;
     int w = 0;
     for (int i = 0; i < 16; i++) {
-      const int byte = (toInt(str[2*i]) << 4) | toInt(str[2*i+1]) & 0XFF;
+      const int byte = ((toInt(str[2*i]) << 4) | toInt(str[2*i+1])) & 0x0F;
       word = word | (byte << w);
       w += 8;
       if (w == 32) {
@@ -58,8 +58,6 @@ int main(int argc, char* argv[]) {
 
   window.display();
 
-  // run the program as long as the window is open
-  bool cpu_done = false;
   while (window.isOpen()) {
   	// check all the window's events that were triggered since the
     // last iteration of the loop

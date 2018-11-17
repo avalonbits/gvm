@@ -39,8 +39,12 @@ enum ISA {
     XOR_RR  = 27,  // 0b00011011
     XOR_RI  = 28,  // 0b00011100
     LSL_RR  = 29,  // 0b00011101
-    LSR_RR  = 30,  // 0b00011110
-    ASR_RR  = 31,  // 0b00011111
+    LSL_RI  = 30,  // 0b00011110
+    LSR_RR  = 31,  // 0b00011111
+    LSR_RI  = 32,  // 0b00100000
+    ASR_RR  = 33,  // 0b00100001
+    ASR_RI  = 34,  // 0b00100010
+
 };
 
 typedef uint32_t Word;
@@ -74,9 +78,11 @@ Word OrrRI(uint32_t dest, uint32_t op1, uint32_t value);
 Word XorRR(uint32_t dest, uint32_t op1, uint32_t op2);
 Word XorRI(uint32_t dest, uint32_t op1, uint32_t value);
 Word LslRR(uint32_t dest, uint32_t src, uint32_t offset);
+Word LslRI(uint32_t dest, uint32_t src, uint32_t value);
 Word LsrRR(uint32_t dest, uint32_t src, uint32_t offset);
+Word LsrRI(uint32_t dest, uint32_t src, uint32_t value);
 Word AsrRR(uint32_t dest, uint32_t src, uint32_t offset);
-
+Word AsrRI(uint32_t dest, uint32_t src, uint32_t value);
 }  // namepsace gvm
 
 #endif  // _GVM_ISA_H_
