@@ -1,5 +1,7 @@
 #include <iostream>
 #include <memory>
+#include <thread>
+
 #include <SFML/Graphics.hpp>
 
 #include "cpu.h"
@@ -15,6 +17,10 @@ int main(int argc, char* argv[]) {
       ;
   auto result = options.parse(argc, argv);
   gvm::VideoDisplay display(1280, 720);
+  std::thread video_thread([&display]() {
+    // Runs forever until the window is closed or shutdown is called.
+    display.RenderLoop();
+  });
 
   std::unique_ptr<gvm::CPU> cpu(new gvm::CPU());
   cpu->LoadProgram(0, {
@@ -48,11 +54,12 @@ int main(int argc, char* argv[]) {
       gvm::Halt()
   });
 
-  display.RenderLoop();
-
   std::cerr << cpu->PrintRegisters(/*hex=*/true);
   std::cerr << cpu->PrintMemory(0x1000, 0x1004);
   std::cerr << cpu->PrintStatusFlags();
+
+  video_thread.join();
+
 
   return 0;
 }
