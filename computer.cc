@@ -19,7 +19,7 @@ void Computer::Run() {
     cpu_->Run();
   });
   std::thread video_thread([this]() {
-    video_display_->RenderLoop();
+    video_controller_->Run();
   });
 
   cpu_thread.join();

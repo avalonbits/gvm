@@ -10,6 +10,13 @@
 
 namespace gvm {
 
+static const uint32_t kVideoMemReg = 0x00;
+static const uint32_t kVideoMemStart = 0x400;
+static const uint32_t kVideoMemSizeWords = 800 * 450;
+static const uint32_t kVideoMemEnd = kVideoMemStart + kVideoMemSizeWords;
+static const int kFrameBufferW = 800;
+static const int kFrameBufferH = 450;
+
 namespace {
 constexpr uint32_t reg1(uint32_t word) {
   return (word >> 8) & 0xF;
@@ -84,6 +91,11 @@ void CPU::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes) {
   fp_ = sp_ = mem_size_;
 }
 
+void CPU::RegisterVideoDMA(VideoController* controller) {
+  assert(controller != nullptr);
+  controller->RegisterDMA(kVideoMemReg, kVideoMemStart, kFrameBufferW,
+                          kFrameBufferH, 32, mem_);
+}
 
 void CPU::LoadProgram(uint32_t start, const std::vector<Word>& program) {
   start = start / kWordSize;

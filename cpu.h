@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "isa.h"
+#include "video_controller.h"
 
 namespace gvm {
 class CPU {
@@ -17,6 +18,7 @@ class CPU {
   CPU& operator=(const CPU&) = delete;
 
   void ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes);
+  void RegisterVideoDMA(VideoController* controller);
   void LoadProgram(uint32_t start, const std::vector<Word>& program);
   void SetPC(uint32_t pc);
   const bool Step();

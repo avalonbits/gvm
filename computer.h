@@ -7,21 +7,22 @@
 
 #include "cpu.h"
 #include "rom.h"
-#include "video_display.h"
+#include "video_controller.h"
 
 namespace gvm {
 
 class Computer {
  public:
   // Owns cpu and video_display.
-  Computer(uint32_t mem_size_bytes, CPU* cpu, VideoDisplay* video_display)
+  Computer(uint32_t mem_size_bytes, CPU* cpu, VideoController* video_controller)
       : mem_size_bytes_(mem_size_bytes),
         mem_(new uint32_t[mem_size_bytes/kWordSize]),
-        cpu_(cpu), video_display_(video_display) {
+        cpu_(cpu), video_controller_(video_controller) {
     assert(mem_ != nullptr);
     assert(cpu_ != nullptr);
-    assert(video_display_ != nullptr);
+    assert(video_controller_ != nullptr);
     cpu_->ConnectMemory(mem_.get(), mem_size_bytes);
+    cpu_->RegisterVideoDMA(video_controller);
   }
 
   // Takes ownership of rom.
@@ -34,7 +35,7 @@ class Computer {
   const uint32_t mem_size_bytes_;
   std::unique_ptr<uint32_t> mem_;
   std::unique_ptr<CPU> cpu_;
-  std::unique_ptr<VideoDisplay> video_display_;
+  std::unique_ptr<VideoController> video_controller_;
   std::vector<std::pair<uint32_t, std::unique_ptr<Rom>>> roms_;
 };
 

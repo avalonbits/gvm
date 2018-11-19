@@ -17,9 +17,10 @@ int main(int argc, char* argv[]) {
       ;
   auto result = options.parse(argc, argv);
   auto* display = new gvm::VideoDisplay(1280, 720);
-  const uint32_t mem_size = 256 << 20;  // 245MiB
+  auto* controller = new gvm::VideoController(display);
+  const uint32_t mem_size = 256 << 20;  // 256MiB
   auto* cpu = new gvm::CPU();
-  gvm::Computer computer(mem_size, cpu, display);
+  gvm::Computer computer(mem_size, cpu, controller);
 
   computer.LoadRom(0, new gvm::Rom({
       gvm::MovRI(12, -16),
