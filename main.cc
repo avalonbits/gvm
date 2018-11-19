@@ -19,28 +19,52 @@ int main(int argc, char* argv[]) {
 
   const uint32_t user_offset = 16 << 20;
   computer.LoadRom(user_offset, new gvm::Rom({
-      gvm::MovRI(0, 0xFF),
-      gvm::LslRI(0, 0, 24),
-      gvm::OrrRI(0, 0, 0xFF),
-      gvm::StorRI(0x400, 0),
-      gvm::StorRI(0x404, 0),
-      gvm::StorRI(0x408, 0),
-      gvm::StorRI(0x40C, 0),
-      gvm::StorRI(0x410, 0),
-      gvm::StorRI(0x414, 0),
-      gvm::StorRI(0x418, 0),
-      gvm::StorRI(0x40C, 0),
-      gvm::StorRI(0x898, 0),
-      gvm::StorRI(0x89C, 0),
-      gvm::StorRI(0x8A0, 0),
-      gvm::StorRI(0x8A4, 0),
-      gvm::StorRI(0x8A8, 0),
-      gvm::StorRI(0x8AC, 0),
-      gvm::StorRI(0x8B0, 0),
-      gvm::StorRI(0x8B4, 0),
-      gvm::MovRI(0, 1),
-      gvm::StorRI(0, 0),
-      gvm::Halt()
+    // Load 0x15FD04 into r0
+    gvm::MovRI(0, 0x15),
+    gvm::LslRI(0, 0, 16),
+    gvm::OrrRI(0, 0, 0xFD04),
+
+    // Load 0x41 (capital A code) in to r1
+    gvm::MovRI(1, 0x41),
+
+    // Load framebuffer position to r2.
+    gvm::MovRI(2, 0x400),
+
+    // Load collor to r3
+    gvm::MovRI(3, 0xFF00),
+    gvm::LslRI(3, 3, 16),
+    gvm::OrrRI(3, 3, 0xFF),
+
+    // Let's pretend we called a function.
+
+    // Multiply r1 by 16 because each char uses 4 words.
+    gvm::LslRI(1, 1, 4),
+
+    // Now add the result with r0 to point to the correct char.
+    gvm::AddRR(0, 0, 1),
+
+    // Load the char word to r4
+    gvm::LoadRR(4, 0),
+
+    // Decrease framebuffer addr.
+    gvm::SubRI(2, 2, 4),
+
+    // Loop:
+    // Bits to shift right.
+    gvm::MovRI(5, -1),
+
+    // In word loop:
+    gvm::AddRI(2, 2, 4),   // Next framebuffer position
+    gvm::AddRI(5, 5, 1),   // bits to shift increase.
+    gvm::SubRI(6, 5, 32),  // Check we exausted word.
+    gvm::Jeq(24),  // call halt.
+
+    gvm::LsrRR(6, 4, 5),   // shift char by r5 bits.
+    gvm::AndRI(5, 4, 0x1), // Check if it is active.
+    gvm::Jeq(-24),  // If not active, go to the next bit.
+    gvm::StorRR(2, 3),  // Store color in framebuffer
+    gvm::Jmp(-32),
+    gvm::Halt(),
   }));
 
   if (argc >= 2) {

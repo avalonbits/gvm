@@ -218,23 +218,31 @@ const bool CPU::Step() {
       fp_ = mem_[sp_++];
       pc_ = mem_[sp_++];
       break;
-    case ISA::AND_RR:
-      reg_[reg1(word)] = reg_[reg2(word)] & reg_[reg3(word)];
+    case ISA::AND_RR: {
+      const uint32_t v = reg_[reg2(word)] & reg_[reg3(word)];
+      reg_[reg1(word)] = v;
+      SetZ(sflags_, v == 0);
+      SetN(sflags_, v >> 31 == 1);
       break;
-    case ISA::AND_RI:
-      reg_[reg1(word)] = reg_[reg2(word)] & ext16bit(v16bit(word));
+    }
+    case ISA::AND_RI: {
+      const uint32_t v = reg_[reg2(word)] & v16bit(word);
+      reg_[reg1(word)] = v;
+      SetZ(sflags_, v == 0);
+      SetN(sflags_, v >> 31 == 1);
       break;
+    }
     case ISA::ORR_RR:
       reg_[reg1(word)] = reg_[reg2(word)] | reg_[reg3(word)];
       break;
     case ISA::ORR_RI:
-      reg_[reg1(word)] = reg_[reg2(word)] | ext16bit(v16bit(word));
+      reg_[reg1(word)] = reg_[reg2(word)] | v16bit(word);
       break;
     case ISA::XOR_RR:
       reg_[reg1(word)] = reg_[reg2(word)] ^ reg_[reg3(word)];
       break;
     case ISA::XOR_RI:
-      reg_[reg1(word)] = reg_[reg2(word)] ^ ext16bit(v16bit(word));
+      reg_[reg1(word)] = reg_[reg2(word)] ^ v16bit(word);
       break;
     case ISA::LSL_RR:
       reg_[reg1(word)] = reg_[reg2(word)] << reg_[reg2(word)];

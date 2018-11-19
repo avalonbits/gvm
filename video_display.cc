@@ -11,7 +11,9 @@ VideoDisplay::VideoDisplay() {
   maxW_ = mode.width;
   maxH_ = mode.height;
   window_.reset(new sf::RenderWindow(mode, "GVM", sf::Style::Fullscreen));
-  window_->setActive(false);
+  window_->setActive();
+  window_->clear();
+  window_->display();
 }
 
 VideoDisplay::VideoDisplay(int width, int height) {
@@ -21,7 +23,9 @@ VideoDisplay::VideoDisplay(int width, int height) {
   maxW_ = width;
   maxH_ = height;
   window_.reset(new sf::RenderWindow(sf::VideoMode(maxW_, maxH_, mode.bitsPerPixel), "GVM"));
-  window_->setActive(false);
+  window_->setActive();
+  window_->clear();
+  window_->display();
 }
 
 VideoDisplay::~VideoDisplay() {
