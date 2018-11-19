@@ -4,10 +4,16 @@
 
 namespace gvm {
 
+Rom::Rom(const std::vector<Word>& words) {
+  assert(!words.empty());
+  rom_ = words;
+}
+
 Rom::Rom(uint32_t size) {
   assert(size > 0);
   rom_.resize(size, 0);
 }
+
 bool Rom::Set(uint32_t memaddr, Word word) {
   if (memaddr % kWordSize != 0) return false;
 

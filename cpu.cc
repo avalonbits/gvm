@@ -68,26 +68,40 @@ constexpr uint32_t reladdr(const uint32_t v24bit) {
                             : v24bit/kWordSize;
 }
 
-
 }  // namespace
+
+CPU::CPU()
+    : pc_(0), sp_(reg_[kRegCount-2]), fp_(reg_[kRegCount-1]), sflags_(0) {
+  std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
+}
+
+void CPU::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes) {
+  assert(mem != nullptr);
+  mem_ = mem;
+  mem_size_ = mem_size_bytes / kWordSize;
+
+  std::memset(mem_, 0, mem_size_bytes);
+  fp_ = sp_ = mem_size_;
+}
+
 
 void CPU::LoadProgram(uint32_t start, const std::vector<Word>& program) {
   start = start / kWordSize;
   assert(!program.empty());
-  assert(program.size() + start < kTotalWords);
+  assert(program.size() + start < mem_size_);
   for (uint32_t idx = start, i = 0; i < program.size(); ++idx, i++) {
     mem_[idx] = program[i];
   }
 }
 
 void CPU::SetPC(uint32_t pc) {
-  assert(pc % kTotalWords == 0);
+  assert(pc % mem_size_ == 0);
   pc_ = pc / kWordSize;
-  assert(pc_ < kTotalWords);
+  assert(pc_ < mem_size_);
 }
 
 const bool CPU::Step() {
-  if (pc_ >= kTotalWords) return false;
+  if (pc_ >= mem_size_) return false;
   const auto& word = mem_[pc_];
   switch (word & 0xFF) {  // first 8 bits define the instruction.
     case ISA::HALT:
@@ -258,8 +272,8 @@ const std::string CPU::PrintMemory(uint32_t from, uint32_t to) {
   assert(from <= to);
   assert(from % 4 == 0);
   assert(to % 4 == 0);
-  assert(from < kTotalWords);
-  assert(to < kTotalWords);
+  assert(from < mem_size_);
+  assert(to < mem_size_);
 
   std::stringstream ss;
 

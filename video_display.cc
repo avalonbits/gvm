@@ -42,15 +42,14 @@ void VideoDisplay::SendData(uint32_t* data, uint32_t byte_count) {
 void VideoDisplay::config() {
   std::cerr << "Window size: " << maxX_ << "x" << maxY_ << std::endl;
   window_->setVerticalSyncEnabled(true);
-  text_scale_ = maxX_ / static_cast<double>(8.0) / static_cast<double>(120.0);  // we want to fit 120 8x16 chars per line.
+
+  // we want to fit 120 8x16 chars per line.
+  text_scale_ = maxX_ / static_cast<double>(8.0) / static_cast<double>(120.0);
   mem_size_ = ((maxX_ / text_scale_) * (maxY_ / text_scale_));
   mem_ = new uint32_t[mem_size_];
   buffer_ = new uint32_t[mem_size_];
-  for (uint32_t i = 0; i < mem_size_; ++i) {
-    mem_[i] = 0xFF00FF00;
-    mem_[i] += (i % 256);
-  }
-  std::memcpy(buffer_, mem_, mem_size_ * 4);
+  std::memset(mem_, 0, mem_size_ * 4);
+  std::memset(buffer_, 0, mem_size_ * 4);
   shutdown_ = false;
   new_buffer_ = false;
 }
@@ -65,13 +64,12 @@ void VideoDisplay::RenderLoop() {
     sf::Sprite sprite;
     sprite.setTexture(texture);
     sprite.scale(text_scale_, text_scale_);
-    int i = 0;
     while (!shutdown_.load() && window_->isOpen()) {
         if (new_buffer_.load()) {
             std::memcpy(mem_, buffer_, mem_size_ * 4);
+            new_buffer_.exchange(false);
             texture.update(reinterpret_cast<uint8_t*>(mem_));
             sprite.setTexture(texture);
-            std::cout << i++ << std::endl;
         }
 
         // check all the window's events that were triggered since the

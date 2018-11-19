@@ -1,9 +1,9 @@
 #include <iostream>
 #include <memory>
-#include <thread>
 
 #include <SFML/Graphics.hpp>
 
+#include "computer.h"
 #include "cpu.h"
 #include "cxxopts.hpp"
 #include "isa.h"
@@ -16,14 +16,12 @@ int main(int argc, char* argv[]) {
       ("runs", "Number of runs to execute the code.", cxxopts::value<uint32_t>())
       ;
   auto result = options.parse(argc, argv);
-  gvm::VideoDisplay display(1280, 720);
-  std::thread video_thread([&display]() {
-    // Runs forever until the window is closed or shutdown is called.
-    display.RenderLoop();
-  });
+  auto* display = new gvm::VideoDisplay(1280, 720);
+  const uint32_t mem_size = 256 << 20;  // 245MiB
+  auto* cpu = new gvm::CPU();
+  gvm::Computer computer(mem_size, cpu, display);
 
-  std::unique_ptr<gvm::CPU> cpu(new gvm::CPU());
-  cpu->LoadProgram(0, {
+  computer.LoadRom(0, new gvm::Rom({
       gvm::MovRI(12, -16),
       gvm::MovRI(13, 1),
       gvm::Call(0x7FF8),
@@ -31,20 +29,20 @@ int main(int argc, char* argv[]) {
       gvm::AddRR(0, 0, 1),
       gvm::MovRI(11, 0x1000),
       gvm::Jmp(0x3FE8)
-  });
+  }));
 
-  cpu->LoadProgram(0x8000, {
+  computer.LoadRom(0x8000, new gvm::Rom({
       gvm::AddRR(12, 12, 13),
       gvm::Jne(-4),
       gvm::Ret(),
-  });
+  }));
 
-  cpu->LoadProgram(0x4000, {
+  computer.LoadRom(0x4000, new gvm::Rom({
       gvm::StorRR(14, 0),
       gvm::Jmp(-0x2004)
-  });
+  }));
 
-  cpu->LoadProgram(0x2000, {
+  computer.LoadRom(0x2000, new gvm::Rom({
       gvm::StorRI(0x1004, 1),
       gvm::LoadRI(2, 0x1004),
       gvm::LoadRI(3, 0x1004),
@@ -52,14 +50,8 @@ int main(int argc, char* argv[]) {
       gvm::MovRR(12, 4),
       gvm::AddRR(12, 12, 14),
       gvm::Halt()
-  });
+  }));
 
-  std::cerr << cpu->PrintRegisters(/*hex=*/true);
-  std::cerr << cpu->PrintMemory(0x1000, 0x1004);
-  std::cerr << cpu->PrintStatusFlags();
-
-  video_thread.join();
-
-
+  computer.Run();
   return 0;
 }
