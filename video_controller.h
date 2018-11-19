@@ -23,7 +23,7 @@ class VideoController {
   uint32_t mem_reg_;
   uint32_t mem_addr_;
   uint32_t mem_size_bytes_;
-  volatile uint32_t* mem_;
+  uint32_t* mem_;
   std::unique_ptr<VideoDisplay> display_;
   std::atomic<bool> shutdown_;
 
