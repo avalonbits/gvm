@@ -11,6 +11,7 @@ VideoDisplay::VideoDisplay() {
   maxW_ = mode.width;
   maxH_ = mode.height;
   window_.reset(new sf::RenderWindow(mode, "GVM", sf::Style::Fullscreen));
+  window_->setActive(false);
 }
 
 VideoDisplay::VideoDisplay(int width, int height) {
@@ -20,6 +21,7 @@ VideoDisplay::VideoDisplay(int width, int height) {
   maxW_ = width;
   maxH_ = height;
   window_.reset(new sf::RenderWindow(sf::VideoMode(maxW_, maxH_, mode.bitsPerPixel), "GVM"));
+  window_->setActive(false);
 }
 
 VideoDisplay::~VideoDisplay() {
@@ -40,6 +42,7 @@ void VideoDisplay::SetFramebufferSize(int fWidth, int fHeight, int bpp) {
 }
 
 void VideoDisplay::Render(const uint32_t* mem) {
+  window_->setActive();
   std::memcpy(buffer_.get(), mem, buffer_size_);
   texture.update(reinterpret_cast<uint8_t*>(buffer_.get()));
   sf::Sprite sprite;
