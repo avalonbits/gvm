@@ -8,8 +8,8 @@
 namespace gvm {
 class Rom {
  public:
-  explicit Rom(uint32_t size);
   explicit Rom(const std::vector<Word>& words);
+  Rom(const Word* words, uint32_t size);
   Rom(const Rom&) = delete;
   Rom& operator=(const Rom&) = delete;
 

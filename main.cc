@@ -1,3 +1,5 @@
+#include <cassert>
+#include <fstream>
 #include <iostream>
 #include <memory>
 
@@ -5,17 +7,10 @@
 
 #include "computer.h"
 #include "cpu.h"
-#include "cxxopts.hpp"
 #include "isa.h"
 #include "video_display.h"
 
 int main(int argc, char* argv[]) {
-  cxxopts::Options options("gvm", "A 32-bit virtual machine.");
-  options.add_options()
-      ("benchmark", "Run a benchmark with the loaded program.")
-      ("runs", "Number of runs to execute the code.", cxxopts::value<uint32_t>())
-      ;
-  auto result = options.parse(argc, argv);
   auto* display = new gvm::VideoDisplay(1280, 720);
   auto* controller = new gvm::VideoController(display);
   const uint32_t mem_size = 256 << 20;  // 256MiB
@@ -47,6 +42,17 @@ int main(int argc, char* argv[]) {
       gvm::StorRI(0, 0),
       gvm::Halt()
   }));
+
+  if (argc >= 2) {
+    std::ifstream chrom(argv[1], std::ios::binary | std::ios::ate);
+    assert(chrom.is_open());
+    const auto size = chrom.tellg();
+    chrom.seekg(0, chrom.beg);
+    gvm::Word* words = new gvm::Word[size/sizeof(gvm::Word)];
+    chrom.read(reinterpret_cast<char*>(words), size);
+    chrom.close();
+    computer.LoadRom(0x15FD04, new gvm::Rom(words, size/sizeof(gvm::Word)));
+  }
 
   computer.Run();
   return 0;

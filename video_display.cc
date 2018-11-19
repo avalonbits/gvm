@@ -42,7 +42,6 @@ void VideoDisplay::SetFramebufferSize(int fWidth, int fHeight, int bpp) {
 }
 
 void VideoDisplay::Render(const uint32_t* mem) {
-  window_->setActive();
   std::memcpy(buffer_.get(), mem, buffer_size_);
   texture.update(reinterpret_cast<uint8_t*>(buffer_.get()));
   sf::Sprite sprite;
@@ -50,6 +49,7 @@ void VideoDisplay::Render(const uint32_t* mem) {
   sprite.scale(w_scale_, h_scale_);
   window_->clear();
   window_->draw(sprite);
+  window_->setActive();
   window_->display();
 }
 

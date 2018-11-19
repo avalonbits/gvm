@@ -9,9 +9,13 @@ Rom::Rom(const std::vector<Word>& words) {
   rom_ = words;
 }
 
-Rom::Rom(uint32_t size) {
+Rom::Rom(const Word* words, uint32_t size) {
   assert(size > 0);
-  rom_.resize(size, 0);
+  assert(words != nullptr);
+  rom_.reserve(size);
+  for (uint32_t i = 0; i < size; ++i) {
+    rom_.push_back(words[i]);
+  }
 }
 
 bool Rom::Set(uint32_t memaddr, Word word) {
