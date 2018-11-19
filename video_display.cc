@@ -35,13 +35,15 @@ void VideoDisplay::SetFramebufferSize(int fWidth, int fHeight, int bpp) {
   w_scale_ = maxW_ / fWidth;
   h_scale_ = maxH_ / fHeight;
   texture.create(fWidth, fHeight);
-  buffer_size_ = fWidth * fHeight * (bpp / 8);
-  buffer_.reset(new uint8_t[buffer_size_]);
+  buffer_size_ = fWidth * fHeight;
+  buffer_.reset(new uint32_t[buffer_size_]);
 }
 
-void VideoDisplay::Render(const uint32_t* mem) {
-  std::memcpy(buffer_.get(), mem, buffer_size_);
-  texture.update(buffer_.get());
+void VideoDisplay::Render(volatile const uint32_t* mem) {
+  for (uint32_t i = 0; i < buffer_size_; ++i) {
+      (buffer_.get())[i] = mem[i];
+  }
+  texture.update(reinterpret_cast<uint8_t*>(buffer_.get()));
   sf::Sprite sprite;
   sprite.setTexture(texture);
   sprite.scale(w_scale_, h_scale_);

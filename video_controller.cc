@@ -1,6 +1,7 @@
 #include "video_controller.h"
 
 #include <cassert>
+#include <iostream>
 
 #include "isa.h"
 
@@ -14,7 +15,7 @@ VideoController::VideoController(VideoDisplay* display)
 void VideoController::Run() {
   while (!shutdown_.load()) {
     shutdown_ = display_->CheckEvents();
-    if ((mem_[mem_reg_] ^ uint32_t(0x01)) == 0xFFFFFFFF) {
+    if (mem_[mem_reg_] == 1) {
       display_->Render(&mem_[mem_addr_]);
       mem_[mem_reg_] = 0;
     }
@@ -26,7 +27,7 @@ void VideoController::RegisterDMA(
     uint32_t* mem) {
   assert(mem != nullptr);
   mem_reg_ = mem_reg;
-  mem_addr_ = mem_addr_;
+  mem_addr_ = mem_addr;
   mem_ = mem;
   display_->SetFramebufferSize(fWidth, fHeight, bpp);
 }

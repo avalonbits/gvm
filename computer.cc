@@ -14,7 +14,7 @@ void Computer::Run() {
   for (const auto& rom : roms_) {
     cpu_->LoadProgram(rom.first, rom.second->Contents());
   }
-  cpu_->SetPC(0);
+  cpu_->SetPC(16 << 20);
   std::thread cpu_thread([this]() {
     cpu_->Run();
   });
@@ -26,7 +26,7 @@ void Computer::Run() {
   video_thread.join();
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
-  std::cerr << cpu_->PrintMemory(0x1000, 0x1004);
+  std::cerr << cpu_->PrintMemory(0x400, 0x904);
   std::cerr << cpu_->PrintStatusFlags();
 }
 

@@ -93,7 +93,7 @@ void CPU::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes) {
 
 void CPU::RegisterVideoDMA(VideoController* controller) {
   assert(controller != nullptr);
-  controller->RegisterDMA(kVideoMemReg, kVideoMemStart, kFrameBufferW,
+  controller->RegisterDMA(kVideoMemReg, kVideoMemStart / kWordSize, kFrameBufferW,
                           kFrameBufferH, 32, mem_);
 }
 
@@ -107,7 +107,7 @@ void CPU::LoadProgram(uint32_t start, const std::vector<Word>& program) {
 }
 
 void CPU::SetPC(uint32_t pc) {
-  assert(pc % mem_size_ == 0);
+  assert(pc % kWordSize == 0);
   pc_ = pc / kWordSize;
   assert(pc_ < mem_size_);
 }
@@ -125,8 +125,8 @@ const bool CPU::Step() {
       reg_[reg1(word)] = reg_[reg2(word)];
       break;
     case ISA::MOV_RI: {
-      uint32_t v = word >> 12;
-      if (((v >> 11) & 1) == 1) v = 0xFFFFF000 | v;
+      uint32_t v = (word >> 12);
+      if (((v >> 19) & 1) == 1) v = 0xFFF00000 | v;
       reg_[reg1(word)] = v;
       break;
     }

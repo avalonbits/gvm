@@ -14,7 +14,7 @@ class VideoDisplay {
   ~VideoDisplay();
 
   void SetFramebufferSize(int fWidth, int fHeight, int bpp);
-  void Render(const uint32_t* mem);
+  void Render(const volatile uint32_t* mem);
   bool CheckEvents();
 
  private:
@@ -26,7 +26,7 @@ class VideoDisplay {
   double w_scale_;
   double h_scale_;
   sf::Texture texture;
-  std::unique_ptr<uint8_t> buffer_;
+  std::unique_ptr<uint32_t> buffer_;
   uint32_t buffer_size_;
 };
 

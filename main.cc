@@ -22,34 +22,29 @@ int main(int argc, char* argv[]) {
   auto* cpu = new gvm::CPU();
   gvm::Computer computer(mem_size, cpu, controller);
 
-  computer.LoadRom(0, new gvm::Rom({
-      gvm::MovRI(12, -16),
-      gvm::MovRI(13, 1),
-      gvm::Call(0x7FF8),
-      gvm::MovRI(1, 32),
-      gvm::AddRR(0, 0, 1),
-      gvm::MovRI(11, 0x1000),
-      gvm::Jmp(0x3FE8)
-  }));
-
-  computer.LoadRom(0x8000, new gvm::Rom({
-      gvm::AddRR(12, 12, 13),
-      gvm::Jne(-4),
-      gvm::Ret(),
-  }));
-
-  computer.LoadRom(0x4000, new gvm::Rom({
-      gvm::StorRR(14, 0),
-      gvm::Jmp(-0x2004)
-  }));
-
-  computer.LoadRom(0x2000, new gvm::Rom({
-      gvm::StorRI(0x1004, 1),
-      gvm::LoadRI(2, 0x1004),
-      gvm::LoadRI(3, 0x1004),
-      gvm::SubRR(4, 1, 0),
-      gvm::MovRR(12, 4),
-      gvm::AddRR(12, 12, 14),
+  const uint32_t user_offset = 16 << 20;
+  computer.LoadRom(user_offset, new gvm::Rom({
+      gvm::MovRI(0, 0xFF),
+      gvm::LslRI(0, 0, 24),
+      gvm::OrrRI(0, 0, 0xFF),
+      gvm::StorRI(0x400, 0),
+      gvm::StorRI(0x404, 0),
+      gvm::StorRI(0x408, 0),
+      gvm::StorRI(0x40C, 0),
+      gvm::StorRI(0x410, 0),
+      gvm::StorRI(0x414, 0),
+      gvm::StorRI(0x418, 0),
+      gvm::StorRI(0x40C, 0),
+      gvm::StorRI(0x898, 0),
+      gvm::StorRI(0x89C, 0),
+      gvm::StorRI(0x8A0, 0),
+      gvm::StorRI(0x8A4, 0),
+      gvm::StorRI(0x8A8, 0),
+      gvm::StorRI(0x8AC, 0),
+      gvm::StorRI(0x8B0, 0),
+      gvm::StorRI(0x8B4, 0),
+      gvm::MovRI(0, 1),
+      gvm::StorRI(0, 0),
       gvm::Halt()
   }));
 
