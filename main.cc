@@ -24,9 +24,6 @@ int main(int argc, char* argv[]) {
     gvm::LslRI(0, 0, 16),
     gvm::OrrRI(0, 0, 0xFD04),
 
-    // Load 0x41 (capital A code) in to r1
-    gvm::MovRI(1, 0x41),
-
     // Load framebuffer position to r2.
     gvm::MovRI(2, 0x400),
 
@@ -35,10 +32,17 @@ int main(int argc, char* argv[]) {
     gvm::LslRI(3, 3, 16),
     gvm::OrrRI(3, 3, 0xFF),
 
-    // Let's pretend we called a function.
+    // Load 0x42 (capital B code) in to r1
+    gvm::MovRI(1, 0x42),
+    gvm::Call(user_offset+0x8000-32),
+    gvm::Halt(),
+  }));
+
+  computer.LoadRom(user_offset + 0x8000, new gvm::Rom({
+   // Let's pretend we called a function.
 
     // Decrease framebuffer addr.
-    gvm::SubRI(2, 2, 0x780),
+    gvm::SubRI(2, 2, 0xC80),
     gvm::MovRI(10, 5),
 
     // Multiply r1 by 16 because each char uses 4 words.
@@ -61,7 +65,7 @@ int main(int argc, char* argv[]) {
 
     // In word loop:
     // Move to the next line.
-    gvm::AddRI(2, 2, 0x780),
+    gvm::AddRI(2, 2, 0xC80),
 
     // Start at x pos + 8
     gvm::MovRI(7, 8*4),
@@ -85,7 +89,7 @@ int main(int argc, char* argv[]) {
     // Singal the framebuffer that we are good.
     gvm::MovRI(0, 1),
     gvm::StorRI(0x00, 0),
-    gvm::Halt(),
+    gvm::Ret(),
   }));
 
   if (argc >= 2) {
