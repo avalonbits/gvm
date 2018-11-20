@@ -37,33 +37,50 @@ int main(int argc, char* argv[]) {
 
     // Let's pretend we called a function.
 
+    // Decrease framebuffer addr.
+    gvm::SubRI(2, 2, 0x780),
+    gvm::MovRI(10, 5),
+
     // Multiply r1 by 16 because each char uses 4 words.
     gvm::LslRI(1, 1, 4),
-
-    // Now add the result with r0 to point to the correct char.
-    gvm::AddRR(0, 0, 1),
-
-    // Load the char word to r4
-    gvm::LoadRR(4, 0),
-
-    // Decrease framebuffer addr.
-    gvm::SubRI(2, 2, 4),
+    gvm::SubRI(1, 1, 4),
 
     // Loop:
+    gvm::SubRI(10, 10, 1),
+    gvm::Jeq(76),  // We are done.
+
+    // Now add the result with r0 to point to the correct char.
+    gvm::AddRI(1, 1, 4),
+    gvm::AddRR(13, 0, 1),
+
+    // Load the char word to r4
+    gvm::LoadRR(4, 13),
+
     // Bits to shift right.
     gvm::MovRI(5, -1),
 
     // In word loop:
-    gvm::AddRI(2, 2, 4),   // Next framebuffer position
-    gvm::AddRI(5, 5, 1),   // bits to shift increase.
+    // Move to the next line.
+    gvm::AddRI(2, 2, 0x780),
+
+    // Start at x pos + 8
+    gvm::MovRI(7, 8*4),
+
+    // next position in framebuffer.
+    gvm::SubRI(7, 7, 4),
+    gvm::AddRI(13, 7, 4),
+    gvm::Jeq(-16),  // Need to jump to next line
+
+    gvm::AddRI(5, 5, 1),
     gvm::SubRI(6, 5, 32),  // Check we exausted word.
-    gvm::Jeq(24),  // call halt.
+    gvm::Jeq(-52),  // Need to load the next char word.
 
     gvm::LsrRR(6, 4, 5),   // shift char by r5 bits.
     gvm::AndRI(6, 6, 0x01), // Check if it is active.
-    gvm::Jeq(-24),  // If not active, go to the next bit.
-    gvm::StorRR(2, 3),  // Store color in framebuffer
-    gvm::Jmp(-32),
+    gvm::Jeq(-32),  // If not active, go to the next bit.
+    gvm::AddRR(6, 2, 7),
+    gvm::StorRR(6, 3),  // Store color in framebuffer
+    gvm::Jmp(-44),
 
     // Singal the framebuffer that we are good.
     gvm::MovRI(0, 1),
