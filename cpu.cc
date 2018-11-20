@@ -1,6 +1,7 @@
 #include "cpu.h"
 
 #include <cassert>
+#include <cstdio>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -226,7 +227,7 @@ const bool CPU::Step() {
       break;
     }
     case ISA::AND_RI: {
-      const uint32_t v = reg_[reg2(word)] & v16bit(word);
+      const uint32_t v = (reg_[reg2(word)]) & (v16bit(word));
       reg_[reg1(word)] = v;
       SetZ(sflags_, v == 0);
       SetN(sflags_, v >> 31 == 1);
@@ -245,13 +246,13 @@ const bool CPU::Step() {
       reg_[reg1(word)] = reg_[reg2(word)] ^ v16bit(word);
       break;
     case ISA::LSL_RR:
-      reg_[reg1(word)] = reg_[reg2(word)] << reg_[reg2(word)];
+      reg_[reg1(word)] = reg_[reg2(word)] << reg_[reg3(word)];
       break;
     case ISA::LSL_RI:
       reg_[reg1(word)] = reg_[reg2(word)] << v16bit(word);
       break;
     case ISA::LSR_RR:
-      reg_[reg1(word)] = reg_[reg2(word)] >> reg_[reg2(word)];
+      reg_[reg1(word)] = reg_[reg2(word)] >> reg_[reg3(word)];
       break;
     case ISA::LSR_RI:
       reg_[reg1(word)] = reg_[reg2(word)] >> v16bit(word);
@@ -268,6 +269,21 @@ const bool CPU::Step() {
   ++pc_;
   return true;
 }
+
+uint32_t CPU::Run(const bool debug) {
+    uint32_t i = 1;
+    if (debug) std::cerr << PrintRegisters(/*hex=*/true) << std::endl;
+    while(Step()) { 
+      if (debug) {
+        std::cerr << PrintRegisters(/*hex=*/true) << std::endl;
+        getchar();
+      }
+      ++i;
+    }
+    return i;
+  }
+
+
 
 const std::string CPU::PrintRegisters(bool hex) {
   std::stringstream ss;

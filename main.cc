@@ -60,10 +60,14 @@ int main(int argc, char* argv[]) {
     gvm::Jeq(24),  // call halt.
 
     gvm::LsrRR(6, 4, 5),   // shift char by r5 bits.
-    gvm::AndRI(5, 4, 0x1), // Check if it is active.
+    gvm::AndRI(6, 6, 0x01), // Check if it is active.
     gvm::Jeq(-24),  // If not active, go to the next bit.
     gvm::StorRR(2, 3),  // Store color in framebuffer
     gvm::Jmp(-32),
+
+    // Singal the framebuffer that we are good.
+    gvm::MovRI(0, 1),
+    gvm::StorRI(0x00, 0),
     gvm::Halt(),
   }));
 
@@ -78,6 +82,6 @@ int main(int argc, char* argv[]) {
     computer.LoadRom(0x15FD04, new gvm::Rom(words, size/sizeof(gvm::Word)));
   }
 
-  computer.Run();
+  computer.Run(argc >= 3);
   return 0;
 }

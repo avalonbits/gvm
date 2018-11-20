@@ -28,7 +28,7 @@ class Computer {
   // Takes ownership of rom.
   void LoadRom(uint32_t memaddr, Rom* rom);
 
-  void Run();
+  void Run(const bool debug);
   void Shutdown();
 
  private:
