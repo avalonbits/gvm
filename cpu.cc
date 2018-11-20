@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include "isa.h"
@@ -113,9 +114,10 @@ void CPU::SetPC(uint32_t pc) {
   assert(pc_ < mem_size_);
 }
 
-const bool CPU::Step() {
+const bool CPU::Step(const bool debug) {
   if (pc_ >= mem_size_) return false;
   const auto& word = mem_[pc_];
+  if (debug) std::cerr << PrintInstruction(word) << std::endl;
   switch (word & 0xFF) {  // first 8 bits define the instruction.
     case ISA::HALT:
       return false;
@@ -273,7 +275,7 @@ const bool CPU::Step() {
 uint32_t CPU::Run(const bool debug) {
     uint32_t i = 1;
     if (debug) std::cerr << PrintRegisters(/*hex=*/true) << std::endl;
-    while(Step()) { 
+    while(Step(debug)) {
       if (debug) {
         std::cerr << PrintRegisters(/*hex=*/true) << std::endl;
         getchar();
@@ -325,6 +327,123 @@ const std::string CPU::PrintStatusFlags() {
   std::stringstream ss;
   ss << "[Zero(" << IsSetZ(sflags_) << ") Neg(" << IsSetN(sflags_)
      << ") Carry(" << IsSetC(sflags_) << ")]\n";
+  return ss.str();
+}
+
+std::string CPU::PrintInstruction(const Word word) {
+  std::ostringstream ss;
+
+  switch (word & 0xFF) {  // first 8 bits define the instruction.
+    case ISA::HALT:
+      return "halt";
+      break;
+    case ISA::NOP:
+      return "nop";
+      break;
+    case ISA::MOV_RR:
+      ss << "mov r" << reg1(word) << ", r" << reg2(word);
+      break;
+    case ISA::MOV_RI: {
+      uint32_t v = (word >> 12);
+      if (((v >> 19) & 1) == 1) v = 0xFFF00000 | v;
+      ss << "mov r" << reg1(word) << ", 0x" << std::hex << v;
+      break;
+    }
+    case ISA::LOAD_RR:
+      ss << "load r" << reg1(word) << ", [r" << reg2(word) << "]";
+      break;
+    case ISA::LOAD_RI:
+      ss << "load r" << reg1(word) << ", [0x" << std::hex << ((word >> 12) & 0xFFFFF) << "]";
+      break;
+    case ISA::LOAD_IX:
+      ss << "load r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
+      break;
+    case ISA::STOR_RR:
+      ss << "stor [r" << reg1(word) << "], r" << reg2(word);
+      break;
+    case ISA::STOR_RI:
+      ss << "stor [0x" << std::hex << ((word >> 12) & 0xFFFFF) << "], r" << std::dec << reg1(word);
+      break;
+    case ISA::STOR_IX:
+      ss << "stor [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word);
+      break;
+    case ISA::ADD_RR:
+      ss << "add r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
+      break;
+    case ISA::ADD_RI:
+      ss << "add r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
+      break;
+    case ISA::SUB_RR:
+      ss << "sub r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
+      break;
+    case ISA::SUB_RI:
+      ss << "sub r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
+      break;
+    case ISA::JMP:
+      ss << "jmp 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      break;
+    case ISA::JNE:
+      ss << "jne 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      break;
+    case ISA::JEQ:
+      ss << "jeq 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      break;
+    case ISA::JGT:
+      ss << "jgt 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      break;
+    case ISA::JGE:
+      ss << "jge 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      break;
+    case ISA::JLT:
+      ss << "jlt 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      break;
+    case ISA::JLE:
+      ss << "jle 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      break;
+    case ISA::CALL:
+      ss << "call 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      break;
+    case ISA::RET:
+      return "ret";
+    case ISA::AND_RR:
+      ss << "and r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
+      break;
+    case ISA::AND_RI:
+      ss << "and r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
+      break;
+    case ISA::ORR_RR:
+      ss << "orr r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
+      break;
+    case ISA::ORR_RI:
+      ss << "orr r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
+      break;
+    case ISA::XOR_RR:
+      ss << "xor r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
+      break;
+    case ISA::XOR_RI:
+      ss << "xor r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
+      break;
+    case ISA::LSL_RR:
+      ss << "lsl r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
+      break;
+    case ISA::LSL_RI:
+      ss << "lsl r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
+      break;
+    case ISA::LSR_RR:
+      ss << "lsr r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
+      break;
+    case ISA::LSR_RI:
+      ss << "lsr r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
+      break;
+    case ISA::ASR_RR:
+      ss << "asr r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
+      break;
+    case ISA::ASR_RI:
+      ss << "asr r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
+      break;
+    default:
+      assert(false);
+  }
   return ss.str();
 }
 

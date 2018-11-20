@@ -38,8 +38,8 @@ void VideoDisplay::SetFramebufferSize(int fWidth, int fHeight, int bpp) {
   assert(fWidth <= maxW_);
   assert(fHeight <= maxH_);
   assert(bpp == 32);  // We only support 32bpp.
-  w_scale_ = maxW_ / fWidth;
-  h_scale_ = maxH_ / fHeight;
+  w_scale_ = static_cast<double>(maxW_) / fWidth;
+  h_scale_ = static_cast<double>(maxH_) / fHeight;
   texture.create(fWidth, fHeight);
   buffer_size_ = fWidth * fHeight;
   buffer_.reset(new uint32_t[buffer_size_]);

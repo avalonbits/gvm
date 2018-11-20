@@ -21,7 +21,7 @@ class CPU {
   void RegisterVideoDMA(VideoController* controller);
   void LoadProgram(uint32_t start, const std::vector<Word>& program);
   void SetPC(uint32_t pc);
-  const bool Step();
+  const bool Step(const bool debug);
   uint32_t Run(const bool debug);
 
   const std::string PrintRegisters(bool hex = false);
@@ -29,6 +29,8 @@ class CPU {
   const std::string PrintStatusFlags();
 
  private:
+  std::string PrintInstruction(const Word word);
+
   uint32_t pc_;
   uint32_t reg_[kRegCount];
   uint32_t* mem_;
