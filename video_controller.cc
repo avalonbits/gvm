@@ -16,8 +16,9 @@ void VideoController::Run() {
   while (!shutdown_.load()) {
     shutdown_ = display_->CheckEvents();
     if (mem_[mem_reg_] == 1) {
-      display_->Render(&mem_[mem_addr_]);
+      display_->CopyBuffer(&mem_[mem_addr_]);
       mem_[mem_reg_] = 0;
+      display_->Render();
     }
   }
 }

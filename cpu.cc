@@ -14,10 +14,10 @@ namespace gvm {
 
 static const uint32_t kVideoMemReg = 0x00;
 static const uint32_t kVideoMemStart = 0x400;
-static const uint32_t kVideoMemSizeWords = 800 * 450;
+static const uint32_t kVideoMemSizeWords = 640 * 360;
 static const uint32_t kVideoMemEnd = kVideoMemStart + kVideoMemSizeWords;
-static const int kFrameBufferW = 800;
-static const int kFrameBufferH = 450;
+static const int kFrameBufferW = 640;
+static const int kFrameBufferH = 360;
 
 namespace {
 constexpr uint32_t reg1(uint32_t word) {
@@ -88,7 +88,6 @@ void CPU::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes) {
   assert(mem != nullptr);
   mem_ = mem;
   mem_size_ = mem_size_bytes / kWordSize;
-
   std::memset(mem_, 0, mem_size_bytes);
   fp_ = sp_ = mem_size_;
 }

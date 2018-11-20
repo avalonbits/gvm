@@ -14,7 +14,8 @@ class VideoDisplay {
   ~VideoDisplay();
 
   void SetFramebufferSize(int fWidth, int fHeight, int bpp);
-  void Render(const uint32_t* mem);
+  void CopyBuffer(const uint32_t* mem);
+  void Render();
   bool CheckEvents();
 
  private:

@@ -45,8 +45,11 @@ void VideoDisplay::SetFramebufferSize(int fWidth, int fHeight, int bpp) {
   buffer_.reset(new uint32_t[buffer_size_]);
 }
 
-void VideoDisplay::Render(const uint32_t* mem) {
+void VideoDisplay::CopyBuffer(const uint32_t* mem) {
   std::memcpy(buffer_.get(), mem, buffer_size_);
+}
+
+void VideoDisplay::Render() {
   texture.update(reinterpret_cast<uint8_t*>(buffer_.get()));
   sf::Sprite sprite;
   sprite.setTexture(texture);

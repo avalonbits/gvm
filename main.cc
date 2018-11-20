@@ -18,23 +18,39 @@ int main(int argc, char* argv[]) {
   gvm::Computer computer(mem_size, cpu, controller);
 
   const uint32_t user_offset = 16 << 20;
-  const uint32_t xinc = 800 * 4;
+  const uint32_t xinc = 640 * 4;
   computer.LoadRom(user_offset, new gvm::Rom({
     // Load 0x15FD04 into r0
     gvm::MovRI(0, 0x15),
     gvm::LslRI(0, 0, 16),
     gvm::OrrRI(0, 0, 0xFD04),
 
-    // Load framebuffer position to r2.
-    gvm::MovRI(2, 0x400),
-
-    // Load collor to r3
+    // Load color to r3
     gvm::MovRI(3, 0xFF00),
     gvm::LslRI(3, 3, 16),
     gvm::OrrRI(3, 3, 0xFF),
 
+    // Load framebuffer position to r2.
+    gvm::MovRI(2, 0x420),
     gvm::MovRI(1, 0x41),  // Capital A
     gvm::Call(0x8000-32),
+
+    // Load 0x15FD04 into r0
+    gvm::MovRI(0, 0x15),
+    gvm::LslRI(0, 0, 16),
+    gvm::OrrRI(0, 0, 0xFD04),
+
+    // Load color to r3
+    gvm::MovRI(3, 0xFF00),
+    gvm::LslRI(3, 3, 16),
+    gvm::OrrRI(3, 3, 0xFF),
+
+
+    // Load framebuffer position to r2.
+    gvm::MovRI(2, 0x400),
+    gvm::MovRI(1, 0x42),  // Capital B
+    gvm::Call(0x8000-(17*4)),
+
     gvm::Halt(),
   }));
 
