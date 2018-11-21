@@ -12,7 +12,7 @@
 #include "video_display.h"
 
 int main(int argc, char* argv[]) {
-  auto* display = new gvm::VideoDisplay();
+  auto* display = new gvm::VideoDisplay(1920,1080);
   auto* controller = new gvm::VideoController(display);
   const uint32_t mem_size = 256 << 20;  // 256MiB
   auto* cpu = new gvm::CPU();
@@ -85,7 +85,6 @@ int main(int argc, char* argv[]) {
   }));
 
   computer.LoadRom(0xE2410, gvm::rom::Textmode());
-  std::cerr << cpu->PrintMemory(0xE2410, 0xE2510);
   if (argc >= 2) {
     std::ifstream chrom(argv[1], std::ios::binary | std::ios::ate);
     assert(chrom.is_open());

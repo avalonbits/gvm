@@ -23,7 +23,6 @@ void Computer::Run(const bool debug) {
   video_thread.join();
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
-  std::cerr << cpu_->PrintMemory(0x15FD00, 0x15FD00 + 256);
   std::cerr << cpu_->PrintStatusFlags();
 }
 
