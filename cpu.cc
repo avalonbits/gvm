@@ -116,7 +116,9 @@ void CPU::SetPC(uint32_t pc) {
 const bool CPU::Step(const bool debug) {
   if (pc_ >= mem_size_) return false;
   const auto& word = mem_[pc_];
-  if (debug) std::cerr << PrintInstruction(word) << std::endl;
+  if (debug) {
+    std::cerr << "0x" << std::hex << pc_ << ": " << std::dec << PrintInstruction(word) << std::endl;
+  }
   switch (word & 0xFF) {  // first 8 bits define the instruction.
     case ISA::HALT:
       return false;
@@ -379,28 +381,29 @@ std::string CPU::PrintInstruction(const Word word) {
       ss << "sub r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
     case ISA::JMP:
-      ss << "jmp 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      ss << "jmp 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::JNE:
-      ss << "jne 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      ss << "jne 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::JEQ:
-      ss << "jeq 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      ss << "jeq 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::JGT:
-      ss << "jgt 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      ss << "jgt 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::JGE:
-      ss << "jge 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      ss << "jge 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::JLT:
-      ss << "jlt 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      ss << "jlt 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::JLE:
-      ss << "jle 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      ss << "jle 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::CALL:
-      ss << "call 0x" << std::hex << (pc_ + (static_cast<int32_t>(reladdr(word >> 8)) * kWordSize));
+      ss << "call 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
+
       break;
     case ISA::RET:
       return "ret";

@@ -53,7 +53,7 @@ void VideoDisplay::Render() {
   texture.update(reinterpret_cast<uint8_t*>(buffer_.get()));
   sf::Sprite sprite;
   sprite.setTexture(texture);
-  sprite.scale(w_scale_, h_scale_);
+  //sprite.scale(w_scale_, h_scale_);
   window_->clear();
   window_->draw(sprite);
   window_->setActive();
