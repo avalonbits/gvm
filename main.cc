@@ -81,6 +81,8 @@ int main(int argc, char* argv[]) {
     gvm::AddRI(0, 0, 4),  // Point to next char.
     gvm::Jmp(-96),
 
+    gvm::MovRI(0, 1),
+    gvm::StorRI(0x00, 0),
     gvm::Halt(),
   }));
 

@@ -29,7 +29,8 @@ const Rom* Textmode() {
 
     // Now for the funcions.
     //
-    // ==================== Putchar ===========================================
+    // ==================== writec ===========================================
+    // Address: 0xE2450
     // Set r0 to point to start address of character rom.
     MovRI(0, 0xE14),
     LslRI(0, 0, 8),
@@ -79,12 +80,23 @@ const Rom* Textmode() {
     AddRR(6, 2, 7),
     StorRR(6, 3),  // Store color in framebuffer
     Jmp(-44),
-
-    // Singal the framebuffer that we are good.
+    Ret(),
+    
+    // ==================== writec ============================================
+    
+    // ==================== putc ==============================================
+    // Address: 0xE24BE
+    // Calls writec then signals that the buffer is ready.
+    MovRI(0, 0xE24),
+    LslRI(0, 0, 8),
+    AddRI(0, 0, 0x50),
+    CallR(0),
+    
+    // Signal to the buffer.
     MovRI(0, 1),
     StorRI(0x00, 0),
     Ret(),
-    // ==================== Putchar ========================================
+    // ==================== putc ==============================================
   });
 }
 
