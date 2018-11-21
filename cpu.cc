@@ -211,11 +211,17 @@ const bool CPU::Step(const bool debug) {
         pc_ = pc_ + reladdr(word >> 8) - 1;
       }
       break;
-    case ISA::CALL:
+    case ISA::CALLI:
       mem_[--sp_] = pc_;
       mem_[--sp_] = fp_;
       fp_ = sp_;
       pc_ = pc_ + reladdr(word >> 8) - 1;
+      break;
+    case ISA::CALLR:
+      mem_[--sp_] = pc_;
+      mem_[--sp_] = fp_;
+      fp_ = sp_;
+      pc_ = reg_[reg1(word)]/kWordSize - 1;
       break;
     case ISA::RET:
       sp_ = fp_;
@@ -401,9 +407,11 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::JLE:
       ss << "jle 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
       break;
-    case ISA::CALL:
+    case ISA::CALLI:
       ss << "call 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
-
+      break;
+    case ISA::CALLR:
+      ss << "call [r" << reg1(word) << "]";
       break;
     case ISA::RET:
       return "ret";

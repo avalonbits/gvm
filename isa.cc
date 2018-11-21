@@ -131,9 +131,14 @@ Word Jle(uint32_t memaddr) {
   return Word(ISA::JLE | memaddr << 8);
 }
 
-Word Call(uint32_t memaddr) {
+Word CallI(uint32_t memaddr) {
   memaddr = memaddr & 0xFFFFFF;
-  return Word(ISA::CALL | memaddr << 8);
+  return Word(ISA::CALLI | memaddr << 8);
+}
+
+Word CallR(uint32_t dest) {
+  assert(dest < kRegCount);
+  return Word(ISA::CALLR | dest << 8);
 }
 
 Word Ret() {

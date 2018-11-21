@@ -5,15 +5,12 @@
 
 namespace gvm {
 
-void Computer::LoadRom(uint32_t memaddr, Rom* rom) {
+void Computer::LoadRom(uint32_t memaddr, const Rom* rom) {
   assert(memaddr % kWordSize == 0);
-  roms_.emplace_back(std::make_pair(memaddr, rom));
+  cpu_->LoadProgram(memaddr, rom->Contents());
 }
 
 void Computer::Run(const bool debug) {
-  for (const auto& rom : roms_) {
-    cpu_->LoadProgram(rom.first, rom.second->Contents());
-  }
   cpu_->SetPC(16 << 20);
   std::thread cpu_thread([this, debug]() {
     cpu_->Run(debug);

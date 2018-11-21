@@ -26,7 +26,7 @@ class Computer {
   }
 
   // Takes ownership of rom.
-  void LoadRom(uint32_t memaddr, Rom* rom);
+  void LoadRom(uint32_t memaddr, const Rom* rom);
 
   void Run(const bool debug);
   void Shutdown();
@@ -36,7 +36,6 @@ class Computer {
   std::unique_ptr<uint32_t> mem_;
   std::unique_ptr<CPU> cpu_;
   std::unique_ptr<VideoController> video_controller_;
-  std::vector<std::pair<uint32_t, std::unique_ptr<Rom>>> roms_;
 };
 
 }  // namespace gvm

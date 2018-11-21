@@ -12,6 +12,7 @@ class Rom {
   Rom(const Word* words, uint32_t size);
   Rom(const Rom&) = delete;
   Rom& operator=(const Rom&) = delete;
+  virtual ~Rom() {}
 
   void Load(uint32_t memaddr, const std::vector<Word>& words);
   bool Set(uint32_t memaddr, Word word);
