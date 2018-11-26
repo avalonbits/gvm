@@ -16,7 +16,7 @@ const Rom* Textmode() {
     Word(0xFF008080),  // 3  - Olive
     Word(0xFF800000),  // 4  - Navy
     Word(0xFF800080),  // 5  - Purple
-    Word(0xFFFFFF00),  // 6  - Teal
+    Word(0xFF808000),  // 6  - Teal
     Word(0xFFC0C0C0),  // 7  - Silver
     Word(0xFF808080),  // 8  - Grey
     Word(0xFF0000FF),  // 9  - Red
@@ -31,7 +31,14 @@ const Rom* Textmode() {
     //
     // ==================== writec ===========================================
     // Address: 0xE2450
-    // Set r0 to point to start address of character rom.
+    MovRI(0, 0xE24),
+    LslRI(0, 0, 8),
+    AddRI(0, 0, 0x10),
+    LslRI(3, 3, 2),
+    AddRR(3, 0, 3),
+    LoadRR(3, 3),
+
+    // Set r0 to point to start address of character rom
     MovRI(0, 0xE14),
     LslRI(0, 0, 8),
 

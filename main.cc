@@ -48,12 +48,10 @@ int main(int argc, char* argv[]) {
     // Loop:
     gvm::LoadRR(1, 0),  // Get current char.
     gvm::AddRI(1, 1, 0), // check it's not 0.
-    gvm::Jeq(92),  // Halt
+    gvm::Jeq(84),  // We are done.
 
     // Load color to r3
-    gvm::MovRI(3, 0xFF00),
-    gvm::LslRI(3, 3, 16),
-    gvm::OrrRI(3, 3, 0xFF),
+    gvm::MovRI(3, 2),
 
     // Load framebuffer position to r2.
     gvm::AddRI(2, 2, 8*4),
@@ -79,7 +77,7 @@ int main(int argc, char* argv[]) {
     gvm::LoadRR(0, 14),
     gvm::AddRI(14, 14, 4),
     gvm::AddRI(0, 0, 4),  // Point to next char.
-    gvm::Jmp(-96),
+    gvm::Jmp(-88),
 
     gvm::MovRI(0, 1),
     gvm::StorRI(0x00, 0),
