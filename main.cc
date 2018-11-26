@@ -8,12 +8,38 @@
 #include "computer.h"
 #include "computer_roms.h"
 #include "cpu.h"
+#include "cxxopts.hpp"
 #include "isa.h"
 #include "sfml_video_display.h"
 #include "null_video_display.h"
 
 int main(int argc, char* argv[]) {
-  auto* display = new gvm::SFMLVideoDisplay(1920,1080);
+  cxxopts::Options options("gvm", "The GVM virtual machine.");
+  options.add_options()
+    ("debug", "Enable debugging", cxxopts::value<bool>()->default_value("false"))
+    ("chrom", "Rom file with 8x16 characters.",
+              cxxopts::value<std::string>()->default_value("./latin1.chrom"))
+    ("video_mode", "Video mode used. Values can be: null, fullscreen, 1280x720 "
+                   "and 1920x1080",
+                   cxxopts::value<std::string>()->default_value("1280x720"))
+    ;
+  auto result = options.parse(argc, argv);
+
+  gvm::VideoDisplay* display = nullptr;
+  const auto mode = result["video_mode"].as<std::string>();
+  if (mode == "1280x720") {
+    display = new gvm::SFMLVideoDisplay(1280, 720);
+  } else if (mode == "1920x1080") {
+    display = new gvm::SFMLVideoDisplay(1920, 1080);
+  } else if (mode == "fullscreen") {
+    display = new gvm::SFMLVideoDisplay();
+  } else {
+    if (mode != "null") {
+      std::cerr << mode << " is not a valid mode. Going with \"null\".\n";
+    }
+    display = new gvm::NullVideoDisplay();
+  }
+
   auto* controller = new gvm::VideoController(display);
   const uint32_t mem_size = 256 << 20;  // 256MiB
   auto* cpu = new gvm::CPU();
@@ -86,17 +112,16 @@ int main(int argc, char* argv[]) {
   }));
 
   computer.LoadRom(0xE2410, gvm::rom::Textmode());
-  if (argc >= 2) {
-    std::ifstream chrom(argv[1], std::ios::binary | std::ios::ate);
-    assert(chrom.is_open());
-    const auto size = chrom.tellg();
-    chrom.seekg(0, chrom.beg);
-    gvm::Word* words = new gvm::Word[size/sizeof(gvm::Word)];
-    chrom.read(reinterpret_cast<char*>(words), size);
-    chrom.close();
-    computer.LoadRom(0xE1400, new gvm::Rom(words, size/sizeof(gvm::Word)));
-  }
+  std::ifstream chrom(result["chrom"].as<std::string>(),
+                      std::ios::binary | std::ios::ate);
+  assert(chrom.is_open());
+  const auto size = chrom.tellg();
+  chrom.seekg(0, chrom.beg);
+  gvm::Word* words = new gvm::Word[size/sizeof(gvm::Word)];
+  chrom.read(reinterpret_cast<char*>(words), size);
+  chrom.close();
+  computer.LoadRom(0xE1400, new gvm::Rom(words, size/sizeof(gvm::Word)));
 
-  computer.Run(argc >= 3);
+  computer.Run(result["debug"].as<bool>());
   return 0;
 }

@@ -14,7 +14,8 @@ VideoController::VideoController(VideoDisplay* display)
 
 void VideoController::Run() {
   while (!shutdown_.load()) {
-    shutdown_ = display_->CheckEvents();
+    const bool done = shutdown_.exchange(display_->CheckEvents());
+    if (done) shutdown_ = done;
     if (mem_[mem_reg_] == 1) {
       display_->CopyBuffer(&mem_[mem_addr_]);
       mem_[mem_reg_] = 0;

@@ -25,6 +25,7 @@ void Computer::Run(const bool debug) {
   });
 
   cpu_thread.join();
+  video_controller_->Shutdown();
   video_thread.join();
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);

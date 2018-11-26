@@ -16,7 +16,6 @@ class VideoDisplay {
   virtual void CopyBuffer(const uint32_t* mem) = 0;
   virtual void Render() = 0;
   virtual bool CheckEvents() = 0;
-
 };
 
 }  // namespace gvm
