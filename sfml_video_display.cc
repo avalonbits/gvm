@@ -1,4 +1,4 @@
-#include "video_display.h"
+#include "sfml_video_display.h"
 
 #include <cassert>
 #include <cstring>
@@ -6,7 +6,7 @@
 
 namespace gvm {
 
-VideoDisplay::VideoDisplay() {
+SFMLVideoDisplay::SFMLVideoDisplay() {
   sf::VideoMode mode = sf::VideoMode::getDesktopMode();
   maxW_ = mode.width;
   maxH_ = mode.height;
@@ -16,7 +16,7 @@ VideoDisplay::VideoDisplay() {
   window_->display();
 }
 
-VideoDisplay::VideoDisplay(int width, int height) {
+SFMLVideoDisplay::SFMLVideoDisplay(int width, int height) {
   sf::VideoMode mode = sf::VideoMode::getDesktopMode();
   if (width > static_cast<int>(mode.width)) width = mode.width;
   if (height > static_cast<int>(mode.height)) height = mode.height;
@@ -28,13 +28,13 @@ VideoDisplay::VideoDisplay(int width, int height) {
   window_->display();
 }
 
-VideoDisplay::~VideoDisplay() {
+SFMLVideoDisplay::~SFMLVideoDisplay() {
   if (window_ != nullptr && window_->isOpen()) {
     window_->close();
   }
 }
 
-void VideoDisplay::SetFramebufferSize(int fWidth, int fHeight, int bpp) {
+void SFMLVideoDisplay::SetFramebufferSize(int fWidth, int fHeight, int bpp) {
   assert(fWidth <= maxW_);
   assert(fHeight <= maxH_);
   assert(bpp == 32);  // We only support 32bpp.
@@ -45,11 +45,11 @@ void VideoDisplay::SetFramebufferSize(int fWidth, int fHeight, int bpp) {
   buffer_.reset(new uint32_t[buffer_size_]);
 }
 
-void VideoDisplay::CopyBuffer(const uint32_t* mem) {
+void SFMLVideoDisplay::CopyBuffer(const uint32_t* mem) {
   std::memcpy(buffer_.get(), mem, buffer_size_);
 }
 
-void VideoDisplay::Render() {
+void SFMLVideoDisplay::Render() {
   texture.update(reinterpret_cast<uint8_t*>(buffer_.get()));
   sf::Sprite sprite;
   sprite.setTexture(texture);
@@ -60,7 +60,7 @@ void VideoDisplay::Render() {
   window_->display();
 }
 
-bool VideoDisplay::CheckEvents() {
+bool SFMLVideoDisplay::CheckEvents() {
   // Check all the window's events that were triggered since the
   // last iteration of the loop
   sf::Event event;

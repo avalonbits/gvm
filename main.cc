@@ -9,10 +9,11 @@
 #include "computer_roms.h"
 #include "cpu.h"
 #include "isa.h"
-#include "video_display.h"
+#include "sfml_video_display.h"
+#include "null_video_display.h"
 
 int main(int argc, char* argv[]) {
-  auto* display = new gvm::VideoDisplay(1920,1080);
+  auto* display = new gvm::SFMLVideoDisplay(1920,1080);
   auto* controller = new gvm::VideoController(display);
   const uint32_t mem_size = 256 << 20;  // 256MiB
   auto* cpu = new gvm::CPU();
