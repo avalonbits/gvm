@@ -44,7 +44,7 @@ enum ISA {
     LSR_RR,
     LSR_RI,
     ASR_RR,
-    ASR_RI
+    ASR_RI,
 };
 
 typedef uint32_t Word;
@@ -64,12 +64,12 @@ Word AddRI(uint32_t dest, uint32_t op1, uint32_t value);
 Word SubRR(uint32_t dest, uint32_t op1, uint32_t op2);
 Word SubRI(uint32_t dest, uint32_t op1, uint32_t value);
 Word Jmp(uint32_t memaddr);
-Word Jne(uint32_t memaddr);
-Word Jeq(uint32_t memaddr);
-Word Jgt(uint32_t memaddr);
-Word Jge(uint32_t memaddr);
-Word Jlt(uint32_t memaddr);
-Word Jle(uint32_t memaddr);
+Word Jne(uint32_t reg, uint32_t memaddr);
+Word Jeq(uint32_t reg, uint32_t memaddr);
+Word Jgt(uint32_t reg, uint32_t memaddr);
+Word Jge(uint32_t reg, uint32_t memaddr);
+Word Jlt(uint32_t reg, uint32_t memaddr);
+Word Jle(uint32_t reg, uint32_t memaddr);
 Word CallI(uint32_t memaddr);
 Word CallR(uint32_t r);
 Word Ret();

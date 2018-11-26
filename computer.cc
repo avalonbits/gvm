@@ -25,11 +25,10 @@ void Computer::Run(const bool debug) {
   });
 
   cpu_thread.join();
-  video_controller_->Shutdown();
+  if (shutdown_on_halt_) video_controller_->Shutdown();
   video_thread.join();
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
-  std::cerr << cpu_->PrintStatusFlags();
   const auto time = runtime.count();
   const auto per_inst = time / static_cast<double>(op_count);
   const auto average_clock = 1000000000 / per_inst / 1000000;

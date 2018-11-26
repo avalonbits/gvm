@@ -101,34 +101,40 @@ Word Jmp(uint32_t memaddr) {
   return Word(ISA::JMP | memaddr << 8);
 }
 
-Word Jne(uint32_t memaddr) {
-  memaddr = memaddr & 0xFFFFFF;
-  return Word(ISA::JNE | memaddr << 8);
+Word Jne(uint32_t reg, uint32_t memaddr) {
+  assert(reg < kRegCount);
+  memaddr = memaddr & 0xFFFFF;
+  return Word(ISA::JNE | reg << 8 | memaddr << 12);
 }
 
-Word Jeq(uint32_t memaddr) {
-  memaddr = memaddr & 0xFFFFFF;
-  return Word(ISA::JEQ | memaddr << 8);
+Word Jeq(uint32_t reg, uint32_t memaddr) {
+  assert(reg < kRegCount);
+  memaddr = memaddr & 0xFFFFF;
+  return Word(ISA::JEQ | reg << 8 | memaddr << 12);
 }
 
-Word Jgt(uint32_t memaddr) {
-  memaddr = memaddr & 0xFFFFFF;
-  return Word(ISA::JGT | memaddr << 8);
+Word Jgt(uint32_t reg, uint32_t memaddr) {
+  assert(reg < kRegCount);
+  memaddr = memaddr & 0xFFFFF;
+  return Word(ISA::JGT | reg << 8 | memaddr << 12);
 }
 
-Word Jge(uint32_t memaddr) {
-  memaddr = memaddr & 0xFFFFFF;
-  return Word(ISA::JGE | memaddr << 8);
+Word Jge(uint32_t reg, uint32_t memaddr) {
+  assert(reg < kRegCount);
+  memaddr = memaddr & 0xFFFFF;
+  return Word(ISA::JGE | reg << 8 | memaddr << 12);
 }
 
-Word Jlt(uint32_t memaddr) {
-  memaddr = memaddr & 0xFFFFFF;
-  return Word(ISA::JLT | memaddr << 8);
+Word Jlt(uint32_t reg, uint32_t memaddr) {
+  assert(reg < kRegCount);
+  memaddr = memaddr & 0xFFFFF;
+  return Word(ISA::JLT | reg << 8 | memaddr << 12);
 }
 
-Word Jle(uint32_t memaddr) {
-  memaddr = memaddr & 0xFFFFFF;
-  return Word(ISA::JLE | memaddr << 8);
+Word Jle(uint32_t reg, uint32_t memaddr) {
+  assert(reg < kRegCount);
+  memaddr = memaddr & 0xFFFFF;
+  return Word(ISA::JLE | reg << 8 | memaddr << 12);
 }
 
 Word CallI(uint32_t memaddr) {

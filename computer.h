@@ -14,10 +14,12 @@ namespace gvm {
 class Computer {
  public:
   // Owns cpu and video_display.
-  Computer(uint32_t mem_size_bytes, CPU* cpu, VideoController* video_controller)
+  Computer(uint32_t mem_size_bytes, CPU* cpu, VideoController* video_controller,
+           const bool shutdown_on_halt)
       : mem_size_bytes_(mem_size_bytes),
         mem_(new uint32_t[mem_size_bytes/kWordSize]),
-        cpu_(cpu), video_controller_(video_controller) {
+        cpu_(cpu), video_controller_(video_controller),
+        shutdown_on_halt_(shutdown_on_halt) {
     assert(mem_ != nullptr);
     assert(cpu_ != nullptr);
     assert(video_controller_ != nullptr);
@@ -36,6 +38,7 @@ class Computer {
   std::unique_ptr<uint32_t> mem_;
   std::unique_ptr<CPU> cpu_;
   std::unique_ptr<VideoController> video_controller_;
+  const bool shutdown_on_halt_;
 };
 
 }  // namespace gvm

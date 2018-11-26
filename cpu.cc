@@ -36,34 +36,17 @@ constexpr uint32_t ext16bit(uint32_t word) {
   return (0x00008000 & word) ? (0xFFFF0000 | word) : word;
 }
 
-constexpr void SetZ(uint8_t& flag, bool zero) {
-  flag = (flag & 0xFE) | static_cast<uint8_t>(zero);
-}
-
-constexpr void SetN(uint8_t& flag, bool negative) {
-  flag = (flag & 0xFD) | (static_cast<uint8_t>(negative) << 1);
-}
-
-constexpr void SetC(uint8_t& flag, bool carry) {
-  flag = (flag & 0xFB) | (static_cast<uint8_t>(carry) << 2);
-}
-
-constexpr bool IsSetZ(uint8_t flag) {
-  return static_cast<bool>(flag & 1);
-}
-
-constexpr bool IsSetN(uint8_t flag) {
-  return static_cast<bool>(flag & 2);
-}
-
-constexpr bool IsSetC(uint8_t flag) {
-  return static_cast<bool>(flag & 4);
-}
-
 constexpr uint32_t reladdr(const uint32_t v24bit) {
   return (v24bit >> 23) & 1 ? -((~(0xFF000000 | v24bit) + 1)/kWordSize)
                             : v24bit/kWordSize;
 }
+
+constexpr uint32_t reladdr20(const uint32_t v) {
+  const uint32_t v20bit = v >> 12;
+  return (v20bit >> 19) & 1 ? -((~(0xFFF00000 | v20bit) + 1)/kWordSize)
+                            : v20bit/kWordSize;
+}
+
 
 }  // namespace
 
@@ -143,61 +126,45 @@ const bool CPU::Step(const bool debug) {
     case ISA::ADD_RR: {
       const uint32_t v = reg_[reg2(word)] + reg_[reg3(word)];
       reg_[reg1(word)] = v;
-      SetZ(sflags_, v == 0);
-      SetN(sflags_, v >> 31 == 1);
       break;
     }
     case ISA::ADD_RI: {
       const uint32_t v = reg_[reg2(word)] + v16bit(word);
       reg_[reg1(word)] = v;
-      SetZ(sflags_, v == 0);
-      SetN(sflags_, v >> 31 == 1);
       break;
     }
     case ISA::SUB_RR: {
       const uint32_t op2 = (~reg_[reg3(word)] + 1);
       const uint32_t v = reg_[reg2(word)] + op2;
       reg_[reg1(word)] = v;
-      SetZ(sflags_, v == 0);
-      SetN(sflags_, v >> 31 == 1);
       break;
     }
     case ISA::SUB_RI: {
       const uint32_t op2 = (~v16bit(word) + 1);
       const uint32_t v = reg_[reg2(word)] + op2;
       reg_[reg1(word)] = v;
-      SetZ(sflags_, v == 0);
-      SetN(sflags_, v >> 31 == 1);
       break;
     }
     case ISA::JMP:
       pc_ = pc_ + reladdr(word >> 8) - 1;
       break;
     case ISA::JNE:
-      if (!IsSetZ(sflags_)) pc_ = pc_ + reladdr(word >> 8) - 1;
+      if (reg_[reg1(word)] != 0) pc_ = pc_ + reladdr20(word) - 1;
       break;
     case ISA::JEQ:
-      if (IsSetZ(sflags_)) pc_ = pc_ + reladdr(word >> 8) - 1;
+      if (reg_[reg1(word)] == 0) pc_ = pc_ + reladdr20(word) - 1;
       break;
     case ISA::JGT:
-      if (!IsSetZ(sflags_) && !IsSetN(sflags_)) {
-        pc_ = pc_ + reladdr(word >> 8) - 1;
-      }
+      if (reg_[reg1(word)] > 0) pc_ = pc_ + reladdr20(word) - 1;
       break;
     case ISA::JGE:
-      if (IsSetZ(sflags_) || !IsSetN(sflags_)) {
-        pc_ = pc_ + reladdr(word >> 8) - 1;
-      }
+      if (reg_[reg1(word)] >= 0) pc_ = pc_ + reladdr20(word) - 1;
       break;
     case ISA::JLT:
-      if (!IsSetZ(sflags_) && IsSetN(sflags_)) {
-        pc_ = pc_ + reladdr(word >> 8) - 1;
-      }
+      if (reg_[reg1(word)] < 0) pc_ = pc_ + reladdr20(word) - 1;
       break;
     case ISA::JLE:
-      if (IsSetZ(sflags_) || IsSetN(sflags_)) {
-        pc_ = pc_ + reladdr(word >> 8) - 1;
-      }
+      if (reg_[reg1(word)] <= 0) pc_ = pc_ + reladdr20(word) - 1;
       break;
     case ISA::CALLI:
       mem_[--sp_] = pc_;
@@ -219,15 +186,11 @@ const bool CPU::Step(const bool debug) {
     case ISA::AND_RR: {
       const uint32_t v = reg_[reg2(word)] & reg_[reg3(word)];
       reg_[reg1(word)] = v;
-      SetZ(sflags_, v == 0);
-      SetN(sflags_, v >> 31 == 1);
       break;
     }
     case ISA::AND_RI: {
       const uint32_t v = (reg_[reg2(word)]) & (v16bit(word));
       reg_[reg1(word)] = v;
-      SetZ(sflags_, v == 0);
-      SetN(sflags_, v >> 31 == 1);
       break;
     }
     case ISA::ORR_RR:
@@ -315,13 +278,6 @@ const std::string CPU::PrintMemory(uint32_t from, uint32_t to) {
   for (uint32_t i = from; i <= to; i+=4) {
     ss << "0x" << std::hex << i << ": " << std::dec << mem_[i/kWordSize] << "\n";
   }
-  return ss.str();
-}
-
-const std::string CPU::PrintStatusFlags() {
-  std::stringstream ss;
-  ss << "[Zero(" << IsSetZ(sflags_) << ") Neg(" << IsSetN(sflags_)
-     << ") Carry(" << IsSetC(sflags_) << ")]\n";
   return ss.str();
 }
 

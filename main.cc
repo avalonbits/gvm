@@ -22,6 +22,8 @@ int main(int argc, char* argv[]) {
     ("video_mode", "Video mode used. Values can be: null, fullscreen, 1280x720 "
                    "and 1920x1080",
                    cxxopts::value<std::string>()->default_value("1280x720"))
+    ("shutdown_on_halt", "Shutdowns program when CPU halts,",
+                         cxxopts::value<bool>()->default_value("true"))
     ;
   auto result = options.parse(argc, argv);
 
@@ -43,7 +45,8 @@ int main(int argc, char* argv[]) {
   auto* controller = new gvm::VideoController(display);
   const uint32_t mem_size = 256 << 20;  // 256MiB
   auto* cpu = new gvm::CPU();
-  gvm::Computer computer(mem_size, cpu, controller);
+  gvm::Computer computer(mem_size, cpu, controller,
+                         result["shutdown_on_halt"].as<bool>());
 
   const uint32_t user_offset = 16 << 20;
   computer.LoadRom(user_offset + 0x1000, new gvm::Rom({
@@ -75,7 +78,7 @@ int main(int argc, char* argv[]) {
     // Loop:
     gvm::LoadRR(1, 0),  // Get current char.
     gvm::AddRI(1, 1, 0), // check it's not 0.
-    gvm::Jeq(84),  // We are done.
+    gvm::Jeq(1, 84),  // We are done.
 
     // Load color to r3
     gvm::MovRI(3, 2),

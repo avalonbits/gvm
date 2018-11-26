@@ -52,7 +52,7 @@ const Rom* Textmode() {
     // Loop:
     SubRI(2, 2, kLineLength),
     SubRI(10, 10, 1),
-    Jeq(76),  // We are done.
+    Jeq(10, 76),  // We are done.
 
     // Now add the result with r0 to point to the correct char.
     AddRI(1, 1, 4),
@@ -74,15 +74,15 @@ const Rom* Textmode() {
     // next position in framebuffer.
     SubRI(7, 7, 4),
     AddRI(13, 7, 4),
-    Jeq(-16),  // Need to jump to next line
+    Jeq(13, -16),  // Need to jump to next line
 
     AddRI(5, 5, 1),  // NextBit
     SubRI(6, 5, 32),  // Check we exausted word.
-    Jeq(-56),  // Need to load the next char word. (Loop)
+    Jeq(6, -56),  // Need to load the next char word. (Loop)
 
     LsrRR(6, 4, 5),   // shift char by r5 bits.
     AndRI(6, 6, 0x01), // Check if it is active.
-    Jeq(-32),  // If not active, go to the next bit.
+    Jeq(6, -32),  // If not active, go to the next bit.
 
     AddRR(6, 2, 7),
     StorRR(6, 3),  // Store color in framebuffer
