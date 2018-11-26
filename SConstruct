@@ -1,4 +1,4 @@
-ccflags = ['-O3', '-Wall', '-Werror', '-std=c++14', '-march=native']
+ccflags = ['-O3', '-g', '-Wall', '-Werror', '-std=c++14', '-march=native']
 libs = ['sfml-graphics', 'sfml-window', 'sfml-system', 'pthread']
 
 env = Environment(CCFLAGS=' '.join(ccflags), LIBS=libs)

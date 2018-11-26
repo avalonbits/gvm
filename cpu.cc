@@ -37,27 +37,15 @@ constexpr uint32_t ext16bit(uint32_t word) {
 }
 
 constexpr void SetZ(uint8_t& flag, bool zero) {
-  if (zero) {
-    flag = flag | 1;
-  } else {
-    flag = flag & (~1);
-  }
+  flag = (flag & 0xFE) | static_cast<uint8_t>(zero);
 }
 
 constexpr void SetN(uint8_t& flag, bool negative) {
-  if (negative) {
-    flag = flag | 2;
-  } else {
-    flag = flag & (~2);
-  }
+  flag = (flag & 0xFD) | (static_cast<uint8_t>(negative) << 1);
 }
 
 constexpr void SetC(uint8_t& flag, bool carry) {
-  if (carry) {
-    flag = flag | 4;
-  } else {
-    flag = flag & (~4);
-  }
+  flag = (flag & 0xFB) | (static_cast<uint8_t>(carry) << 2);
 }
 
 constexpr bool IsSetZ(uint8_t flag) {
