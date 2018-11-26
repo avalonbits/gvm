@@ -77,8 +77,7 @@ int main(int argc, char* argv[]) {
 
     // Loop:
     gvm::LoadRR(1, 0),  // Get current char.
-    gvm::AddRI(1, 1, 0), // check it's not 0.
-    gvm::Jeq(1, 84),  // We are done.
+    gvm::Jeq(1, 84),  // If it's 0, we are done.
 
     // Load color to r3
     gvm::MovRI(3, 2),
@@ -107,7 +106,7 @@ int main(int argc, char* argv[]) {
     gvm::LoadRR(0, 14),
     gvm::AddRI(14, 14, 4),
     gvm::AddRI(0, 0, 4),  // Point to next char.
-    gvm::Jmp(-88),
+    gvm::Jmp(-84),
 
     gvm::MovRI(0, 1),
     gvm::StorRI(0x00, 0),
