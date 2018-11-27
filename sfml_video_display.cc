@@ -64,6 +64,7 @@ bool SFMLVideoDisplay::CheckEvents() {
   // Check all the window's events that were triggered since the
   // last iteration of the loop
   sf::Event event;
+  window_->setActive();
   while (window_->pollEvent(event)) {
     // "close requested" event: we close the window
     if (event.type == sf::Event::Closed) {

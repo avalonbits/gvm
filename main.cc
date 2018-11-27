@@ -19,9 +19,9 @@ int main(int argc, char* argv[]) {
     ("debug", "Enable debugging", cxxopts::value<bool>()->default_value("false"))
     ("chrom", "Rom file with 8x16 characters.",
               cxxopts::value<std::string>()->default_value("./latin1.chrom"))
-    ("video_mode", "Video mode used. Values can be: null, fullscreen, 1280x720 "
-                   "and 1920x1080",
-                   cxxopts::value<std::string>()->default_value("1280x720"))
+    ("video_mode", "Video mode used. Values can be: null, fullscreen, 480p, "
+                   "540p, 900p and 1080p",
+                   cxxopts::value<std::string>()->default_value("720p"))
     ("shutdown_on_halt", "Shutdowns program when CPU halts,",
                          cxxopts::value<bool>()->default_value("true"))
     ;
@@ -29,9 +29,15 @@ int main(int argc, char* argv[]) {
 
   gvm::VideoDisplay* display = nullptr;
   const auto mode = result["video_mode"].as<std::string>();
-  if (mode == "1280x720") {
+  if (mode == "480p") {
+    display = new gvm::SFMLVideoDisplay(854, 480);
+  } else if (mode == "540p") {
+    display = new gvm::SFMLVideoDisplay(960, 540);
+  } else if (mode == "720p") {
     display = new gvm::SFMLVideoDisplay(1280, 720);
-  } else if (mode == "1920x1080") {
+  } else if (mode == "900p") {
+    display = new gvm::SFMLVideoDisplay(1600, 900);
+  } else if (mode == "1080p") {
     display = new gvm::SFMLVideoDisplay(1920, 1080);
   } else if (mode == "fullscreen") {
     display = new gvm::SFMLVideoDisplay();
