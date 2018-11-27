@@ -5,7 +5,7 @@
 namespace gvm {
 namespace rom {
 
-static const uint32_t kLineLength = 640 * 4;  // 640 pixels, 32bpp.
+static const uint32_t kLineLength = 720 * 4;  // 640 pixels, 32bpp.
 
 const Rom* Textmode() {
   return new Rom({
