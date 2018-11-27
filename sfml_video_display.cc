@@ -84,6 +84,13 @@ bool SFMLVideoDisplay::CheckEvents() {
       return true;
     } else if (event.type == sf::Event::Resized) {
       UpdateWindowSize(event.size.width, event.size.height);
+    } else if (event.type == sf::Event::TextEntered) {
+      std::cerr <<  "Text unicode: " << event.text.unicode << std::endl;
+    } else if (event.type == sf::Event::KeyPressed) {
+      if (event.key.code == sf::Keyboard::Key::W && event.key.control) {
+        window_->close();
+        return true;
+      }
     }
   }
   return false;
