@@ -40,9 +40,21 @@ void SFMLVideoDisplay::SetFramebufferSize(int fWidth, int fHeight, int bpp) {
   assert(bpp == 32);  // We only support 32bpp.
   w_scale_ = static_cast<double>(maxW_) / fWidth;
   h_scale_ = static_cast<double>(maxH_) / fHeight;
+  fWidth_ = fWidth;
+  fHeight_ = fHeight;
   texture.create(fWidth, fHeight);
   buffer_size_ = fWidth * fHeight;
   buffer_.reset(new uint32_t[buffer_size_]);
+}
+
+void SFMLVideoDisplay::UpdateWindowSize(int wWidth, int wHeight) {
+  maxW_ = wWidth;
+  maxH_ = wHeight;
+  w_scale_ = static_cast<double>(maxW_) / fWidth_;
+  h_scale_ = static_cast<double>(maxH_) / fHeight_;
+  sf::FloatRect visibleArea(0, 0, maxW_, maxH_);
+  window_->setView(sf::View(visibleArea));
+  Render();
 }
 
 void SFMLVideoDisplay::CopyBuffer(const uint32_t* mem) {
@@ -70,6 +82,8 @@ bool SFMLVideoDisplay::CheckEvents() {
     if (event.type == sf::Event::Closed) {
       window_->close();
       return true;
+    } else if (event.type == sf::Event::Resized) {
+      UpdateWindowSize(event.size.width, event.size.height);
     }
   }
   return false;

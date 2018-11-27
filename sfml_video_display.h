@@ -18,12 +18,15 @@ class SFMLVideoDisplay : public VideoDisplay {
 
  private:
   void config();
+  void UpdateWindowSize(int wWidth, int wHeight);
 
   int maxW_;
   int maxH_;
   std::unique_ptr<sf::RenderWindow> window_;
   double w_scale_;
   double h_scale_;
+  int fWidth_;
+  int fHeight_;
   sf::Texture texture;
   std::unique_ptr<uint32_t> buffer_;
   uint32_t buffer_size_;
