@@ -13,6 +13,26 @@
 #include "sfml_video_display.h"
 #include "null_video_display.h"
 
+gvm::VideoDisplay* CreateDisplay(const std::string& mode) {
+  if (mode == "480p") {
+    return new gvm::SFMLVideoDisplay(854, 480);
+  } else if (mode == "540p") {
+    return new gvm::SFMLVideoDisplay(960, 540);
+  } else if (mode == "720p") {
+    return new gvm::SFMLVideoDisplay(1280, 720);
+  } else if (mode == "900p") {
+    return new gvm::SFMLVideoDisplay(1600, 900);
+  } else if (mode == "1080p") {
+    return new gvm::SFMLVideoDisplay(1920, 1080);
+  } else if (mode == "fullscreen") {
+    return new gvm::SFMLVideoDisplay();
+  } else if (mode != "null") {
+      std::cerr << mode << " is not a valid mode. Going with \"null\".\n";
+  }
+  
+  return new gvm::NullVideoDisplay();
+}
+
 int main(int argc, char* argv[]) {
   cxxopts::Options options("gvm", "The GVM virtual machine.");
   options.add_options()
@@ -27,30 +47,10 @@ int main(int argc, char* argv[]) {
     ;
   auto result = options.parse(argc, argv);
 
-  gvm::VideoDisplay* display = nullptr;
-  const auto mode = result["video_mode"].as<std::string>();
-  if (mode == "480p") {
-    display = new gvm::SFMLVideoDisplay(854, 480);
-  } else if (mode == "540p") {
-    display = new gvm::SFMLVideoDisplay(960, 540);
-  } else if (mode == "720p") {
-    display = new gvm::SFMLVideoDisplay(1280, 720);
-  } else if (mode == "900p") {
-    display = new gvm::SFMLVideoDisplay(1600, 900);
-  } else if (mode == "1080p") {
-    display = new gvm::SFMLVideoDisplay(1920, 1080);
-  } else if (mode == "fullscreen") {
-    display = new gvm::SFMLVideoDisplay();
-  } else {
-    if (mode != "null") {
-      std::cerr << mode << " is not a valid mode. Going with \"null\".\n";
-    }
-    display = new gvm::NullVideoDisplay();
-  }
-
+  auto* display = CreateDisplay(result["video_mode"].as<std::string>());
   auto* controller = new gvm::VideoController(display);
   const uint32_t mem_size = 256 << 20;  // 256MiB
-  auto* cpu = new gvm::CPU();
+  auto* cpu = new gvm::CPU(19800000, 60);
   gvm::Computer computer(mem_size, cpu, controller,
                          result["shutdown_on_halt"].as<bool>());
 

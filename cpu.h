@@ -11,7 +11,7 @@
 namespace gvm {
 class CPU {
  public:
-  CPU();
+  CPU(const uint32_t freq, const uint32_t fps);
 
   // Don't allow copy construction
   CPU(const CPU&) = delete;
@@ -37,7 +37,8 @@ class CPU {
   uint32_t mem_size_;
   uint32_t& sp_;
   uint32_t& fp_;
-  uint8_t sflags_;
+  const uint32_t cycles_per_frame_;
+  const uint32_t fps_;
 };
 
 }  // namespace gvm
