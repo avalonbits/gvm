@@ -48,7 +48,7 @@ writec:
 wordloop: 
   ; while (r10 > 0)
   sub r10, r10, 1
-  jeq r10, wrice_done  ; r10 == 0 -> We are done.
+  jeq r10, writec_done  ; r10 == 0 -> We are done.
 
   ; We advance 5 times se we need to subtract 1 to stay correct.
   sub r1, r1, LINE_LENGTH
