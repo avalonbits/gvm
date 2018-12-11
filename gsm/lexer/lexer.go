@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"strings"
 	"unicode"
@@ -12,6 +13,10 @@ type TokenType string
 type Token struct {
 	Type    TokenType
 	Literal string
+}
+
+func (t Token) String() string {
+	return fmt.Sprintf("%s(%s)", t.Type, t.Literal)
 }
 
 const (
@@ -84,7 +89,7 @@ func New(r io.Reader) *Lexer {
 func (l *Lexer) readRune() {
 	r, sz, err := l.buf.ReadRune()
 	if sz == 0 || err != nil {
-		r = 0
+		l.r = 0
 	} else {
 		l.r = r
 	}
@@ -105,12 +110,13 @@ func (l *Lexer) PeakToken() Token {
 }
 
 func (l *Lexer) NextToken() Token {
-	if l.tok != nil {
-		t := *l.tok
+	t := l.tok
+	if t != nil {
 		l.tok = nil
-		return t
+	} else {
+		t = l.nextToken()
 	}
-	return *l.nextToken()
+	return *t
 }
 
 func (l *Lexer) nextToken() *Token {
@@ -147,7 +153,7 @@ func newTok(tp TokenType, lit string) *Token {
 
 func (l *Lexer) readIdent() string {
 	var sb strings.Builder
-	for unicode.IsLetter(l.r) || unicode.IsDigit(l.r) || l.r == '_' {
+	for unicode.IsLetter(l.r) || unicode.IsDigit(l.r) || l.r == '_' || l.r == '.' {
 		sb.WriteRune(l.r)
 		l.readRune()
 	}
@@ -157,7 +163,7 @@ func (l *Lexer) readIdent() string {
 
 func (l *Lexer) readNum() string {
 	var sb strings.Builder
-	for unicode.IsDigit(l.r) || l.r == 'x' {
+	for unicode.IsDigit(l.r) || l.r == 'x' || (l.r >= 'A' && l.r <= 'F') || (l.r >= 'a' && l.r <= 'f') {
 		sb.WriteRune(l.r)
 		l.readRune()
 	}
