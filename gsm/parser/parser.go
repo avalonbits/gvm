@@ -19,8 +19,8 @@ type Org struct {
 	Sections []Section
 }
 
-func (o Org) WordCount() uint32 {
-	var count uint32
+func (o Org) WordCount() int {
+	var count int
 	for _, s := range o.Sections {
 		count += s.wordCount()
 	}
@@ -40,22 +40,31 @@ type Statement struct {
 }
 
 type Instruction struct {
-	name string
-	op1  string
-	op2  string
-	op3  string
+	Name string
+	Op1  string
+	Op2  string
+	Op3  string
 }
 
 type Block struct {
 	Label      string
 	Statements []Statement
 }
+
+func (b Block) wordCount() int {
+	return len(b.Statements)
+}
+
 type Section struct {
 	Blocks []Block
 }
 
-func (s Section) wordCount() uint32 {
-	return 0
+func (s Section) wordCount() int {
+	var count int
+	for _, b := range s.Blocks {
+		count += b.wordCount()
+	}
+	return count
 }
 
 type Tokenizer interface {
@@ -326,10 +335,10 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 	// Instructions either have 0-3 operands. ldr and str have brakets around
 	// one of the registers so we need to account
 	// for them.
-	instr := &Instruction{name: tok.Literal}
-	opCount, ok := operands[instr.name]
+	instr := &Instruction{Name: tok.Literal}
+	opCount, ok := operands[instr.Name]
 	if !ok {
-		p.err = fmt.Errorf("instruction not present in operand table: %q", instr.name)
+		p.err = fmt.Errorf("instruction not present in operand table: %q", instr.Name)
 		return ERROR
 	}
 
@@ -342,10 +351,10 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 	instr = &block.Statements[len(block.Statements)-1].Instr
 
 	var err error
-	if instr.name == "str" {
-		instr.op1, err = p.parseAddressOperand(true)
+	if instr.Name == "str" {
+		instr.Op1, err = p.parseAddressOperand(true)
 	} else {
-		instr.op1, err = p.parseOperand(opCount > 1)
+		instr.Op1, err = p.parseOperand(opCount > 1)
 	}
 	if err != nil {
 		p.err = err
@@ -356,10 +365,10 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 		return TEXT_BLOCK
 	}
 
-	if instr.name == "ldr" {
-		instr.op2, err = p.parseAddressOperand(false)
+	if instr.Name == "ldr" {
+		instr.Op2, err = p.parseAddressOperand(false)
 	} else {
-		instr.op2, err = p.parseOperand(opCount == 3)
+		instr.Op2, err = p.parseOperand(opCount == 3)
 	}
 	if err != nil {
 		p.err = err
@@ -370,7 +379,7 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 		return TEXT_BLOCK
 	}
 
-	instr.op3, err = p.parseOperand(false)
+	instr.Op3, err = p.parseOperand(false)
 	if err != nil {
 		p.err = err
 		return ERROR
