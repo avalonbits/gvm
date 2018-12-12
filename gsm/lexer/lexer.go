@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 	"unicode"
 )
@@ -111,7 +110,6 @@ func (l *Lexer) readRune() {
 	} else {
 		l.r = unicode.ToLower(r)
 	}
-	log.Println(string(l.r), "(", l.r, ")")
 }
 
 func (l *Lexer) skipWhitespace() {
