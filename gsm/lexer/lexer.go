@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"strings"
 	"unicode"
 )
 
-type TokenType string
+type TokenType int
 
 type Token struct {
 	Type    TokenType
@@ -20,23 +21,24 @@ func (t Token) String() string {
 }
 
 const (
-	ILLEGAL   TokenType = "ILLEGAL"
-	EOF                 = "EOF"
-	COMMA               = ","
-	SEMICOLON           = ";"
-	NEWLINE             = "\n"
-	COLON               = ":"
-
-	SECTION     TokenType = ".SECTION"
-	S_DATA                = "DATA"
-	S_TEXT                = "TEXT"
-	ORG                   = ".ORG"
-	LABEL                 = "LABEL"
-	INT_TYPE              = ".INT"
-	IDENT                 = "IDENT"
-	NUMBER                = "NUMBER"
-	REGISTER              = "REGISTER"
-	INSTRUCTION           = "INSTRUCTION"
+	ILLEGAL TokenType = iota
+	EOF
+	COMMA
+	SEMICOLON
+	NEWLINE
+	COLON
+	L_BRACKET
+	R_BRACKET
+	SECTION
+	S_DATA
+	S_TEXT
+	ORG
+	LABEL
+	INT_TYPE
+	IDENT
+	NUMBER
+	REGISTER
+	INSTRUCTION
 )
 
 var keywords = map[string]TokenType{
@@ -67,6 +69,22 @@ var keywords = map[string]TokenType{
 	"asr":      INSTRUCTION,
 	"halt":     INSTRUCTION,
 	"nop":      INSTRUCTION,
+	"r0":       REGISTER,
+	"r1":       REGISTER,
+	"r2":       REGISTER,
+	"r3":       REGISTER,
+	"r4":       REGISTER,
+	"r5":       REGISTER,
+	"r6":       REGISTER,
+	"r7":       REGISTER,
+	"r8":       REGISTER,
+	"r9":       REGISTER,
+	"r10":      REGISTER,
+	"r11":      REGISTER,
+	"r12":      REGISTER,
+	"r13":      REGISTER,
+	"r14":      REGISTER,
+	"r15":      REGISTER,
 }
 
 func lookupIdent(ident string) TokenType {
@@ -91,8 +109,9 @@ func (l *Lexer) readRune() {
 	if sz == 0 || err != nil {
 		l.r = 0
 	} else {
-		l.r = r
+		l.r = unicode.ToLower(r)
 	}
+	log.Println(string(l.r), "(", l.r, ")")
 }
 
 func (l *Lexer) skipWhitespace() {
@@ -130,6 +149,10 @@ func (l *Lexer) nextToken() *Token {
 		return newTok(SEMICOLON, ch)
 	case ':':
 		return newTok(COLON, ch)
+	case '[':
+		return newTok(L_BRACKET, ch)
+	case ']':
+		return newTok(R_BRACKET, ch)
 	case '\n':
 		return newTok(NEWLINE, ch)
 	case 0:
@@ -139,11 +162,11 @@ func (l *Lexer) nextToken() *Token {
 			ident := l.readIdent()
 			return newTok(lookupIdent(ident), ident)
 		}
-		if unicode.IsDigit(l.r) {
+		if unicode.IsDigit(l.r) || l.r == '-' {
 			num := l.readNum()
 			return newTok(NUMBER, num)
 		}
-		return newTok(ILLEGAL, "")
+		return newTok(ILLEGAL, ch)
 	}
 }
 
@@ -163,7 +186,7 @@ func (l *Lexer) readIdent() string {
 
 func (l *Lexer) readNum() string {
 	var sb strings.Builder
-	for unicode.IsDigit(l.r) || l.r == 'x' || (l.r >= 'A' && l.r <= 'F') || (l.r >= 'a' && l.r <= 'f') {
+	for unicode.IsDigit(l.r) || l.r == 'x' || l.r == '-' || (l.r >= 'A' && l.r <= 'F') || (l.r >= 'a' && l.r <= 'f') {
 		sb.WriteRune(l.r)
 		l.readRune()
 	}
