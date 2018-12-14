@@ -1,6 +1,7 @@
 #include "video_controller.h"
 
 #include <cassert>
+#include <chrono>
 #include <iostream>
 
 #include "isa.h"
@@ -17,9 +18,14 @@ void VideoController::Run() {
     const bool done = shutdown_.exchange(display_->CheckEvents());
     if (done) shutdown_ = done;
     if (mem_[mem_reg_] == 1) {
+      const auto start = std::chrono::high_resolution_clock::now();
       display_->CopyBuffer(&mem_[mem_addr_]);
       mem_[mem_reg_] = 0;
       display_->Render();
+      const auto runtime = std::chrono::high_resolution_clock::now() - start;
+
+      const auto time = runtime.count();
+      std::cerr << "Copy Runtime: " << (time / static_cast<double>(1000)) << "us\n";
     }
   }
 }

@@ -13,7 +13,7 @@ class VideoDisplay {
   virtual ~VideoDisplay() {}
 
   virtual void SetFramebufferSize(int fWidth, int fHeight, int bpp) = 0;
-  virtual void CopyBuffer(const uint32_t* mem) = 0;
+  virtual void CopyBuffer(uint32_t* mem) = 0;
   virtual void Render() = 0;
   virtual bool CheckEvents() = 0;
 };

@@ -11,7 +11,7 @@ class NullVideoDisplay : public VideoDisplay {
    ~NullVideoDisplay() override {}
 
   void SetFramebufferSize(int fWidth, int fHeight, int bpp) override {}
-  void CopyBuffer(const uint32_t* mem) override {}
+  void CopyBuffer(uint32_t* mem) override {}
   void Render() override {}
   bool CheckEvents() override { return false; }
 };

@@ -32,8 +32,8 @@ void Computer::Run(const bool debug) {
   const auto time = runtime.count();
   const auto per_inst = time / static_cast<double>(op_count);
   const auto average_clock = 1000000000 / per_inst / 1000000;
-  std::cerr << "Runtime: " << (time / static_cast<double>(1000)) << "us\n";
-  std::cerr << "Instruction count: " << op_count << std::endl;
+  std::cerr << "CPU Runtime: " << (time / static_cast<double>(1000)) << "us\n";
+  std::cerr << "CPU Instruction count: " << op_count << std::endl;
   std::cerr << "Average per instruction: " << per_inst << "ns\n";
   std::cerr << "Average clock: " << average_clock << "MHz\n";
 }

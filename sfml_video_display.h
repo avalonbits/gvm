@@ -12,7 +12,7 @@ class SFMLVideoDisplay : public VideoDisplay {
   ~SFMLVideoDisplay() override;
 
   void SetFramebufferSize(int fWidth, int fHeight, int bpp) override;
-  void CopyBuffer(const uint32_t* mem) override;
+  void CopyBuffer(uint32_t* mem) override;
   void Render() override;
   bool CheckEvents() override;
 
@@ -27,8 +27,7 @@ class SFMLVideoDisplay : public VideoDisplay {
   double h_scale_;
   int fWidth_;
   int fHeight_;
-  sf::Texture texture;
-  std::unique_ptr<uint32_t> buffer_;
+  sf::Texture texture_;
   uint32_t buffer_size_;
 };
 

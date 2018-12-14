@@ -42,9 +42,7 @@ void SFMLVideoDisplay::SetFramebufferSize(int fWidth, int fHeight, int bpp) {
   h_scale_ = static_cast<double>(maxH_) / fHeight;
   fWidth_ = fWidth;
   fHeight_ = fHeight;
-  texture.create(fWidth, fHeight);
-  buffer_size_ = fWidth * fHeight;
-  buffer_.reset(new uint32_t[buffer_size_]);
+  texture_.create(fWidth, fHeight);
 }
 
 void SFMLVideoDisplay::UpdateWindowSize(int wWidth, int wHeight) {
@@ -57,14 +55,13 @@ void SFMLVideoDisplay::UpdateWindowSize(int wWidth, int wHeight) {
   Render();
 }
 
-void SFMLVideoDisplay::CopyBuffer(const uint32_t* mem) {
-  std::memcpy(buffer_.get(), mem, buffer_size_);
+void SFMLVideoDisplay::CopyBuffer(uint32_t* mem) {
+  texture_.update(reinterpret_cast<uint8_t*>(mem));
 }
 
 void SFMLVideoDisplay::Render() {
-  texture.update(reinterpret_cast<uint8_t*>(buffer_.get()));
   sf::Sprite sprite;
-  sprite.setTexture(texture);
+  sprite.setTexture(texture_);
   sprite.scale(w_scale_, h_scale_);
   window_->clear();
   window_->draw(sprite);
