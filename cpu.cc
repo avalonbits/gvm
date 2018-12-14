@@ -84,15 +84,23 @@ void CPU::SetPC(uint32_t pc) {
   assert(pc_ < mem_size_);
 }
 
-const bool CPU::Step(const bool debug) {
-  if (pc_ >= mem_size_) return false;
+uint32_t CPU::Run(const bool debug) {
+  uint32_t i = 1;
+  if (debug) std::cerr << PrintRegisters(/*hex=*/true) << std::endl;
+  for (;;++i,++pc_) {
+    if (debug) {
+      std::cerr << PrintRegisters(/*hex=*/true) << std::endl;
+      getchar();
+    }
+
+  if (pc_ >= mem_size_) break;
   const auto& word = mem_[pc_];
   if (debug) {
     std::cerr << "0x" << std::hex << pc_ << ": " << std::dec << PrintInstruction(word) << std::endl;
   }
   switch (word & 0xFF) {  // first 8 bits define the instruction.
     case ISA::HALT:
-      return false;
+      return i;
       break;
     case ISA::NOP:
       break;
@@ -226,24 +234,9 @@ const bool CPU::Step(const bool debug) {
     default:
       assert(false);
   }
-  ++pc_;
-  return true;
-}
-
-uint32_t CPU::Run(const bool debug) {
-    uint32_t i = 1;
-    if (debug) std::cerr << PrintRegisters(/*hex=*/true) << std::endl;
-    while(Step(debug)) {
-      if (debug) {
-        std::cerr << PrintRegisters(/*hex=*/true) << std::endl;
-        getchar();
-      }
-      ++i;
-    }
-    return i;
   }
-
-
+  return i;
+}
 
 const std::string CPU::PrintRegisters(bool hex) {
   std::stringstream ss;
