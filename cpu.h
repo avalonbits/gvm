@@ -29,7 +29,7 @@ class CPU {
   const std::string PrintStatusFlags();
 
  private:
-  std::string PrintInstruction(const Word word);
+  std::string PrintInstruction(const uint32_t pc, const Word word);
 
   uint32_t pc_;
   uint32_t reg_[kRegCount];

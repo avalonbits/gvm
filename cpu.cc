@@ -86,18 +86,20 @@ void CPU::SetPC(uint32_t pc) {
 }
 
 uint32_t CPU::Run(const bool debug) {
+  register uint32_t pc = pc_;
   uint32_t i = 1;
   if (debug) std::cerr << PrintRegisters(/*hex=*/true) << std::endl;
-  for (;;++i,++pc_) {
+  for (;;++i,++pc) {
     if (debug) {
       std::cerr << PrintRegisters(/*hex=*/true) << std::endl;
       getchar();
     }
 
-  if (pc_ >= mem_size_) break;
-  const auto& word = mem_[pc_];
+  if (pc >= mem_size_) break;
+  register const uint32_t word = mem_[pc];
   if (debug) {
-    std::cerr << "0x" << std::hex << pc_ << ": " << std::dec << PrintInstruction(word) << std::endl;
+    std::cerr << "0x" << std::hex << pc << ": " << std::dec
+              << PrintInstruction(pc, word) << std::endl;
   }
   switch (word & 0xFF) {  // first 8 bits define the instruction.
     case ISA::HALT:
@@ -155,42 +157,42 @@ uint32_t CPU::Run(const bool debug) {
       continue;
     }
     case ISA::JMP:
-      pc_ = pc_ + reladdr(word >> 8) - 1;
+      pc = pc + reladdr(word >> 8) - 1;
       continue;
     case ISA::JNE:
-      if (reg_[reg1(word)] != 0) pc_ = pc_ + reladdr20(word) - 1;
+      if (reg_[reg1(word)] != 0) pc = pc + reladdr20(word) - 1;
       continue;
     case ISA::JEQ:
-      if (reg_[reg1(word)] == 0) pc_ = pc_ + reladdr20(word) - 1;
+      if (reg_[reg1(word)] == 0) pc = pc + reladdr20(word) - 1;
       continue;
     case ISA::JGT:
-      if (reg_[reg1(word)] > 0) pc_ = pc_ + reladdr20(word) - 1;
+      if (reg_[reg1(word)] > 0) pc = pc + reladdr20(word) - 1;
       continue;
     case ISA::JGE:
-      if (reg_[reg1(word)] >= 0) pc_ = pc_ + reladdr20(word) - 1;
+      if (reg_[reg1(word)] >= 0) pc = pc + reladdr20(word) - 1;
       continue;
     case ISA::JLT:
-      if (reg_[reg1(word)] < 0) pc_ = pc_ + reladdr20(word) - 1;
+      if (reg_[reg1(word)] < 0) pc = pc + reladdr20(word) - 1;
       continue;
     case ISA::JLE:
-      if (reg_[reg1(word)] <= 0) pc_ = pc_ + reladdr20(word) - 1;
+      if (reg_[reg1(word)] <= 0) pc = pc + reladdr20(word) - 1;
       continue;
     case ISA::CALLI:
-      mem_[--sp_] = pc_;
+      mem_[--sp_] = pc;
       mem_[--sp_] = fp_;
       fp_ = sp_;
-      pc_ = pc_ + reladdr(word >> 8) - 1;
+      pc = pc + reladdr(word >> 8) - 1;
       continue;
     case ISA::CALLR:
-      mem_[--sp_] = pc_;
+      mem_[--sp_] = pc;
       mem_[--sp_] = fp_;
       fp_ = sp_;
-      pc_ = reg_[reg1(word)]/kWordSize - 1;
+      pc = reg_[reg1(word)]/kWordSize - 1;
       continue;
     case ISA::RET:
       sp_ = fp_;
       fp_ = mem_[sp_++];
-      pc_ = mem_[sp_++];
+      pc = mem_[sp_++];
       continue;
     case ISA::AND_RR: {
       const uint32_t v = reg_[reg2(word)] & reg_[reg3(word)];
@@ -275,7 +277,7 @@ const std::string CPU::PrintMemory(uint32_t from, uint32_t to) {
   return ss.str();
 }
 
-std::string CPU::PrintInstruction(const Word word) {
+std::string CPU::PrintInstruction(const uint32_t pc, const Word word) {
   std::ostringstream ss;
 
   switch (word & 0xFF) {  // first 8 bits define the instruction.
@@ -325,28 +327,28 @@ std::string CPU::PrintInstruction(const Word word) {
       ss << "sub r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
     case ISA::JMP:
-      ss << "jmp 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
+      ss << "jmp 0x" << std::hex << (pc + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::JNE:
-      ss << "jne 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
+      ss << "jne 0x" << std::hex << (pc + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::JEQ:
-      ss << "jeq 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
+      ss << "jeq 0x" << std::hex << (pc + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::JGT:
-      ss << "jgt 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
+      ss << "jgt 0x" << std::hex << (pc + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::JGE:
-      ss << "jge 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
+      ss << "jge 0x" << std::hex << (pc + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::JLT:
-      ss << "jlt 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
+      ss << "jlt 0x" << std::hex << (pc + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::JLE:
-      ss << "jle 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
+      ss << "jle 0x" << std::hex << (pc + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::CALLI:
-      ss << "call 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr(word >> 8)));
+      ss << "call 0x" << std::hex << (pc + static_cast<int32_t>(reladdr(word >> 8)));
       break;
     case ISA::CALLR:
       ss << "call [r" << reg1(word) << "]";
