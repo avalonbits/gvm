@@ -11,7 +11,7 @@ import (
 type Word uint32
 type AST struct {
 	Orgs   []Org
-	consts map[string]Word
+	Consts map[string]string
 }
 
 type Org struct {
@@ -27,23 +27,69 @@ func (o Org) WordCount() int {
 	return count
 }
 
-type SType int
-
-const (
-	SECTION_DATA SType = iota
-	SECTION_TEXT
-)
-
 type Statement struct {
 	Value uint32
 	Instr Instruction
 }
 
+type OpType int
+
+const (
+	OP_REG = iota
+	OP_NUMBER
+	OP_LABEL
+)
+
+type Operand struct {
+	Op   string
+	Type OpType
+}
+
 type Instruction struct {
 	Name string
-	Op1  string
-	Op2  string
-	Op3  string
+	Op1  Operand
+	Op2  Operand
+	Op3  Operand
+}
+
+func (i Instruction) String() string {
+	var sb strings.Builder
+	sb.WriteString(i.Name)
+	opCount := operands[i.Name]
+
+	if opCount == 0 {
+		return sb.String()
+	}
+
+	sb.WriteRune(' ')
+	if i.Name == "str" {
+		sb.WriteRune('[')
+	}
+	sb.WriteString(i.Op1.Op)
+	if i.Name == "str" {
+		sb.WriteRune(']')
+	}
+
+	if opCount == 1 {
+		return sb.String()
+	}
+
+	sb.WriteString(", ")
+	if i.Name == "ldr" {
+		sb.WriteRune('[')
+	}
+	sb.WriteString(i.Op2.Op)
+	if i.Name == "ldr" {
+		sb.WriteRune(']')
+	}
+
+	if opCount == 2 {
+		return sb.String()
+	}
+
+	sb.WriteString(", ")
+	sb.WriteString(i.Op3.Op)
+	return sb.String()
 }
 
 type Block struct {
@@ -80,7 +126,7 @@ type Parser struct {
 
 func New(t Tokenizer) *Parser {
 	return &Parser{tokenizer: t, Ast: &AST{
-		consts: make(map[string]Word),
+		Consts: make(map[string]string),
 	}}
 }
 
@@ -232,11 +278,11 @@ func (p *Parser) data_block(cur state) state {
 			return ERROR
 		}
 
-		if _, ok := p.Ast.consts[name]; ok {
+		if _, ok := p.Ast.Consts[name]; ok {
 			p.err = fmt.Errorf("constant %q was defined earlier in the file", name)
 			return ERROR
 		}
-		p.Ast.consts[name] = Word(n)
+		p.Ast.Consts[name] = tok.Literal
 		aBlock.Statements = append(aBlock.Statements, Statement{Value: n})
 		return DATA_BLOCK
 	default:
@@ -388,42 +434,49 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 	return TEXT_BLOCK
 }
 
-func (p *Parser) parseOperand(comma bool) (string, error) {
+func (p *Parser) parseOperand(comma bool) (Operand, error) {
+	op := Operand{}
 	tok := p.tokenizer.NextToken()
 	if tok.Type != lexer.REGISTER && tok.Type != lexer.IDENT && tok.Type != lexer.NUMBER {
-		return "", fmt.Errorf("expected a register, a number or a label, got %q",
+		return op, fmt.Errorf("expected a register, a number or a label, got %q",
 			tok.Literal)
 	}
-	op := tok.Literal
+	op.Type = OP_REG
+	if tok.Type == lexer.IDENT {
+		op.Type = OP_LABEL
+	} else if tok.Type == lexer.NUMBER {
+		op.Type = OP_NUMBER
+	}
+	op.Op = tok.Literal
 	if comma {
 		tok = p.tokenizer.NextToken()
 		if tok.Type != lexer.COMMA {
-			return "", fmt.Errorf("expected a comma ',', got %q", tok.Literal)
+			return op, fmt.Errorf("expected a comma ',', got %q", tok.Literal)
 		}
 	}
 	return op, nil
 
 }
 
-func (p *Parser) parseAddressOperand(comma bool) (string, error) {
+func (p *Parser) parseAddressOperand(comma bool) (Operand, error) {
 	tok := p.tokenizer.NextToken()
 	if tok.Type != lexer.L_BRACKET {
-		return "", fmt.Errorf("expected a left bracket '[', got %q", tok.Literal)
+		return Operand{}, fmt.Errorf("expected a left bracket '[', got %q", tok.Literal)
 	}
 
 	op, err := p.parseOperand(false)
 	if err != nil {
-		return "", err
+		return op, err
 	}
 
 	tok = p.tokenizer.NextToken()
 	if tok.Type != lexer.R_BRACKET {
-		return "", fmt.Errorf("expected a right bracket ']', got %q", tok.Literal)
+		return op, fmt.Errorf("expected a right bracket ']', got %q", tok.Literal)
 	}
 	if comma {
 		tok = p.tokenizer.NextToken()
 		if tok.Type != lexer.COMMA {
-			return "", fmt.Errorf("expected a comma ',', got %q", tok.Literal)
+			return op, fmt.Errorf("expected a comma ',', got %q", tok.Literal)
 		}
 	}
 	return op, nil
