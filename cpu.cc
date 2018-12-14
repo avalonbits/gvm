@@ -101,136 +101,136 @@ uint32_t CPU::Run(const bool debug) {
   switch (word & 0xFF) {  // first 8 bits define the instruction.
     case ISA::HALT:
       return i;
-      break;
+      continue;
     case ISA::NOP:
-      break;
+      continue;
     case ISA::MOV_RR:
       reg_[reg1(word)] = reg_[reg2(word)];
-      break;
+      continue;
     case ISA::MOV_RI: {
       uint32_t v = (word >> 12);
       if (((v >> 19) & 1) == 1) v = 0xFFF00000 | v;
       reg_[reg1(word)] = v;
-      break;
+      continue;
     }
     case ISA::LOAD_RR:
       reg_[reg1(word)] = mem_[reg_[reg2(word)]/kWordSize];
-      break;
+      continue;
     case ISA::LOAD_RI:
       reg_[reg1(word)] = mem_[((word >> 12) & 0xFFFFF)/kWordSize];
-      break;
+      continue;
     case ISA::LOAD_IX:
       reg_[reg1(word)] = mem_[(reg_[reg2(word)] + v16bit(word))/kWordSize];
-      break;
+      continue;
     case ISA::STOR_RR:
       mem_[reg_[reg1(word)]/kWordSize] = reg_[reg2(word)];
-      break;
+      continue;
     case ISA::STOR_RI:
       mem_[((word >> 12) & 0xFFFFF)/kWordSize] = reg_[reg1(word)];
-      break;
+      continue;
     case ISA::STOR_IX:
       mem_[(reg_[reg1(word)] + v16bit(word))/kWordSize] = reg_[reg2(word)];
-      break;
+      continue;
     case ISA::ADD_RR: {
       const uint32_t v = reg_[reg2(word)] + reg_[reg3(word)];
       reg_[reg1(word)] = v;
-      break;
+      continue;
     }
     case ISA::ADD_RI: {
       const uint32_t v = reg_[reg2(word)] + v16bit(word);
       reg_[reg1(word)] = v;
-      break;
+      continue;
     }
     case ISA::SUB_RR: {
       const uint32_t op2 = (~reg_[reg3(word)] + 1);
       const uint32_t v = reg_[reg2(word)] + op2;
       reg_[reg1(word)] = v;
-      break;
+      continue;
     }
     case ISA::SUB_RI: {
       const uint32_t op2 = (~v16bit(word) + 1);
       const uint32_t v = reg_[reg2(word)] + op2;
       reg_[reg1(word)] = v;
-      break;
+      continue;
     }
     case ISA::JMP:
       pc_ = pc_ + reladdr(word >> 8) - 1;
-      break;
+      continue;
     case ISA::JNE:
       if (reg_[reg1(word)] != 0) pc_ = pc_ + reladdr20(word) - 1;
-      break;
+      continue;
     case ISA::JEQ:
       if (reg_[reg1(word)] == 0) pc_ = pc_ + reladdr20(word) - 1;
-      break;
+      continue;
     case ISA::JGT:
       if (reg_[reg1(word)] > 0) pc_ = pc_ + reladdr20(word) - 1;
-      break;
+      continue;
     case ISA::JGE:
       if (reg_[reg1(word)] >= 0) pc_ = pc_ + reladdr20(word) - 1;
-      break;
+      continue;
     case ISA::JLT:
       if (reg_[reg1(word)] < 0) pc_ = pc_ + reladdr20(word) - 1;
-      break;
+      continue;
     case ISA::JLE:
       if (reg_[reg1(word)] <= 0) pc_ = pc_ + reladdr20(word) - 1;
-      break;
+      continue;
     case ISA::CALLI:
       mem_[--sp_] = pc_;
       mem_[--sp_] = fp_;
       fp_ = sp_;
       pc_ = pc_ + reladdr(word >> 8) - 1;
-      break;
+      continue;
     case ISA::CALLR:
       mem_[--sp_] = pc_;
       mem_[--sp_] = fp_;
       fp_ = sp_;
       pc_ = reg_[reg1(word)]/kWordSize - 1;
-      break;
+      continue;
     case ISA::RET:
       sp_ = fp_;
       fp_ = mem_[sp_++];
       pc_ = mem_[sp_++];
-      break;
+      continue;
     case ISA::AND_RR: {
       const uint32_t v = reg_[reg2(word)] & reg_[reg3(word)];
       reg_[reg1(word)] = v;
-      break;
+      continue;
     }
     case ISA::AND_RI: {
       const uint32_t v = (reg_[reg2(word)]) & (v16bit(word));
       reg_[reg1(word)] = v;
-      break;
+      continue;
     }
     case ISA::ORR_RR:
       reg_[reg1(word)] = reg_[reg2(word)] | reg_[reg3(word)];
-      break;
+      continue;
     case ISA::ORR_RI:
       reg_[reg1(word)] = reg_[reg2(word)] | v16bit(word);
-      break;
+      continue;
     case ISA::XOR_RR:
       reg_[reg1(word)] = reg_[reg2(word)] ^ reg_[reg3(word)];
-      break;
+      continue;
     case ISA::XOR_RI:
       reg_[reg1(word)] = reg_[reg2(word)] ^ v16bit(word);
-      break;
+      continue;
     case ISA::LSL_RR:
       reg_[reg1(word)] = reg_[reg2(word)] << reg_[reg3(word)];
-      break;
+      continue;
     case ISA::LSL_RI:
       reg_[reg1(word)] = reg_[reg2(word)] << v16bit(word);
-      break;
+      continue;
     case ISA::LSR_RR:
       reg_[reg1(word)] = reg_[reg2(word)] >> reg_[reg3(word)];
-      break;
+      continue;
     case ISA::LSR_RI:
       reg_[reg1(word)] = reg_[reg2(word)] >> v16bit(word);
-      break;
+      continue;
     case ISA::ASR_RR:
       reg_[reg1(word)] = static_cast<int32_t>(reg_[reg2(word)]) >> reg_[reg3(word)];
-      break;
+      continue;
     case ISA::ASR_RI:
       reg_[reg1(word)] = static_cast<int32_t>(reg_[reg2(word)]) >> v16bit(word);
-      break;
+      continue;
     default:
       assert(false);
   }
