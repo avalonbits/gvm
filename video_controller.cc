@@ -20,12 +20,12 @@ void VideoController::Run() {
     if (mem_[mem_reg_] == 1) {
       const auto start = std::chrono::high_resolution_clock::now();
       display_->CopyBuffer(&mem_[mem_addr_]);
-      mem_[mem_reg_] = 0;
       display_->Render();
+      mem_[mem_reg_] = 0;
       const auto runtime = std::chrono::high_resolution_clock::now() - start;
 
       const auto time = runtime.count();
-      std::cerr << "Copy Runtime: " << (time / static_cast<double>(1000)) << "us\n";
+      std::cerr << "Copy + render runtime: " << (time / static_cast<double>(1000)) << "us\n";
     }
   }
 }
