@@ -86,159 +86,166 @@ void CPU::SetPC(uint32_t pc) {
 }
 
 uint32_t CPU::Run(const bool debug) {
-  register uint32_t pc = pc_;
-  uint32_t i = 1;
-  if (debug) std::cerr << PrintRegisters(/*hex=*/true) << std::endl;
+  static void* opcodes[] = {
+    &&NOP, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
+    &&STOR_RR, &&STOR_RI, &&STOR_IX, &&ADD_RR, &&ADD_RI, &&SUB_RR,
+    &&SUB_RI, &&JMP, &&JNE, &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI,
+    &&CALLR, &&RET, &&AND_RR, &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR,
+    &&XOR_RI, &&LSL_RR, &&LSL_RI, &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI,
+    &&HALT
+  };
+  register uint32_t pc = pc_-1;
+  register uint32_t i = 0;
+  register uint32_t word;
+
+  /*
+  if (debug) std::cerr << PrintRegisters(true) << std::endl;
   for (;;++i,++pc) {
     if (debug) {
-      std::cerr << PrintRegisters(/*hex=*/true) << std::endl;
+      std::cerr << PrintRegisters(true) << std::endl;
       getchar();
     }
-
   if (pc >= mem_size_) break;
-  register const uint32_t word = mem_[pc];
+  */
+
+
+#define DISPATCH() ++i; word =  mem_[++pc]; goto *opcodes[word&0xFF] /*
   if (debug) {
     std::cerr << "0x" << std::hex << pc << ": " << std::dec
               << PrintInstruction(pc, word) << std::endl;
-  }
-  switch (word & 0xFF) {  // first 8 bits define the instruction.
-    case ISA::HALT:
-      return i;
-      continue;
-    case ISA::NOP:
-      continue;
-    case ISA::MOV_RR:
+  }*/
+  DISPATCH();
+  NOP:
+      DISPATCH();
+  MOV_RR:
       reg_[reg1(word)] = reg_[reg2(word)];
-      continue;
-    case ISA::MOV_RI: {
+      DISPATCH();
+  MOV_RI: {
       uint32_t v = (word >> 12);
       if (((v >> 19) & 1) == 1) v = 0xFFF00000 | v;
       reg_[reg1(word)] = v;
-      continue;
+      DISPATCH();
     }
-    case ISA::LOAD_RR:
+  LOAD_RR:
       reg_[reg1(word)] = mem_[reg_[reg2(word)]/kWordSize];
-      continue;
-    case ISA::LOAD_RI:
+      DISPATCH();
+  LOAD_RI:
       reg_[reg1(word)] = mem_[((word >> 12) & 0xFFFFF)/kWordSize];
-      continue;
-    case ISA::LOAD_IX:
+      DISPATCH();
+  LOAD_IX:
       reg_[reg1(word)] = mem_[(reg_[reg2(word)] + v16bit(word))/kWordSize];
-      continue;
-    case ISA::STOR_RR:
+      DISPATCH();
+  STOR_RR:
       mem_[reg_[reg1(word)]/kWordSize] = reg_[reg2(word)];
-      continue;
-    case ISA::STOR_RI:
+      DISPATCH();
+  STOR_RI:
       mem_[((word >> 12) & 0xFFFFF)/kWordSize] = reg_[reg1(word)];
-      continue;
-    case ISA::STOR_IX:
+      DISPATCH();
+  STOR_IX:
       mem_[(reg_[reg1(word)] + v16bit(word))/kWordSize] = reg_[reg2(word)];
-      continue;
-    case ISA::ADD_RR: {
+      DISPATCH();
+  ADD_RR: {
       const uint32_t v = reg_[reg2(word)] + reg_[reg3(word)];
       reg_[reg1(word)] = v;
-      continue;
+      DISPATCH();
     }
-    case ISA::ADD_RI: {
+  ADD_RI: {
       const uint32_t v = reg_[reg2(word)] + v16bit(word);
       reg_[reg1(word)] = v;
-      continue;
+      DISPATCH();
     }
-    case ISA::SUB_RR: {
+  SUB_RR: {
       const uint32_t op2 = (~reg_[reg3(word)] + 1);
       const uint32_t v = reg_[reg2(word)] + op2;
       reg_[reg1(word)] = v;
-      continue;
+      DISPATCH();
     }
-    case ISA::SUB_RI: {
+  SUB_RI: {
       const uint32_t op2 = (~v16bit(word) + 1);
       const uint32_t v = reg_[reg2(word)] + op2;
       reg_[reg1(word)] = v;
-      continue;
+      DISPATCH();
     }
-    case ISA::JMP:
+  JMP:
       pc = pc + reladdr(word >> 8) - 1;
-      continue;
-    case ISA::JNE:
+      DISPATCH();
+  JNE:
       if (reg_[reg1(word)] != 0) pc = pc + reladdr20(word) - 1;
-      continue;
-    case ISA::JEQ:
+      DISPATCH();
+  JEQ:
       if (reg_[reg1(word)] == 0) pc = pc + reladdr20(word) - 1;
-      continue;
-    case ISA::JGT:
+      DISPATCH();
+  JGT:
       if (reg_[reg1(word)] > 0) pc = pc + reladdr20(word) - 1;
-      continue;
-    case ISA::JGE:
+      DISPATCH();
+  JGE:
       if (reg_[reg1(word)] >= 0) pc = pc + reladdr20(word) - 1;
-      continue;
-    case ISA::JLT:
+      DISPATCH();
+  JLT:
       if (reg_[reg1(word)] < 0) pc = pc + reladdr20(word) - 1;
-      continue;
-    case ISA::JLE:
+      DISPATCH();
+  JLE:
       if (reg_[reg1(word)] <= 0) pc = pc + reladdr20(word) - 1;
-      continue;
-    case ISA::CALLI:
+      DISPATCH();
+  CALLI:
       mem_[--sp_] = pc;
       mem_[--sp_] = fp_;
       fp_ = sp_;
       pc = pc + reladdr(word >> 8) - 1;
-      continue;
-    case ISA::CALLR:
+      DISPATCH();
+  CALLR:
       mem_[--sp_] = pc;
       mem_[--sp_] = fp_;
       fp_ = sp_;
       pc = reg_[reg1(word)]/kWordSize - 1;
-      continue;
-    case ISA::RET:
+      DISPATCH();
+  RET:
       sp_ = fp_;
       fp_ = mem_[sp_++];
       pc = mem_[sp_++];
-      continue;
-    case ISA::AND_RR: {
+      DISPATCH();
+  AND_RR: {
       const uint32_t v = reg_[reg2(word)] & reg_[reg3(word)];
       reg_[reg1(word)] = v;
-      continue;
+      DISPATCH();
     }
-    case ISA::AND_RI: {
+  AND_RI: {
       const uint32_t v = (reg_[reg2(word)]) & (v16bit(word));
       reg_[reg1(word)] = v;
-      continue;
+      DISPATCH();
     }
-    case ISA::ORR_RR:
+  ORR_RR:
       reg_[reg1(word)] = reg_[reg2(word)] | reg_[reg3(word)];
-      continue;
-    case ISA::ORR_RI:
+      DISPATCH();
+  ORR_RI:
       reg_[reg1(word)] = reg_[reg2(word)] | v16bit(word);
-      continue;
-    case ISA::XOR_RR:
+      DISPATCH();
+  XOR_RR:
       reg_[reg1(word)] = reg_[reg2(word)] ^ reg_[reg3(word)];
-      continue;
-    case ISA::XOR_RI:
+      DISPATCH();
+  XOR_RI:
       reg_[reg1(word)] = reg_[reg2(word)] ^ v16bit(word);
-      continue;
-    case ISA::LSL_RR:
+      DISPATCH();
+  LSL_RR:
       reg_[reg1(word)] = reg_[reg2(word)] << reg_[reg3(word)];
-      continue;
-    case ISA::LSL_RI:
+      DISPATCH();
+  LSL_RI:
       reg_[reg1(word)] = reg_[reg2(word)] << v16bit(word);
-      continue;
-    case ISA::LSR_RR:
+      DISPATCH();
+  LSR_RR:
       reg_[reg1(word)] = reg_[reg2(word)] >> reg_[reg3(word)];
-      continue;
-    case ISA::LSR_RI:
+      DISPATCH();
+  LSR_RI:
       reg_[reg1(word)] = reg_[reg2(word)] >> v16bit(word);
-      continue;
-    case ISA::ASR_RR:
+      DISPATCH();
+  ASR_RR:
       reg_[reg1(word)] = static_cast<int32_t>(reg_[reg2(word)]) >> reg_[reg3(word)];
-      continue;
-    case ISA::ASR_RI:
+      DISPATCH();
+  ASR_RI:
       reg_[reg1(word)] = static_cast<int32_t>(reg_[reg2(word)]) >> v16bit(word);
-      continue;
-    default:
-      assert(false);
-  }
-  }
-  return i;
+      DISPATCH();
+  HALT:
+    return i;
 }
 
 const std::string CPU::PrintRegisters(bool hex) {

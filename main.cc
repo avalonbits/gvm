@@ -118,8 +118,8 @@ int main(int argc, char* argv[]) {
 
     gvm::MovRI(0, 1),
     gvm::StorRI(0x00, 0),
-    gvm::LoadRI(0, 0x00),
-    gvm::Jne(0, -4),
+//    gvm::LoadRI(0, 0x00),
+//    gvm::Jne(0, -4),
     gvm::Halt(),
   }));
 

@@ -9,21 +9,20 @@ constexpr uint32_t kWordSize = 4;
 constexpr uint32_t kRegCount = 14 + 2;  // 14 general purpose + sp + fp.
 
 enum ISA {
-    HALT    = 0,
-    NOP,    
-    JMP,   
+    NOP = 0,
     MOV_RR,
     MOV_RI,
-    STOR_RI,
-    STOR_RR,
-    STOR_IX,
-    LOAD_RI,
     LOAD_RR,
+    LOAD_RI,
     LOAD_IX,
+    STOR_RR,
+    STOR_RI,
+    STOR_IX,
     ADD_RR,
     ADD_RI,
     SUB_RR,
     SUB_RI,
+    JMP,
     JNE,
     JEQ,
     JGT,
@@ -45,6 +44,7 @@ enum ISA {
     LSR_RI,
     ASR_RR,
     ASR_RI,
+    HALT,
 };
 
 typedef uint32_t Word;
