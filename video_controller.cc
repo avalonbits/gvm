@@ -14,20 +14,24 @@ VideoController::VideoController(VideoDisplay* display)
 }
 
 void VideoController::Run() {
+  register uint32_t fps = 0;
+  const auto start = std::chrono::high_resolution_clock::now();
   while (!shutdown_.load()) {
+    ++fps;
     const bool done = shutdown_.exchange(display_->CheckEvents());
     if (done) shutdown_ = done;
-    if (mem_[mem_reg_] == 1) {
-      const auto start = std::chrono::high_resolution_clock::now();
-      display_->CopyBuffer(&mem_[mem_addr_]);
-      display_->Render();
-      mem_[mem_reg_] = 0;
-      const auto runtime = std::chrono::high_resolution_clock::now() - start;
 
-      const auto time = runtime.count();
-      std::cerr << "Copy + render runtime: " << (time / static_cast<double>(1000)) << "us\n";
+     if (mem_[mem_reg_] == 1) {
+      display_->CopyBuffer(&mem_[mem_addr_]);
     }
+    display_->Render();
+    mem_[mem_reg_] = 0;
   }
+  const std::chrono::nanoseconds runtime =
+      std::chrono::high_resolution_clock::now() - start;
+  const auto time = runtime.count();
+  std::cerr << "Avergate fps: " << (fps / (time / static_cast<double>(1000000000)))
+            << "\n";
 }
 
 void VideoController::RegisterDMA(
