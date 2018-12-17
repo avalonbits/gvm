@@ -11,17 +11,22 @@ class SDL2VideoDisplay : public VideoDisplay {
  public:
   SDL2VideoDisplay();  // Fullscreen display
   SDL2VideoDisplay(int width, int height);  // Windowed display.
-  ~SDL2VideoDisplay() override {}
+  ~SDL2VideoDisplay() override;
 
-  void SetFramebufferSize(int fWidth, int fHeight, int bpp) override {}
-  void CopyBuffer(uint32_t* mem) override{}
-  void Render() override {}
-  bool CheckEvents() override { return false; }
+  void SetFramebufferSize(int fWidth, int fHeight, int bpp) override;
+  void CopyBuffer(uint32_t* mem) override;
+  void Render() override;
+  bool CheckEvents() override;
 
  private:
   SDL2VideoDisplay(int width, int height, const bool fullscreen);
   SDL_Window* window_;
   SDL_Surface* surface_;
+  SDL_Surface* buffer_;
+  int maxW_;
+  int maxH_;
+  int fWidth_;
+  int fHeight_;
 };
 
 }  // namespace gvm
