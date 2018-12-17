@@ -19,6 +19,7 @@ class SDL2VideoDisplay : public VideoDisplay {
   bool CheckEvents() override { return false; }
 
  private:
+  SDL2VideoDisplay(int width, int height, const bool fullscreen);
   SDL_Window* window_;
   SDL_Surface* surface_;
 };

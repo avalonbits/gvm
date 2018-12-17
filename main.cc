@@ -3,13 +3,12 @@
 #include <iostream>
 #include <memory>
 
-#include <SFML/Graphics.hpp>
-
 #include "computer.h"
 #include "computer_roms.h"
 #include "cpu.h"
 #include "cxxopts.hpp"
 #include "isa.h"
+#include "sdl2_video_display.h"
 #include "sfml_video_display.h"
 #include "null_video_display.h"
 
@@ -47,7 +46,8 @@ int main(int argc, char* argv[]) {
     ;
   auto result = options.parse(argc, argv);
 
-  auto* display = CreateSFMLDisplay(result["video_mode"].as<std::string>());
+//  auto* display = CreateSFMLDisplay(result["video_mode"].as<std::string>());
+  gvm::VideoDisplay* display = new gvm::SDL2VideoDisplay(1920, 1080);
   auto* controller = new gvm::VideoController(display);
   const uint32_t mem_size = 256 << 20;  // 256MiB
   auto* cpu = new gvm::CPU(19800000, 60);
