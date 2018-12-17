@@ -13,7 +13,7 @@
 #include "sfml_video_display.h"
 #include "null_video_display.h"
 
-gvm::VideoDisplay* CreateDisplay(const std::string& mode) {
+gvm::VideoDisplay* CreateSFMLDisplay(const std::string& mode) {
   if (mode == "480p") {
     return new gvm::SFMLVideoDisplay(854, 480);
   } else if (mode == "540p") {
@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
     ;
   auto result = options.parse(argc, argv);
 
-  auto* display = CreateDisplay(result["video_mode"].as<std::string>());
+  auto* display = CreateSFMLDisplay(result["video_mode"].as<std::string>());
   auto* controller = new gvm::VideoController(display);
   const uint32_t mem_size = 256 << 20;  // 256MiB
   auto* cpu = new gvm::CPU(19800000, 60);
