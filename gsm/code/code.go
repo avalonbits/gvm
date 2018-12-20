@@ -29,7 +29,7 @@ func Generate(ast *parser.AST, buf *bufio.Writer) error {
 	if err := convertNames(labelMap, ast); err != nil {
 		return err
 	}
-	if err := expandInstructions(ast); err != nil {
+	if err := rewriteInstructions(ast); err != nil {
 		return err
 	}
 	if err := convertInstructions(ast); err != nil {
@@ -51,16 +51,17 @@ func convertLabels(labelMap map[string]uint32, ast *parser.AST) error {
 					if _, ok := labelMap[block.Label]; ok {
 						return fmt.Errorf("label redefinition: %q", block.Label)
 					}
-					if _, ok := ast.Conts[block.Label]; ok {
+					if _, ok := ast.Consts[block.Label]; ok {
 						return fmt.Errorf("label redefinition: %q was defined as a const",
 							block.Label)
 					}
 					labelMap[block.Label] = baseAddr + (wordCount * 4)
 				}
-				wordCount += len(block.Statements)
+				wordCount += uint32(len(block.Statements))
 			}
 		}
 	}
+	return nil
 }
 
 func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
@@ -71,7 +72,7 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 					if statement.Instr.Name == "" {
 						continue
 					}
-					ops := []*parser.Op{
+					ops := []*parser.Operand{
 						&statement.Instr.Op1,
 						&statement.Instr.Op2,
 						&statement.Instr.Op3,
@@ -87,67 +88,64 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 			}
 		}
 	}
+	return nil
 }
 
-func convertOperand(labelMap map[string]uint32, consts map[string]string, op *parser.Op) error {
-	if op.Type != OP_LABEL {
+func convertOperand(labelMap map[string]uint32, consts map[string]string, op *parser.Operand) error {
+	if op.Type != parser.OP_LABEL {
 		return nil
 	}
-	if value, ok := consts[op.Name]; ok {
-		op.Name = value
+	if value, ok := consts[op.Op]; ok {
+		op.Op = value
 		return nil
 	}
-	if value, ok := labelMap[op.Name]; ok {
-		op.Name = "0x" + strconv.FormatUint(addr, 16)
+	if value, ok := labelMap[op.Op]; ok {
+		op.Op = "0x" + strconv.FormatUint(uint64(value), 16)
+		return nil
 	}
 
-	return fmt.Errorf("operando %q is not a label or a constant", op.Name)
+	return fmt.Errorf("operando %q is not a label or a constant", op.Op)
 }
 
-func expandInstructions(ast *parser.AST) error {
+func rewriteInstructions(ast *parser.AST) error {
 	for _, org := range ast.Orgs {
 		for _, section := range org.Sections {
 			for _, block := range section.Blocks {
 				for _, statement := range block.Statements {
-					// Raw value.
-					binary.LittleEndian.PutUint32(word, statement.Value)
-					if _, err := buf.Write(word); err != nil {
-						return err
-					}
 				}
 			}
 		}
 	}
+	return nil
 }
 
+/*
 func convertInstructions(ast *parser.AST) error {
 	for _, org := range ast.Orgs {
 		for _, section := range org.Sections {
 			for _, block := range section.Blocks {
 				for _, statement := range block.Statements {
-					// Raw value.
-					binary.LittleEndian.PutUint32(word, statement.Value)
-					if _, err := buf.Write(word); err != nil {
-						return err
-					}
 				}
 			}
 		}
 	}
+	return nil
 }
+*/
 
 func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
 	for _, org := range ast.Orgs {
 		for _, section := range org.Sections {
 			for _, block := range section.Blocks {
 				for _, statement := range block.Statements {
-					// Raw value.
+					/* Raw value.
 					binary.LittleEndian.PutUint32(word, statement.Value)
 					if _, err := buf.Write(word); err != nil {
 						return err
-					}
+					}*/
 				}
 			}
 		}
 	}
+	return nil
 }
