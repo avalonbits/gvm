@@ -16,21 +16,21 @@ VideoController::VideoController(VideoDisplay* display)
 void VideoController::Run() {
   register uint32_t fps = 0;
   auto start = std::chrono::high_resolution_clock::now();
-  while (!shutdown_.load()) {
+  while (!shutdown_) {
     ++fps;
-    const bool done = shutdown_.exchange(display_->CheckEvents());
+    const bool done = display_->CheckEvents();
     if (done) shutdown_ = done;
 
     if (mem_[mem_reg_] == 1) {
       display_->CopyBuffer(&mem_[mem_addr_]);
+      mem_[mem_reg_] = 0;
     }
     display_->Render();
-    mem_[mem_reg_] = 0;
-    if (fps % 100 == 0) {
+    if (fps % 200 == 0) {
       const std::chrono::nanoseconds runtime =
           std::chrono::high_resolution_clock::now() - start;
       const auto time = runtime.count();
-      std::cerr << "Avergate fps: " << (100 / (time / static_cast<double>(1000000000)))
+      std::cerr << "Avergate fps: " << (200 / (time / static_cast<double>(1000000000)))
                 << "\n";
       start = std::chrono::high_resolution_clock::now();
     }
@@ -50,6 +50,5 @@ void VideoController::RegisterDMA(
 void VideoController::Shutdown() {
   shutdown_ = true;
 }
-
 
 }  // namespace gvm

@@ -1,7 +1,6 @@
 #ifndef _GVM_VIDEO_CONTROLLER_H_
 #define _GVM_VIDEO_CONTROLLER_H_
 
-#include <atomic>
 #include <cstdint>
 
 #include "video_display.h"
@@ -25,7 +24,7 @@ class VideoController {
   uint32_t mem_size_bytes_;
   uint32_t* mem_;
   std::unique_ptr<VideoDisplay> display_;
-  std::atomic<bool> shutdown_;
+  bool shutdown_;
 
 };
 

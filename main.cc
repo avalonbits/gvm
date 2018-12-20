@@ -9,22 +9,21 @@
 #include "cxxopts.hpp"
 #include "isa.h"
 #include "sdl2_video_display.h"
-#include "sfml_video_display.h"
 #include "null_video_display.h"
 
-gvm::VideoDisplay* CreateSFMLDisplay(const std::string& mode) {
+gvm::VideoDisplay* CreateSDL2Display(const std::string& mode) {
   if (mode == "480p") {
-    return new gvm::SFMLVideoDisplay(854, 480);
+    return new gvm::SDL2VideoDisplay(854, 480);
   } else if (mode == "540p") {
-    return new gvm::SFMLVideoDisplay(960, 540);
+    return new gvm::SDL2VideoDisplay(960, 540);
   } else if (mode == "720p") {
-    return new gvm::SFMLVideoDisplay(1280, 720);
+    return new gvm::SDL2VideoDisplay(1280, 720);
   } else if (mode == "900p") {
-    return new gvm::SFMLVideoDisplay(1600, 900);
+    return new gvm::SDL2VideoDisplay(1600, 900);
   } else if (mode == "1080p") {
-    return new gvm::SFMLVideoDisplay(1920, 1080);
+    return new gvm::SDL2VideoDisplay(1920, 1080);
   } else if (mode == "fullscreen") {
-    return new gvm::SFMLVideoDisplay();
+    return new gvm::SDL2VideoDisplay();
   } else if (mode != "null") {
       std::cerr << mode << " is not a valid mode. Going with \"null\".\n";
   }
@@ -46,8 +45,7 @@ int main(int argc, char* argv[]) {
     ;
   auto result = options.parse(argc, argv);
 
-//  auto* display = CreateSFMLDisplay(result["video_mode"].as<std::string>());
-  gvm::VideoDisplay* display = new gvm::SDL2VideoDisplay(1920, 1080);
+  auto* display = CreateSDL2Display(result["video_mode"].as<std::string>());
   auto* controller = new gvm::VideoController(display);
   const uint32_t mem_size = 256 << 20;  // 256MiB
   auto* cpu = new gvm::CPU(19800000, 60);

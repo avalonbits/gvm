@@ -21,8 +21,8 @@ class SDL2VideoDisplay : public VideoDisplay {
  private:
   SDL2VideoDisplay(int width, int height, const bool fullscreen);
   SDL_Window* window_;
-  SDL_Surface* surface_;
-  SDL_Surface* buffer_;
+  SDL_Renderer* renderer_;
+  SDL_Texture* texture_;
   int maxW_;
   int maxH_;
   int fWidth_;

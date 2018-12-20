@@ -1,6 +1,7 @@
 #include "sdl2_video_display.h"
 
-#include <cassert> 
+#include <cassert>
+#include <cstring>
 #include <iostream>
 
 namespace gvm {
@@ -12,20 +13,27 @@ SDL2VideoDisplay::SDL2VideoDisplay(int width, int height)
 }
 
 SDL2VideoDisplay::SDL2VideoDisplay(int width, int height, const bool fullscreen)
-  : buffer_(nullptr) {
-  const auto flags = fullscreen
-    ? SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_FULLSCREEN 
-    : SDL_WINDOW_ALLOW_HIGHDPI;
-
-  assert(SDL_Init(SDL_INIT_VIDEO) >= 0);
+  : texture_(nullptr) {
+  const auto flags = fullscreen ? SDL_WINDOW_FULLSCREEN : 0;
+  assert(SDL_Init(SDL_INIT_EVERYTHING) >= 0);
   window_ = SDL_CreateWindow("GVM", SDL_WINDOWPOS_UNDEFINED,  SDL_WINDOWPOS_UNDEFINED,
       width, height, flags);
   assert(window_ != nullptr);
   SDL_GetWindowSize(window_, &maxW_, &maxH_);
+
+  renderer_ = SDL_CreateRenderer(
+      window_, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+  if (renderer_ == nullptr) {
+    std::cerr << "Hardware acceleration unavailable. Fallback to software.\n";
+    renderer_ = SDL_CreateRenderer(
+        window_, -1, SDL_RENDERER_SOFTWARE | SDL_RENDERER_PRESENTVSYNC);
+  }
+  assert(renderer_ != nullptr);
 }
 
 SDL2VideoDisplay::~SDL2VideoDisplay() {
-  SDL_FreeSurface(buffer_);
+  SDL_DestroyTexture(texture_);
+  SDL_DestroyRenderer(renderer_);
   SDL_DestroyWindow(window_);
   SDL_Quit();
 }
@@ -36,26 +44,27 @@ void SDL2VideoDisplay::SetFramebufferSize(int fWidth, int fHeight, int bpp) {
   assert(bpp == 32);
   fWidth_ = fWidth;
   fHeight_ = fHeight;
+
+  texture_ = SDL_CreateTexture(
+      renderer_, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, fWidth, fHeight);
+  assert(texture_ != nullptr);
 }
 
 void SDL2VideoDisplay::CopyBuffer(uint32_t* mem) {
-  std::cerr << "CopyBuffer\n";
-  if (buffer_ == nullptr) {
-    SDL_FreeSurface(buffer_);
-    buffer_ = nullptr;
+  int pitch;
+  void* pixels = nullptr;
+  if (SDL_LockTexture(texture_,  nullptr, &pixels, &pitch) != 0) {
+    std::cerr << SDL_GetError() << "\n";
+    assert(false);
   }
-  buffer_ = SDL_CreateRGBSurfaceFrom((void*)mem, fWidth_, fHeight_, 32, 4*fWidth_,
-     0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000); 
-  assert(buffer_ != nullptr);
+  assert(pixels != nullptr);
+  std::memcpy(pixels, mem, pitch * fHeight_);
+  SDL_UnlockTexture(texture_);
 }
 
 void SDL2VideoDisplay::Render() {
-  if (buffer_ == nullptr) return;
-  if (SDL_BlitScaled(buffer_, nullptr, SDL_GetWindowSurface(window_), nullptr) != 0) {
-    std::cerr << SDL_GetError() << std::endl;
-    assert(false);
-  }
-  SDL_UpdateWindowSurface(window_);
+  SDL_RenderCopy(renderer_, texture_, nullptr, nullptr);
+  SDL_RenderPresent(renderer_);
 }
 
 bool SDL2VideoDisplay::CheckEvents() {
