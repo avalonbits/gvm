@@ -1,5 +1,5 @@
 ccflags = ['-O3', '-g', '-Wall', '-Werror', '-std=c++14', '-march=native']
-libs = ['sfml-graphics', 'SDL2', 'pthread']
+libs = ['SDL2', 'pthread']
 
 env = Environment(CCFLAGS=' '.join(ccflags), LIBS=libs)
 srcs = [
