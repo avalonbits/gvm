@@ -101,7 +101,15 @@ func (b Block) wordCount() int {
 	return len(b.Statements)
 }
 
+type SType int
+
+const (
+	DATA_SECTION SType = iota
+	TEXT_SECTION
+)
+
 type Section struct {
+	Type   SType
 	Blocks []Block
 }
 
@@ -195,7 +203,7 @@ func (p *Parser) org() state {
 		return ERROR
 	}
 
-	n, err := parseNumber(tok.Literal)
+	n, err := ParseNumber(tok.Literal)
 	if err != nil {
 		p.err = err
 		return ERROR
@@ -220,6 +228,11 @@ func (p *Parser) section() state {
 	}
 
 	s := Section{Blocks: make([]Block, 1, 4)}
+	if tok.Type == lexer.S_DATA {
+		s.Type = DATA_SECTION
+	} else {
+		s.Type = TEXT_SECTION
+	}
 	var next state
 	if tok.Type == lexer.S_DATA {
 		next = DATA_BLOCK
@@ -272,7 +285,7 @@ func (p *Parser) data_block(cur state) state {
 
 		name := tok.Literal
 		tok = p.tokenizer.NextToken()
-		n, err := parseNumber(tok.Literal)
+		n, err := ParseNumber(tok.Literal)
 		if err != nil {
 			p.err = err
 			return ERROR
@@ -331,23 +344,29 @@ func (p *Parser) text_block(cur state) state {
 	return p.parseInstruction(aBlock, tok)
 }
 
-func parseNumber(lit string) (uint32, error) {
-	var n uint64
+func ParseNumber(lit string) (uint32, error) {
+	var n int64
 	var err error
+	mul := int64(1)
+	if lit[0] == '-' {
+		lit = lit[1:]
+		mul = int64(-1)
+	}
+
 	if strings.HasPrefix(lit, "0x") || strings.HasPrefix(lit, "0X") {
-		if n, err = strconv.ParseUint(lit[2:], 16, 32); err != nil {
+		if n, err = strconv.ParseInt(lit[2:], 16, 32); err != nil {
 			return 0, fmt.Errorf("Expected a 32 bit hexadecimal number, got %q: %v",
 				lit, err)
 		}
-	} else if strings.HasPrefix(lit, "0") {
-		if n, err = strconv.ParseUint(lit[1:], 0, 32); err != nil {
+	} else if strings.HasPrefix(lit, "0") && len(lit) > 1 {
+		if n, err = strconv.ParseInt(lit[1:], 0, 32); err != nil {
 			return 0, fmt.Errorf("expected a 32 bit octal number, got %q: %v", lit, err)
 		}
-	} else if n, err = strconv.ParseUint(lit, 10, 32); err != nil {
+	} else if n, err = strconv.ParseInt(lit, 10, 32); err != nil {
 		return 0, fmt.Errorf("expected a 32 bit decimal number, got %q: %v", lit, err)
 	}
 
-	return uint32(n), nil
+	return uint32(mul * n), nil
 }
 
 var (
@@ -360,6 +379,8 @@ var (
 		"and":  3,
 		"orr":  3,
 		"xor":  3,
+		"stri": 3,
+		"ldri": 3,
 		"mov":  2,
 		"str":  2,
 		"ldr":  2,
@@ -399,6 +420,8 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 	var err error
 	if instr.Name == "str" {
 		instr.Op1, err = p.parseAddressOperand(true)
+	} else if instr.Name == "stri" {
+		instr.Op1, instr.Op2, err = p.parseIndexOperand(true)
 	} else {
 		instr.Op1, err = p.parseOperand(opCount > 1)
 	}
@@ -413,7 +436,9 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 
 	if instr.Name == "ldr" {
 		instr.Op2, err = p.parseAddressOperand(false)
-	} else {
+	} else if instr.Name == "ldri" {
+		instr.Op2, instr.Op3, err = p.parseIndexOperand(false)
+	} else if instr.Name != "stri" {
 		instr.Op2, err = p.parseOperand(opCount == 3)
 	}
 	if err != nil {
@@ -421,7 +446,7 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 		return ERROR
 	}
 
-	if opCount == 2 {
+	if opCount == 2 || instr.Name == "ldri" {
 		return TEXT_BLOCK
 	}
 
@@ -480,4 +505,35 @@ func (p *Parser) parseAddressOperand(comma bool) (Operand, error) {
 		}
 	}
 	return op, nil
+}
+
+func (p *Parser) parseIndexOperand(comma bool) (Operand, Operand, error) {
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.L_BRACKET {
+		return Operand{}, Operand{},
+			fmt.Errorf("expected a left bracket '[', got %q", tok.Literal)
+	}
+
+	op1, err := p.parseOperand(true)
+	if err != nil {
+		return Operand{}, Operand{}, err
+	}
+	op2, err := p.parseOperand(false)
+	if err != nil {
+		return Operand{}, Operand{}, err
+	}
+
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.R_BRACKET {
+		return Operand{}, Operand{},
+			fmt.Errorf("expected a right bracket ']', got %q", tok.Literal)
+	}
+	if comma {
+		tok = p.tokenizer.NextToken()
+		if tok.Type != lexer.COMMA {
+			return Operand{}, Operand{},
+				fmt.Errorf("expected a comma ',', got %q", tok.Literal)
+		}
+	}
+	return op1, op2, nil
 }

@@ -32,9 +32,6 @@ func Generate(ast *parser.AST, buf *bufio.Writer) error {
 	if err := rewriteInstructions(ast); err != nil {
 		return err
 	}
-	if err := convertInstructions(ast); err != nil {
-		return err
-	}
 	if err := writeToFile(ast, buf); err != nil {
 		return err
 	}
@@ -107,15 +104,15 @@ func convertOperand(labelMap map[string]uint32, consts map[string]string, op *pa
 	return fmt.Errorf("operando %q is not a label or a constant", op.Op)
 }
 
-func rewriteInstructions(ast *parser.AST) error {
-	for _, org := range ast.Orgs {
-		for _, section := range org.Sections {
-			for _, block := range section.Blocks {
-				for _, statement := range block.Statements {
+func rewriteInstructions(ast *parser.AST) error { /*
+		for _, org := range ast.Orgs {
+			for _, section := range org.Sections {
+				for _, block := range section.Blocks {
+					for _, statement := range block.Statements {
+					}
 				}
 			}
-		}
-	}
+		}*/
 	return nil
 }
 
@@ -134,18 +131,163 @@ func convertInstructions(ast *parser.AST) error {
 */
 
 func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
+	word := make([]byte, 4)
 	for _, org := range ast.Orgs {
 		for _, section := range org.Sections {
 			for _, block := range section.Blocks {
 				for _, statement := range block.Statements {
-					/* Raw value.
-					binary.LittleEndian.PutUint32(word, statement.Value)
+					if section.Type == parser.DATA_SECTION {
+						binary.LittleEndian.PutUint32(word, statement.Value)
+						if _, err := buf.Write(word); err != nil {
+							return err
+						}
+						continue
+					}
+					w, err := encode(statement.Instr)
+					if err != nil {
+						return err
+					}
+					binary.LittleEndian.PutUint32(word, uint32(w))
 					if _, err := buf.Write(word); err != nil {
 						return err
-					}*/
+					}
 				}
 			}
 		}
 	}
 	return nil
+}
+
+func rToI(reg string) uint32 {
+	n, err := strconv.Atoi(reg[1:])
+	if err != nil {
+		panic(err)
+	}
+	return uint32(n)
+}
+
+func encode(i parser.Instruction) (parser.Word, error) {
+	switch i.Name {
+	case "nop":
+		return Nop(), nil
+	case "ret":
+		return Ret(), nil
+	case "halt":
+		return Halt(), nil
+	case "mov":
+		return encode2op(i, MovRR, MovRI)
+	case "ldr":
+		return encode2op(i, LoadRR, LoadRI)
+	case "add":
+		return encode3op(i, AddRR, AddRI)
+	case "sub":
+		return encode3op(i, SubRR, SubRI)
+	case "jmp":
+		if i.Op1.Type == parser.OP_LABEL {
+			return parser.Word(0),
+				fmt.Errorf("%q: label substitution was not performed.", i)
+		}
+		if i.Op1.Type == parser.OP_REG {
+			return parser.Word(0), fmt.Errorf("%q: first operand must be an address.", i)
+		}
+		return Jmp(toNum(i.Op1.Op)), nil
+	case "jeq":
+		return encodeJumpc(i, Jeq)
+	case "jne":
+		return encodeJumpc(i, Jne)
+	case "jgt":
+		return encodeJumpc(i, Jgt)
+	case "jge":
+		return encodeJumpc(i, Jge)
+	case "jlt":
+		return encodeJumpc(i, Jlt)
+	case "jle":
+		return encodeJumpc(i, Jle)
+	case "call":
+		return encode1op(i, CallR, CallI)
+	case "and":
+		return encode3op(i, AndRR, AndRI)
+	case "orr":
+		return encode3op(i, OrrRR, OrrRI)
+	case "xor":
+		return encode3op(i, XorRR, XorRI)
+	case "lsl":
+		return encode3op(i, LslRR, LslRI)
+	case "lsr":
+		return encode3op(i, LsrRR, LsrRI)
+	case "asr":
+		return encode3op(i, AsrRR, AsrRI)
+	}
+	return parser.Word(0), fmt.Errorf("Invalid instruction %q", i)
+}
+
+type _1op func(uint32) parser.Word
+type _2op func(uint32, uint32) parser.Word
+type _3op func(uint32, uint32, uint32) parser.Word
+
+func encode1op(i parser.Instruction, rr, ri _1op) (parser.Word, error) {
+	if i.Op1.Type == parser.OP_LABEL {
+		return parser.Word(0),
+			fmt.Errorf("%q: label substitution was not performed.", i)
+	}
+	if i.Op1.Type == parser.OP_REG {
+		return rr(rToI(i.Op1.Op)), nil
+	} else {
+		return ri(toNum(i.Op1.Op)), nil
+	}
+}
+
+func encode2op(i parser.Instruction, rr, ri _2op) (parser.Word, error) {
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
+	}
+	if i.Op2.Type == parser.OP_LABEL {
+		return parser.Word(0),
+			fmt.Errorf("%q: label substitution was not performed.", i)
+	}
+	if i.Op2.Type == parser.OP_REG {
+		return rr(rToI(i.Op1.Op), rToI(i.Op2.Op)), nil
+	} else {
+		return ri(rToI(i.Op1.Op), toNum(i.Op2.Op)), nil
+	}
+}
+
+func encode3op(i parser.Instruction, rr, ri _3op) (parser.Word, error) {
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
+	}
+	if i.Op2.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: second operand must be a register.", i)
+	}
+	if i.Op3.Type == parser.OP_LABEL {
+		return parser.Word(0),
+			fmt.Errorf("%q: label substitution was not performed.", i)
+	}
+	if i.Op3.Type == parser.OP_REG {
+		return rr(rToI(i.Op1.Op), rToI(i.Op2.Op), rToI(i.Op3.Op)), nil
+	} else {
+		return ri(rToI(i.Op1.Op), rToI(i.Op2.Op), toNum(i.Op3.Op)), nil
+	}
+}
+
+func encodeJumpc(i parser.Instruction, jump _2op) (parser.Word, error) {
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
+	}
+	if i.Op2.Type == parser.OP_LABEL {
+		return parser.Word(0),
+			fmt.Errorf("%q: label substitution was not performed.", i)
+	}
+	if i.Op2.Type == parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: second operand must be an address.", i)
+	}
+	return jump(rToI(i.Op1.Op), toNum(i.Op2.Op)), nil
+}
+
+func toNum(lit string) uint32 {
+	n, err := parser.ParseNumber(lit)
+	if err != nil {
+		panic(err)
+	}
+	return n
 }
