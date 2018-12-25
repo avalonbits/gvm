@@ -104,6 +104,10 @@ func convertOperand(instr string, instrAddr uint32, labelMap map[string]uint32, 
 		case "jmp", "jne", "jeq", "jlt", "jle", "jge", "jgt", "call":
 			value -= instrAddr
 		}
+
+		// We need first to convert from uint32 -> int32 so we can get the value
+		// in the correct range. Then we can convert to int64 which is the required
+		// type for FormatInt.
 		op.Op = strconv.FormatInt(int64(int32(value)), 10)
 		op.Type = parser.OP_NUMBER
 		return nil
