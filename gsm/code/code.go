@@ -101,7 +101,7 @@ func convertOperand(instr string, instrAddr uint32, labelMap map[string]uint32, 
 	}
 	if value, ok := labelMap[op.Op]; ok {
 		switch instr {
-		case "jmp", "jne", "jeq", "jlt", "jle", "jge", "jgt":
+		case "jmp", "jne", "jeq", "jlt", "jle", "jge", "jgt", "call":
 			value -= instrAddr
 		}
 		op.Op = strconv.FormatInt(int64(int32(value)), 10)
