@@ -24,7 +24,7 @@ func Generate(ast *parser.AST, buf *bufio.Writer) error {
 	}
 
 	labelMap := map[string]uint32{}
-	if err := convertLabels(labelMap, ast); err != nil {
+	if err := assignAddresses(labelMap, ast); err != nil {
 	}
 	if err := convertNames(labelMap, ast); err != nil {
 		return err
@@ -38,7 +38,7 @@ func Generate(ast *parser.AST, buf *bufio.Writer) error {
 	return buf.Flush()
 }
 
-func convertLabels(labelMap map[string]uint32, ast *parser.AST) error {
+func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 	for _, org := range ast.Orgs {
 		baseAddr := org.Addr
 		wordCount := uint32(0)
@@ -65,7 +65,8 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 	for _, org := range ast.Orgs {
 		for _, section := range org.Sections {
 			for _, block := range section.Blocks {
-				for _, statement := range block.Statements {
+				for i := range block.Statements {
+					statement := &block.Statements[i]
 					if statement.Instr.Name == "" {
 						continue
 					}
@@ -74,8 +75,10 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 						&statement.Instr.Op2,
 						&statement.Instr.Op3,
 					}
+					addr := labelMap[block.Label] + uint32(i*4)
 					for _, op := range ops {
-						err := convertOperand(labelMap, ast.Consts, op)
+						err := convertOperand(
+							statement.Instr.Name, addr, labelMap, ast.Consts, op)
 						if err != nil {
 							return fmt.Errorf("error processing instruction %q: $v",
 								statement.Instr, err)
@@ -88,7 +91,7 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 	return nil
 }
 
-func convertOperand(labelMap map[string]uint32, consts map[string]string, op *parser.Operand) error {
+func convertOperand(instr string, instrAddr uint32, labelMap map[string]uint32, consts map[string]string, op *parser.Operand) error {
 	if op.Type != parser.OP_LABEL {
 		return nil
 	}
@@ -97,22 +100,30 @@ func convertOperand(labelMap map[string]uint32, consts map[string]string, op *pa
 		return nil
 	}
 	if value, ok := labelMap[op.Op]; ok {
-		op.Op = "0x" + strconv.FormatUint(uint64(value), 16)
+		switch instr {
+		case "jmp", "jne", "jeq", "jlt", "jle", "jge", "jgt":
+			value -= instrAddr
+		}
+		op.Op = strconv.FormatInt(int64(int32(value)), 10)
+		op.Type = parser.OP_NUMBER
 		return nil
 	}
 
 	return fmt.Errorf("operando %q is not a label or a constant", op.Op)
 }
 
-func rewriteInstructions(ast *parser.AST) error { /*
-		for _, org := range ast.Orgs {
-			for _, section := range org.Sections {
-				for _, block := range section.Blocks {
-					for _, statement := range block.Statements {
+func rewriteInstructions(ast *parser.AST) error {
+	for _, org := range ast.Orgs {
+		for _, section := range org.Sections {
+			for _, block := range section.Blocks {
+				for _, statement := range block.Statements {
+					if statement.Instr.Name == "" {
+						continue
 					}
 				}
 			}
-		}*/
+		}
+	}
 	return nil
 }
 
