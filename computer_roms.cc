@@ -56,10 +56,10 @@ const Rom* Textmode() {
 
     // Now add the result with r0 to point to the correct char.
     AddRI(1, 1, 4),
-    AddRR(13, 0, 1),
+    AddRR(12, 0, 1),
 
     // Load the char word to r4
-    LoadRR(4, 13),
+    LoadRR(4, 12),
 
     // Bits to shift right.
     MovRI(5, -1),
@@ -73,8 +73,8 @@ const Rom* Textmode() {
 
     // next position in framebuffer.
     SubRI(7, 7, 4),
-    AddRI(13, 7, 4),
-    Jeq(13, -16),  // Need to jump to next line
+    AddRI(12, 7, 4),
+    Jeq(12, -16),  // Need to jump to next line
 
     AddRI(5, 5, 1),  // NextBit
     SubRI(6, 5, 32),  // Check we exausted word.
