@@ -215,12 +215,13 @@ uint32_t CPU::Run(const bool debug) {
       const int32_t v = regv(idx1, pc, reg_) & regv(idx2, pc, reg_);
       reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
-    }
+  }
   AND_RI: {
-      const uint32_t v = (reg_[reg2(word)]) & (v16bit(word));
-      reg_[reg1(word)] = v;
+      const uint32_t idx = reg2(word);
+      const int32_t v = (regv(idx, pc, reg_) & v16bit(word));
+      reg_[reg1(word)] = (idx >= 13) ? v / kWordSize : v;
       DISPATCH();
-    }
+  }
   ORR_RR: {
       const uint32_t idx1 = reg2(word);
       const uint32_t idx2 = reg3(word);
@@ -228,9 +229,12 @@ uint32_t CPU::Run(const bool debug) {
       reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
   }
-  ORR_RI:
-      reg_[reg1(word)] = reg_[reg2(word)] | v16bit(word);
+  ORR_RI: {
+      const uint32_t idx = reg2(word);
+      const int32_t v = (regv(idx, pc, reg_) | v16bit(word));
+      reg_[reg1(word)] = (idx >= 13) ? v / kWordSize : v;
       DISPATCH();
+  }
   XOR_RR: {
       const uint32_t idx1 = reg2(word);
       const uint32_t idx2 = reg3(word);
@@ -238,9 +242,12 @@ uint32_t CPU::Run(const bool debug) {
       reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
   }
-  XOR_RI:
-      reg_[reg1(word)] = reg_[reg2(word)] ^ v16bit(word);
+  XOR_RI: {
+      const uint32_t idx = reg2(word);
+      const int32_t v = (regv(idx, pc, reg_) ^ v16bit(word));
+      reg_[reg1(word)] = (idx >= 13) ? v / kWordSize : v;
       DISPATCH();
+  }
   LSL_RR: {
       const uint32_t idx1 = reg2(word);
       const uint32_t idx2 = reg3(word);
@@ -248,9 +255,12 @@ uint32_t CPU::Run(const bool debug) {
       reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
   }
-  LSL_RI:
-      reg_[reg1(word)] = reg_[reg2(word)] << v16bit(word);
+  LSL_RI: {
+      const uint32_t idx = reg2(word);
+      const int32_t v = (regv(idx, pc, reg_) << v16bit(word));
+      reg_[reg1(word)] = (idx >= 13) ? v / kWordSize : v;
       DISPATCH();
+  }
   LSR_RR: {
       const uint32_t idx1 = reg2(word);
       const uint32_t idx2 = reg3(word);
@@ -258,9 +268,12 @@ uint32_t CPU::Run(const bool debug) {
       reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
   }
-  LSR_RI:
-      reg_[reg1(word)] = reg_[reg2(word)] >> v16bit(word);
+  LSR_RI: {
+      const uint32_t idx = reg2(word);
+      const int32_t v = (regv(idx, pc, reg_) >> v16bit(word));
+      reg_[reg1(word)] = (idx >= 13) ? v / kWordSize : v;
       DISPATCH();
+  }
   ASR_RR: {
       const uint32_t idx1 = reg2(word);
       const uint32_t idx2 = reg3(word);
@@ -269,9 +282,12 @@ uint32_t CPU::Run(const bool debug) {
       reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
   }
-  ASR_RI:
-      reg_[reg1(word)] = static_cast<int32_t>(reg_[reg2(word)]) >> v16bit(word);
+  ASR_RI: {
+      const uint32_t idx = reg2(word);
+      const int32_t v = (static_cast<int32_t>(regv(idx, pc, reg_)) >> v16bit(word));
+      reg_[reg1(word)] = (idx >= 13) ? v / kWordSize : v;
       DISPATCH();
+  }
   HALT:
     return i;
 }
