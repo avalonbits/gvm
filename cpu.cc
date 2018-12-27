@@ -20,6 +20,12 @@ static const int kFrameBufferW = 720;
 static const int kFrameBufferH = 405;
 
 namespace {
+constexpr uint32_t regv(const uint32_t idx, const uint32_t pc, uint32_t* regs) {
+  uint32_t v = regs[idx];
+  if (idx == 13) v = pc * kWordSize;
+  else if (idx == 14 || idx == 15) v = v * kWordSize;
+  return v;
+}
 constexpr uint32_t reg1(uint32_t word) {
   return (word >> 8) & 0xF;
 }
@@ -110,7 +116,7 @@ uint32_t CPU::Run(const bool debug) {
   NOP:
       DISPATCH();
   MOV_RR:
-      reg_[reg1(word)] = reg_[reg2(word)];
+      reg_[reg1(word)] = regv(reg2(word), pc, reg_);
       DISPATCH();
   MOV_RI: {
       uint32_t v = (word >> 12);
@@ -118,46 +124,27 @@ uint32_t CPU::Run(const bool debug) {
       reg_[reg1(word)] = v;
       DISPATCH();
     }
-  LOAD_RR: {
-      const uint32_t idx = reg2(word);
-      uint32_t v = reg_[idx];
-      if (idx == 13) v = pc * kWordSize;
-      else if (idx == 14 || idx == 15) v = v * kWordSize;
-      reg_[reg1(word)] = mem_[v/kWordSize];
+  LOAD_RR:
+      reg_[reg1(word)] = mem_[regv(reg2(word), pc, reg_)/kWordSize];
       DISPATCH();
-  }
   LOAD_RI:
       reg_[reg1(word)] = mem_[((word >> 12) & 0xFFFFF)/kWordSize];
       DISPATCH();
-  LOAD_IX: {
-      const uint32_t idx = reg2(word);
-      uint32_t v = reg_[idx];
-      if (idx == 13) v = pc * kWordSize;
-      else if (idx == 14 || idx == 15) v = v * kWordSize;
-      reg_[reg1(word)] = mem_[(v + v16bit(word))/kWordSize];
+  LOAD_IX:
+      reg_[reg1(word)] = mem_[(regv(reg2(word), pc, reg_) + v16bit(word))/kWordSize];
       DISPATCH();
-  }
-  STOR_RR: {
-      const uint32_t idx = reg1(word);
-      uint32_t v = reg_[idx];
-      if (idx == 13) v = pc * kWordSize;
-      else if (idx == 14 || idx == 15) v = v * kWordSize;
-      mem_[v/kWordSize] = reg_[reg2(word)];
+  STOR_RR:
+      mem_[regv(reg1(word), pc, reg_)/kWordSize] = regv(reg2(word), pc, reg_);
       DISPATCH();
-  }
   STOR_RI:
       mem_[((word >> 12) & 0xFFFFF)/kWordSize] = reg_[reg1(word)];
       DISPATCH();
-  STOR_IX: {
-      const uint32_t idx = reg1(word);
-      uint32_t v = reg_[idx];
-      if (idx == 13) v = pc * kWordSize;
-      else if (idx == 14 || idx == 15) v = v * kWordSize;
-      mem_[(v + v16bit(word))/kWordSize] = reg_[reg2(word)];
+  STOR_IX:
+      mem_[(regv(reg1(word), pc, reg_) + v16bit(word))/kWordSize] =
+          regv(reg2(word), pc, reg_);
       DISPATCH();
-  }
   ADD_RR: {
-      const uint32_t v = reg_[reg2(word)] + reg_[reg3(word)];
+      const uint32_t v = regv(reg2(word), pc ,reg_) + regv(reg3(word), pc, reg_);
       reg_[reg1(word)] = v;
       DISPATCH();
     }
