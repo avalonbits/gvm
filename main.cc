@@ -107,11 +107,11 @@ int main(int argc, char* argv[]) {
 
     // Copy back r0, r1, r2 from stack
     gvm::LoadRR(2, 14),
-    gvm::AddRI(14, 14, 1),
+    gvm::AddRI(14, 14, 4),
     gvm::LoadRR(1, 14),
-    gvm::AddRI(14, 14, 1),
+    gvm::AddRI(14, 14, 4),
     gvm::LoadRR(0, 14),
-    gvm::AddRI(14, 14, 1),
+    gvm::AddRI(14, 14, 4),
     gvm::AddRI(0, 0, 4),  // Point to next char.
     gvm::Jmp(-84),
 

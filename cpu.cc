@@ -144,13 +144,16 @@ uint32_t CPU::Run(const bool debug) {
           regv(reg2(word), pc, reg_);
       DISPATCH();
   ADD_RR: {
-      const uint32_t v = regv(reg2(word), pc ,reg_) + regv(reg3(word), pc, reg_);
-      reg_[reg1(word)] = v;
+      const uint32_t idx1 = reg2(word);
+      const uint32_t idx2 = reg3(word);
+      const uint32_t v = regv(idx1, pc ,reg_) + regv(idx2, pc, reg_);
+      reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
     }
   ADD_RI: {
-      const uint32_t v = reg_[reg2(word)] + v16bit(word);
-      reg_[reg1(word)] = v;
+      const uint32_t idx = reg2(word);
+      const uint32_t v = regv(idx, pc, reg_) + v16bit(word);
+      reg_[reg1(word)] = (idx >= 13) ? v / kWordSize : v;
       DISPATCH();
     }
   SUB_RR: {
