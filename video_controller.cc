@@ -8,8 +8,8 @@
 
 namespace gvm {
 
-VideoController::VideoController(VideoDisplay* display)
-  : display_(display), shutdown_(false) {
+VideoController::VideoController(const bool print_fps, VideoDisplay* display)
+  : print_fps_(print_fps), display_(display), shutdown_(false) {
   assert(display != nullptr);
 }
 
@@ -17,7 +17,7 @@ void VideoController::Run() {
   register uint32_t fps = 0;
   auto start = std::chrono::high_resolution_clock::now();
   while (!shutdown_) {
-    ++fps;
+    if (print_fps_) ++fps;
     const bool done = display_->CheckEvents();
     if (done) shutdown_ = done;
 
@@ -26,7 +26,7 @@ void VideoController::Run() {
       mem_[mem_reg_] = 0;
     }
     display_->Render();
-    if (fps % 200 == 0) {
+    if (print_fps_ && fps % 200 == 0) {
       const std::chrono::nanoseconds runtime =
           std::chrono::high_resolution_clock::now() - start;
       const auto time = runtime.count();

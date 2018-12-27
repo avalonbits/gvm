@@ -96,24 +96,15 @@ uint32_t CPU::Run(const bool debug) {
   };
   register uint32_t pc = pc_-1;
   register uint32_t i = 0;
-  register uint32_t word;
+  register uint32_t word = 0;
 
-  /*
-  if (debug) std::cerr << PrintRegisters(true) << std::endl;
-  for (;;++i,++pc) {
-    if (debug) {
-      std::cerr << PrintRegisters(true) << std::endl;
-      getchar();
-    }
-  if (pc >= mem_size_) break;
-  */
-
-
-#define DISPATCH() ++i; word =  mem_[++pc]; goto *opcodes[word&0xFF] /*
-  if (debug) {
-    std::cerr << "0x" << std::hex << pc << ": " << std::dec
-              << PrintInstruction(pc, word) << std::endl;
-  }*/
+#define DISPATCH() \
+  if (debug) { \
+    std::cerr << "0x" << std::hex << pc << ": " << std::dec \
+              << PrintInstruction(pc, word) << std::endl; \
+      std::cerr << PrintRegisters(true) << std::endl;\
+      getchar(); \
+  } ++i; word =  mem_[++pc]; goto *opcodes[word&0xFF]
   DISPATCH();
   NOP:
       DISPATCH();

@@ -10,7 +10,7 @@ namespace gvm {
 class VideoController {
  public:
   // Takes ownership of display.
-  explicit VideoController(VideoDisplay* display);
+  VideoController(const bool print_fps, VideoDisplay* display);
 
   void RegisterDMA(uint32_t mem_reg, uint32_t mem_addr, int fWidth,
                    int fHeight, int bpp, uint32_t* mem);
@@ -19,6 +19,7 @@ class VideoController {
   void Shutdown();
 
  private:
+  const bool print_fps_;
   uint32_t mem_reg_;
   uint32_t mem_addr_;
   uint32_t mem_size_bytes_;
