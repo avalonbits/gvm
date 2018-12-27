@@ -40,15 +40,14 @@ int main(int argc, char* argv[]) {
     ("video_mode", "Video mode used. Values can be: null, fullscreen, 480p, "
                    "540p, 900p and 1080p",
                    cxxopts::value<std::string>()->default_value("720p"))
-    ("print_fps", "Prints fps.", cxxopts::value<bool>()->default_value("false"))
     ("shutdown_on_halt", "Shutdowns program when CPU halts,",
                          cxxopts::value<bool>()->default_value("true"))
     ;
   auto result = options.parse(argc, argv);
 
+  const bool debug = result["debug"].as<bool>();
   auto* display = CreateSDL2Display(result["video_mode"].as<std::string>());
-  auto* controller = new gvm::VideoController(
-      result["print_fps"].as<bool>(), display);
+  auto* controller = new gvm::VideoController(!debug, display);
   const uint32_t mem_size = 256 << 20;  // 256MiB
   auto* cpu = new gvm::CPU(19800000, 60);
   gvm::Computer computer(mem_size, cpu, controller,
@@ -134,6 +133,6 @@ int main(int argc, char* argv[]) {
   chrom.close();
   computer.LoadRom(0xE1400, new gvm::Rom(words, size/sizeof(gvm::Word)));
 
-  computer.Run(result["debug"].as<bool>());
+  computer.Run(debug);
   return 0;
 }
