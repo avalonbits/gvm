@@ -93,11 +93,11 @@ int main(int argc, char* argv[]) {
     gvm::AddRI(2, 2, 8*4),
 
     // Save r0, r1 and r2 to stack.
-    gvm::SubRI(14, 14, 4),
+    gvm::SubRI(14, 14, 1),
     gvm::StorRR(14, 0),
-    gvm::SubRI(14, 14, 4),
+    gvm::SubRI(14, 14, 1),
     gvm::StorRR(14, 1),
-    gvm::SubRI(14, 14, 4),
+    gvm::SubRI(14, 14, 1),
     gvm::StorRR(14, 2),
 
     gvm::MovRI(0, 0xE24),
@@ -107,11 +107,11 @@ int main(int argc, char* argv[]) {
 
     // Copy back r0, r1, r2 from stack
     gvm::LoadRR(2, 14),
-    gvm::AddRI(14, 14, 4),
+    gvm::AddRI(14, 14, 1),
     gvm::LoadRR(1, 14),
-    gvm::AddRI(14, 14, 4),
+    gvm::AddRI(14, 14, 1),
     gvm::LoadRR(0, 14),
-    gvm::AddRI(14, 14, 4),
+    gvm::AddRI(14, 14, 1),
     gvm::AddRI(0, 0, 4),  // Point to next char.
     gvm::Jmp(-84),
 

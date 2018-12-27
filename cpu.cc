@@ -117,24 +117,44 @@ uint32_t CPU::Run(const bool debug) {
       reg_[reg1(word)] = v;
       DISPATCH();
     }
-  LOAD_RR:
-      reg_[reg1(word)] = mem_[reg_[reg2(word)]/kWordSize];
+  LOAD_RR: {
+      const uint32_t idx = reg2(word);
+      uint32_t v = reg_[idx];
+      if (idx == 13) v = pc * kWordSize;
+      else if (idx == 14 || idx == 15) v = v * kWordSize;
+      reg_[reg1(word)] = mem_[v/kWordSize];
       DISPATCH();
+  }
   LOAD_RI:
       reg_[reg1(word)] = mem_[((word >> 12) & 0xFFFFF)/kWordSize];
       DISPATCH();
-  LOAD_IX:
-      reg_[reg1(word)] = mem_[(reg_[reg2(word)] + v16bit(word))/kWordSize];
+  LOAD_IX: {
+      const uint32_t idx = reg2(word);
+      uint32_t v = reg_[idx];
+      if (idx == 13) v = pc * kWordSize;
+      else if (idx == 14 || idx == 15) v = v * kWordSize;
+      reg_[reg1(word)] = mem_[(v + v16bit(word))/kWordSize];
       DISPATCH();
-  STOR_RR:
-      mem_[reg_[reg1(word)]/kWordSize] = reg_[reg2(word)];
+  }
+  STOR_RR: {
+      const uint32_t idx = reg1(word);
+      uint32_t v = reg_[idx];
+      if (idx == 13) v = pc * kWordSize;
+      else if (idx == 14 || idx == 15) v = v * kWordSize;
+      mem_[v/kWordSize] = reg_[reg2(word)];
       DISPATCH();
+  }
   STOR_RI:
       mem_[((word >> 12) & 0xFFFFF)/kWordSize] = reg_[reg1(word)];
       DISPATCH();
-  STOR_IX:
-      mem_[(reg_[reg1(word)] + v16bit(word))/kWordSize] = reg_[reg2(word)];
+  STOR_IX: {
+      const uint32_t idx = reg1(word);
+      uint32_t v = reg_[idx];
+      if (idx == 13) v = pc * kWordSize;
+      else if (idx == 14 || idx == 15) v = v * kWordSize;
+      mem_[(v + v16bit(word))/kWordSize] = reg_[reg2(word)];
       DISPATCH();
+  }
   ADD_RR: {
       const uint32_t v = reg_[reg2(word)] + reg_[reg3(word)];
       reg_[reg1(word)] = v;
