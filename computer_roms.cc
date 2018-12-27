@@ -31,9 +31,7 @@ const Rom* Textmode() {
     //
     // ==================== writec ===========================================
     // Address: 0xE2450
-    MovRI(0, 0xE24),
-    LslRI(0, 0, 8),
-    AddRI(0, 0, 0x10),
+    SubRI(0, 13, 64),
     LslRI(3, 3, 2),
     AddRR(3, 0, 3),
     LoadRR(3, 3),
