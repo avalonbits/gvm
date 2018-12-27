@@ -146,26 +146,29 @@ uint32_t CPU::Run(const bool debug) {
   ADD_RR: {
       const uint32_t idx1 = reg2(word);
       const uint32_t idx2 = reg3(word);
-      const uint32_t v = regv(idx1, pc ,reg_) + regv(idx2, pc, reg_);
+      const int32_t v = regv(idx1, pc ,reg_) + regv(idx2, pc, reg_);
       reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
     }
   ADD_RI: {
       const uint32_t idx = reg2(word);
-      const uint32_t v = regv(idx, pc, reg_) + v16bit(word);
+      const int32_t v = regv(idx, pc, reg_) + v16bit(word);
       reg_[reg1(word)] = (idx >= 13) ? v / kWordSize : v;
       DISPATCH();
     }
   SUB_RR: {
-      const uint32_t op2 = (~reg_[reg3(word)] + 1);
-      const uint32_t v = reg_[reg2(word)] + op2;
-      reg_[reg1(word)] = v;
+      const uint32_t idx1 = reg2(word);
+      const uint32_t idx2 = reg3(word);
+      const uint32_t op2 = (~regv(idx2, pc, reg_) + 1);
+      const int32_t v = regv(idx1, pc, reg_) + op2;
+      reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
     }
   SUB_RI: {
       const uint32_t op2 = (~v16bit(word) + 1);
-      const uint32_t v = reg_[reg2(word)] + op2;
-      reg_[reg1(word)] = v;
+      const uint32_t idx = reg2(word);
+      const int32_t v = regv(idx, pc, reg_) + op2;
+      reg_[reg1(word)] = (idx >= 13) ? v / kWordSize : v;
       DISPATCH();
     }
   JMP:
@@ -207,8 +210,10 @@ uint32_t CPU::Run(const bool debug) {
       pc = mem_[sp_++];
       DISPATCH();
   AND_RR: {
-      const uint32_t v = reg_[reg2(word)] & reg_[reg3(word)];
-      reg_[reg1(word)] = v;
+      const uint32_t idx1 = reg2(word);
+      const uint32_t idx2 = reg3(word);
+      const int32_t v = regv(idx1, pc, reg_) & regv(idx2, pc, reg_);
+      reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
     }
   AND_RI: {
@@ -216,33 +221,54 @@ uint32_t CPU::Run(const bool debug) {
       reg_[reg1(word)] = v;
       DISPATCH();
     }
-  ORR_RR:
-      reg_[reg1(word)] = reg_[reg2(word)] | reg_[reg3(word)];
+  ORR_RR: {
+      const uint32_t idx1 = reg2(word);
+      const uint32_t idx2 = reg3(word);
+      const int32_t v = regv(idx1, pc, reg_) | regv(idx2, pc, reg_);
+      reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
+  }
   ORR_RI:
       reg_[reg1(word)] = reg_[reg2(word)] | v16bit(word);
       DISPATCH();
-  XOR_RR:
-      reg_[reg1(word)] = reg_[reg2(word)] ^ reg_[reg3(word)];
+  XOR_RR: {
+      const uint32_t idx1 = reg2(word);
+      const uint32_t idx2 = reg3(word);
+      const int32_t v = regv(idx1, pc, reg_) ^ regv(idx2, pc, reg_);
+      reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
+  }
   XOR_RI:
       reg_[reg1(word)] = reg_[reg2(word)] ^ v16bit(word);
       DISPATCH();
-  LSL_RR:
-      reg_[reg1(word)] = reg_[reg2(word)] << reg_[reg3(word)];
+  LSL_RR: {
+      const uint32_t idx1 = reg2(word);
+      const uint32_t idx2 = reg3(word);
+      const int32_t v = regv(idx1, pc, reg_) << regv(idx2, pc, reg_);
+      reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
+  }
   LSL_RI:
       reg_[reg1(word)] = reg_[reg2(word)] << v16bit(word);
       DISPATCH();
-  LSR_RR:
-      reg_[reg1(word)] = reg_[reg2(word)] >> reg_[reg3(word)];
+  LSR_RR: {
+      const uint32_t idx1 = reg2(word);
+      const uint32_t idx2 = reg3(word);
+      const int32_t v = (regv(idx1, pc, reg_) >> regv(idx2, pc, reg_));
+      reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
+  }
   LSR_RI:
       reg_[reg1(word)] = reg_[reg2(word)] >> v16bit(word);
       DISPATCH();
-  ASR_RR:
-      reg_[reg1(word)] = static_cast<int32_t>(reg_[reg2(word)]) >> reg_[reg3(word)];
+  ASR_RR: {
+      const uint32_t idx1 = reg2(word);
+      const uint32_t idx2 = reg3(word);
+      const int32_t v =
+          static_cast<int32_t>((regv(idx1, pc, reg_)) >> regv(idx2, pc, reg_));
+      reg_[reg1(word)] = (idx1 >= 13 || idx2 >= 13) ? v / kWordSize : v;
       DISPATCH();
+  }
   ASR_RI:
       reg_[reg1(word)] = static_cast<int32_t>(reg_[reg2(word)]) >> v16bit(word);
       DISPATCH();

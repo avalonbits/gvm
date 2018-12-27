@@ -93,11 +93,11 @@ int main(int argc, char* argv[]) {
     gvm::AddRI(2, 2, 8*4),
 
     // Save r0, r1 and r2 to stack.
-    gvm::SubRI(14, 14, 1),
+    gvm::SubRI(14, 14, 4),
     gvm::StorRR(14, 0),
-    gvm::SubRI(14, 14, 1),
+    gvm::SubRI(14, 14, 4),
     gvm::StorRR(14, 1),
-    gvm::SubRI(14, 14, 1),
+    gvm::SubRI(14, 14, 4),
     gvm::StorRR(14, 2),
 
     gvm::MovRI(0, 0xE24),
