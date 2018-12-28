@@ -19,7 +19,7 @@ class CPU {
 
   void ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes);
   void RegisterVideoDMA(VideoController* controller);
-  void LoadProgram(uint32_t start, const std::vector<Word>& program);
+  void LoadProgram(const std::map<uint32_t, std::vector<Word>>& program);
   void SetPC(uint32_t pc);
   const bool Step(const bool debug);
   uint32_t Run(const bool debug);

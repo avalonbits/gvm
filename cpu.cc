@@ -75,12 +75,15 @@ void CPU::RegisterVideoDMA(VideoController* controller) {
                           kFrameBufferH, 32, mem_);
 }
 
-void CPU::LoadProgram(uint32_t start, const std::vector<Word>& program) {
-  start = start / kWordSize;
-  assert(!program.empty());
-  assert(program.size() + start < mem_size_);
-  for (uint32_t idx = start, i = 0; i < program.size(); ++idx, i++) {
-    mem_[idx] = program[i];
+void CPU::LoadProgram(const std::map<uint32_t, std::vector<Word>>& program) {
+  for (const auto& kv : program) {
+    const auto& start = kv.first / kWordSize;
+    const auto& words = kv.second;
+    assert(!words.empty());
+    assert(words.size() + start < mem_size_);
+    for (uint32_t idx = start, i = 0; i < words.size(); ++idx, ++i) {
+      mem_[idx] = words[i];
+    }
   }
 }
 

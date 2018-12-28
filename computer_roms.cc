@@ -7,8 +7,8 @@ namespace rom {
 
 static const uint32_t kLineLength = 640 * 4;  // 640 pixels, 32bpp.
 
-const Rom* Textmode() {
-  return new Rom({
+const Rom* Textmode(uint32_t memaddr) {
+  return new Rom(memaddr, {
     // First the 16 colors that we support
     Word(0xFF000000),  // 0  - Black
     Word(0xFF000080),  // 1  - Maroon

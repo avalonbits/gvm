@@ -6,9 +6,9 @@
 
 namespace gvm {
 
-void Computer::LoadRom(uint32_t memaddr, const Rom* rom) {
-  assert(memaddr % kWordSize == 0);
-  cpu_->LoadProgram(memaddr, rom->Contents());
+void Computer::LoadRom(const Rom* rom) {
+  cpu_->LoadProgram(rom->Contents());
+  delete rom;
 }
 
 void Computer::Run(const bool debug) {

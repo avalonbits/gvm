@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
                          result["shutdown_on_halt"].as<bool>());
 
   const uint32_t user_offset = 16 << 20;
-  computer.LoadRom(user_offset + 0x1000, new gvm::Rom({
+  computer.LoadRom(new gvm::Rom(user_offset + 0x1000, {
     gvm::Word(0x48),  // H
     gvm::Word(0x65),  // e
     gvm::Word(0x6C),  // l
@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
     gvm::Word(0x00),  // null
   }));
 
-  computer.LoadRom(user_offset, new gvm::Rom({
+  computer.LoadRom(new gvm::Rom(user_offset, {
     // Set r0 to the mem start position of the string.
     gvm::MovRI(0, 16),
     gvm::LslRI(0, 0,  20),
@@ -122,7 +122,8 @@ int main(int argc, char* argv[]) {
     gvm::Halt(),
   }));
 
-  computer.LoadRom(0xE2410, gvm::rom::Textmode());
+  auto* rom = gvm::rom::Textmode(0xE2410);
+  computer.LoadRom(rom);
   std::ifstream chrom(result["chrom"].as<std::string>(),
                       std::ios::binary | std::ios::ate);
   assert(chrom.is_open());
@@ -131,7 +132,9 @@ int main(int argc, char* argv[]) {
   gvm::Word* words = new gvm::Word[size/sizeof(gvm::Word)];
   chrom.read(reinterpret_cast<char*>(words), size);
   chrom.close();
-  computer.LoadRom(0xE1400, new gvm::Rom(words, size/sizeof(gvm::Word)));
+  std::vector<gvm::Word> program(words, words + size/sizeof(gvm::Word));
+  delete []words;
+  computer.LoadRom(new gvm::Rom(0xE1400, program));
 
   computer.Run(debug);
   return 0;

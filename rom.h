@@ -2,24 +2,23 @@
 #define _GVM_ROM_H_
 
 #include <vector>
+#include <map>
 
 #include "isa.h"
 
 namespace gvm {
 class Rom {
  public:
-  explicit Rom(const std::vector<Word>& words);
-  Rom(const Word* words, uint32_t size);
+  Rom(uint32_t memaddr, const std::vector<Word>& words);
   Rom(const Rom&) = delete;
   Rom& operator=(const Rom&) = delete;
   virtual ~Rom() {}
 
   void Load(uint32_t memaddr, const std::vector<Word>& words);
-  bool Set(uint32_t memaddr, Word word);
-  const std::vector<Word>& Contents() const { return rom_; }
+  const std::map<uint32_t, std::vector<Word>>& Contents() const { return rom_; }
 
  private:
-  std::vector<Word> rom_;
+  std::map<uint32_t, std::vector<Word>> rom_;
 };
 }  // namespace gvm
 #endif  // _GVM_ROM_H_
