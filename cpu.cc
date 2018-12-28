@@ -21,10 +21,9 @@ static const int kFrameBufferH = 405;
 
 namespace {
 constexpr uint32_t regv(const uint32_t idx, const uint32_t pc, uint32_t* regs) {
-  uint32_t v = regs[idx];
-  if (idx == 13) v = pc * kWordSize;
-  else if (idx == 14 || idx == 15) v = v * kWordSize;
-  return v;
+  if (idx < 13) return regs[idx];
+  if (idx == 13) return  pc * kWordSize;
+  return regs[idx] << 2;
 }
 constexpr uint32_t reg1(uint32_t word) {
   return (word >> 8) & 0xF;
