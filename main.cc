@@ -46,8 +46,10 @@ int main(int argc, char* argv[]) {
   auto result = options.parse(argc, argv);
 
   const bool debug = result["debug"].as<bool>();
-  auto* display = CreateSDL2Display(result["video_mode"].as<std::string>());
-  auto* controller = new gvm::VideoController(!debug, display);
+  const std::string mode = result["video_mode"].as<std::string>();
+  const bool print_fps = mode != "null" && !debug;
+  auto* display = CreateSDL2Display(mode);
+  auto* controller = new gvm::VideoController(print_fps, display);
   const uint32_t mem_size = 256 << 20;  // 256MiB
   auto* cpu = new gvm::CPU(19800000, 60);
   gvm::Computer computer(mem_size, cpu, controller,
@@ -117,8 +119,6 @@ int main(int argc, char* argv[]) {
 
     gvm::MovRI(0, 1),
     gvm::StorRI(0x00, 0),
-    gvm::LoadRI(0, 0x00),
-    gvm::Jne(0, -4),
     gvm::Halt(),
   }));
 
