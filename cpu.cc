@@ -14,10 +14,10 @@ namespace gvm {
 
 static const uint32_t kVideoMemReg = 0x00;
 static const uint32_t kVideoMemStart = 0xFEE33C0;
-static const uint32_t kVideoMemSizeWords = 720 * 405;
+static const uint32_t kVideoMemSizeWords = 640 * 360;
 static const uint32_t kVideoMemEnd = kVideoMemStart + kVideoMemSizeWords;
-static const int kFrameBufferW = 720;
-static const int kFrameBufferH = 405;
+static const int kFrameBufferW = 640;
+static const int kFrameBufferH = 360;
 
 namespace {
 constexpr uint32_t regv(const uint32_t idx, const uint32_t pc, uint32_t* regs) {

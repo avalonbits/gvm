@@ -23,7 +23,7 @@ color16:	    ;0xAABBGGRR
   .int C_AQUA    0xFFFFFF00
   .int C_WHITE   0xFFFFFFFF
 
-  .int LINE_LENGTH 2880  ; 720 * 4 ->  720 pixels, 32bpp
+  .int LINE_LENGTH 2560  ; 640 * 4 ->  640 pixels, 32bpp
 
 
 .section text
