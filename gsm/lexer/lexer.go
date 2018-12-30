@@ -81,9 +81,9 @@ var keywords = map[string]TokenType{
 	"r10":      REGISTER,
 	"r11":      REGISTER,
 	"r12":      REGISTER,
-	"r13":      REGISTER,
-	"r14":      REGISTER,
-	"r15":      REGISTER,
+	"pc":       REGISTER,
+	"sp":       REGISTER,
+	"fp":       REGISTER,
 }
 
 func lookupIdent(ident string) TokenType {
