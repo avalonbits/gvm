@@ -31,10 +31,18 @@ gvm::VideoDisplay* CreateSDL2Display(const std::string& mode) {
   return new gvm::NullVideoDisplay();
 }
 
+const gvm::Rom* CreateRom(const cxxopts::ParseResult& result);
+const gvm::Rom* ReadRom(const std::string& prgrom) {
+  std::ifstream in(prgrom, std::ifstream::binary | std::ifstream::in);
+  return gvm::Rom::FromFile(in);
+}
+
 int main(int argc, char* argv[]) {
   cxxopts::Options options("gvm", "The GVM virtual machine.");
   options.add_options()
     ("debug", "Enable debugging", cxxopts::value<bool>()->default_value("false"))
+    ("prgrom", "Rom file used to boot computer. If present, will ignore chrom.",
+              cxxopts::value<std::string>()->default_value(""))
     ("chrom", "Rom file with 8x16 characters.",
               cxxopts::value<std::string>()->default_value("./latin1.chrom"))
     ("video_mode", "Video mode used. Values can be: null, fullscreen, 480p, "
@@ -54,9 +62,23 @@ int main(int argc, char* argv[]) {
   auto* cpu = new gvm::CPU(19800000, 60);
   gvm::Computer computer(mem_size, cpu, controller,
                          result["shutdown_on_halt"].as<bool>());
+  const std::string prgrom = result["prgrom"].as<std::string>();
+  const gvm::Rom* rom = nullptr;
+  if (prgrom.empty()) {
+    rom = CreateRom(result);
+  } else {
+    rom = ReadRom(prgrom);
+  }
+  computer.LoadRom(rom);
+  computer.Run(debug);
+  return 0;
+}
+
+const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
+  gvm::Rom* rom = gvm::rom::Textmode(0xE2410);
 
   const uint32_t user_offset = 16 << 20;
-  computer.LoadRom(new gvm::Rom(user_offset + 0x1000, {
+  rom->Load(user_offset + 0x1000, {
     gvm::Word(0x48),  // H
     gvm::Word(0x65),  // e
     gvm::Word(0x6C),  // l
@@ -71,9 +93,9 @@ int main(int argc, char* argv[]) {
     gvm::Word(0x64),  // d
     gvm::Word(0x21),  // !
     gvm::Word(0x00),  // null
-  }));
+  });
 
-  computer.LoadRom(new gvm::Rom(user_offset, {
+  rom->Load(user_offset, {
     // Set r0 to the mem start position of the string.
     gvm::MovRI(0, 16),
     gvm::LslRI(0, 0,  20),
@@ -120,10 +142,8 @@ int main(int argc, char* argv[]) {
     gvm::MovRI(0, 1),
     gvm::StorRI(0x00, 0),
     gvm::Halt(),
-  }));
+  });
 
-  auto* rom = gvm::rom::Textmode(0xE2410);
-  computer.LoadRom(rom);
   std::ifstream chrom(result["chrom"].as<std::string>(),
                       std::ios::binary | std::ios::ate);
   assert(chrom.is_open());
@@ -134,8 +154,9 @@ int main(int argc, char* argv[]) {
   chrom.close();
   std::vector<gvm::Word> program(words, words + size/sizeof(gvm::Word));
   delete []words;
-  computer.LoadRom(new gvm::Rom(0xE1400, program));
+  rom->Load(0xE1400, program);
 
-  computer.Run(debug);
-  return 0;
+  std::ofstream out("helloworld.rom", std::ios::binary);
+  rom->ToFile(out);
+  return rom;
 }

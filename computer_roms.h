@@ -7,7 +7,7 @@ namespace gvm {
 namespace rom {
 
 // Functions and constants for text mode.
-const Rom* Textmode(uint32_t memaddr);
+Rom* Textmode(uint32_t memaddr);
 
 }  // namespace rom
 }  // namespace gvm

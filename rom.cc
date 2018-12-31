@@ -13,9 +13,10 @@ const Rom* Rom::FromFile(std::ifstream& in) {
   assert(header.compare(0, 7, hBuffer, 7) == 0);
 
   auto* rom = new Rom();
-  while (true) {
+  while (in) {
     uint32_t addr;
     in.read(reinterpret_cast<char*>(&addr), 4);
+    if (!in) break;
     uint32_t wCount;
     in.read(reinterpret_cast<char*>(&wCount), 4);
     assert(wCount <= (256 << 20));
@@ -23,7 +24,7 @@ const Rom* Rom::FromFile(std::ifstream& in) {
     in.read(reinterpret_cast<char*>(buffer), wCount*4);
     rom->Load(addr, buffer, wCount);
   }
-
+  in.close();
   return rom;
 }
 
