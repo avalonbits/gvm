@@ -18,10 +18,10 @@ int main(int argc, char* argv[]) {
   std::ofstream binfile(argv[2], std::ios::binary);
   std::string line;
 
-  sf::VideoMode mode = sf::VideoMode::getDesktopMode();
+  sf::VideoMode mode = sf::VideoMode(1920, 1080);
   int maxX = mode.width;
-  double scale = maxX / 8 / 80;
-  sf::RenderWindow window(mode,  "SFML works!", sf::Style::Fullscreen);
+  double scale = static_cast<double>(maxX) / 8 / 80;
+  sf::RenderWindow window(mode,  "SFML works!");
   window.setVerticalSyncEnabled(true);
 
   int x = 0, y = 0;
