@@ -7,3 +7,7 @@ srcs = [
   'sdl2_video_display.cc', 'video_controller.cc'
 ]
 env.Program('gvm', srcs)
+
+senv = Environment(CCFLAGS=' '.join(ccflags),
+                   LIBS=['pthread', 'sfml-graphics', 'sfml-window', 'sfml-system'])
+senv.Program('display', ['display.cc'])

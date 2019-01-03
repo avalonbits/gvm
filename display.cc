@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
 
   sf::VideoMode mode = sf::VideoMode::getDesktopMode();
   int maxX = mode.width;
-  double scale = maxX / 8 / 120;
+  double scale = maxX / 8 / 80;
   sf::RenderWindow window(mode,  "SFML works!", sf::Style::Fullscreen);
   window.setVerticalSyncEnabled(true);
 
