@@ -32,8 +32,8 @@ class CPU {
   std::string PrintInstruction(const Word word);
 
   uint32_t& pc_;
-  uint32_t reg_[kRegCount];
   uint32_t* mem_;
+  uint32_t reg_[kRegCount];
   uint32_t mem_size_;
   uint32_t& sp_;
   uint32_t& fp_;

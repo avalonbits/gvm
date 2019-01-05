@@ -15,7 +15,10 @@ SDL2VideoDisplay::SDL2VideoDisplay(int width, int height)
 SDL2VideoDisplay::SDL2VideoDisplay(int width, int height, const bool fullscreen)
   : texture_(nullptr) {
   const auto flags = fullscreen ? SDL_WINDOW_FULLSCREEN : 0;
-  assert(SDL_Init(SDL_INIT_EVERYTHING) >= 0);
+  if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
+    std::cerr << SDL_GetError() << std::endl;
+    assert(false);
+  }
   window_ = SDL_CreateWindow("GVM", SDL_WINDOWPOS_UNDEFINED,  SDL_WINDOWPOS_UNDEFINED,
       width, height, flags);
   assert(window_ != nullptr);

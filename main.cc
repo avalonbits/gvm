@@ -71,6 +71,7 @@ int main(int argc, char* argv[]) {
   }
   computer.LoadRom(rom);
   computer.Run(debug);
+
   return 0;
 }
 

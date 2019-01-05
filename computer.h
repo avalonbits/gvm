@@ -7,6 +7,7 @@
 
 #include "cpu.h"
 #include "rom.h"
+#include "ticker.h"
 #include "video_controller.h"
 
 namespace gvm {
@@ -23,6 +24,10 @@ class Computer {
     assert(mem_ != nullptr);
     assert(cpu_ != nullptr);
     assert(video_controller_ != nullptr);
+    (mem_.get())[1] = 0;
+    ticker_.reset(new Ticker(1000, [this]() {
+      (mem_.get())[1]++;
+    }));
     cpu_->ConnectMemory(mem_.get(), mem_size_bytes);
     cpu_->RegisterVideoDMA(video_controller);
   }
@@ -38,6 +43,7 @@ class Computer {
   std::unique_ptr<uint32_t> mem_;
   std::unique_ptr<CPU> cpu_;
   std::unique_ptr<VideoController> video_controller_;
+  std::unique_ptr<Ticker> ticker_;
   const bool shutdown_on_halt_;
 };
 

@@ -15,6 +15,11 @@ void Computer::Run(const bool debug) {
   cpu_->SetPC(16 << 20);
   std::chrono::nanoseconds runtime;
   int op_count;
+
+  std::thread ticker_thread([this]() {
+      ticker_->Start();
+  });
+
   std::thread cpu_thread([this, debug, &runtime, &op_count]() {
     const auto start = std::chrono::high_resolution_clock::now();
     op_count = cpu_->Run(debug);
@@ -25,8 +30,10 @@ void Computer::Run(const bool debug) {
   });
 
   cpu_thread.join();
+  ticker_->Stop();
   if (shutdown_on_halt_) video_controller_->Shutdown();
   video_thread.join();
+  ticker_thread.join();
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
   const auto time = runtime.count();
