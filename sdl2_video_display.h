@@ -11,6 +11,8 @@ class SDL2VideoDisplay : public VideoDisplay {
  public:
   SDL2VideoDisplay();  // Fullscreen display
   SDL2VideoDisplay(int width, int height);  // Windowed display.
+  SDL2VideoDisplay(int width, int height, const bool fullscreen, const std::string force_driver);
+
   ~SDL2VideoDisplay() override;
 
   void SetFramebufferSize(int fWidth, int fHeight, int bpp) override;
@@ -19,7 +21,6 @@ class SDL2VideoDisplay : public VideoDisplay {
   bool CheckEvents() override;
 
  private:
-  SDL2VideoDisplay(int width, int height, const bool fullscreen);
   SDL_Window* window_;
   SDL_Renderer* renderer_;
   SDL_Texture* texture_;
@@ -27,6 +28,7 @@ class SDL2VideoDisplay : public VideoDisplay {
   int maxH_;
   int fWidth_;
   int fHeight_;
+  int count_;
 };
 
 }  // namespace gvm

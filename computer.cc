@@ -24,15 +24,14 @@ void Computer::Run(const bool debug) {
     const auto start = std::chrono::high_resolution_clock::now();
     op_count = cpu_->Run(debug);
     runtime = std::chrono::high_resolution_clock::now() - start;
-  });
-  std::thread video_thread([this]() {
-    video_controller_->Run();
+    ticker_->Stop();
+    if (shutdown_on_halt_) video_controller_->Shutdown();
   });
 
+  // This has to run on the main thread or it won't render using OpenGL ES.
+  video_controller_->Run();
+
   cpu_thread.join();
-  ticker_->Stop();
-  if (shutdown_on_halt_) video_controller_->Shutdown();
-  video_thread.join();
   ticker_thread.join();
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
