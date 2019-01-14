@@ -27,7 +27,7 @@ gvm::VideoDisplay* CreateSDL2Display(const std::string& mode) {
   } else if (mode != "null") {
       std::cerr << mode << " is not a valid mode. Going with \"null\".\n";
   }
-  
+
   return new gvm::NullVideoDisplay();
 }
 
@@ -40,7 +40,6 @@ const gvm::Rom* ReadRom(const std::string& prgrom) {
 int main(int argc, char* argv[]) {
   cxxopts::Options options("gvm", "The GVM virtual machine.");
   options.add_options()
-    ("debug", "Enable debugging", cxxopts::value<bool>()->default_value("false"))
     ("prgrom", "Rom file used to boot computer. If present, will ignore chrom.",
               cxxopts::value<std::string>()->default_value(""))
     ("chrom", "Rom file with 8x16 characters.",
@@ -53,9 +52,8 @@ int main(int argc, char* argv[]) {
     ;
   auto result = options.parse(argc, argv);
 
-  const bool debug = result["debug"].as<bool>();
   const std::string mode = result["video_mode"].as<std::string>();
-  const bool print_fps = mode != "null" && !debug;
+  const bool print_fps = mode != "null";
   auto* display = CreateSDL2Display(mode);
   auto* controller = new gvm::VideoController(print_fps, display);
   const uint32_t mem_size = 256 << 20;  // 256MiB
@@ -70,7 +68,7 @@ int main(int argc, char* argv[]) {
     rom = ReadRom(prgrom);
   }
   computer.LoadRom(rom);
-  computer.Run(debug);
+  computer.Run();
 
   return 0;
 }

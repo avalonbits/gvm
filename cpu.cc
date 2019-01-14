@@ -94,7 +94,7 @@ void CPU::SetPC(uint32_t pc) {
   assert(pc_ < mem_size_);
 }
 
-uint32_t CPU::Run(const bool debug) {
+uint32_t CPU::Run() {
   static void* opcodes[] = {
     &&NOP, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
     &&STOR_RR, &&STOR_RI, &&STOR_IX, &&ADD_RR, &&ADD_RI, &&SUB_RR,
@@ -107,14 +107,18 @@ uint32_t CPU::Run(const bool debug) {
   register uint32_t i = 0;
   register uint32_t word = 0;
 
+#ifdef DEBUG_DISPATCH
 #define DISPATCH() \
-  if (debug) { \
     pc_ = pc * 4; \
     std::cerr << "0x" << std::hex << pc_ << ": " << std::dec \
               << PrintInstruction(word) << std::endl; \
       std::cerr << PrintRegisters(true) << std::endl;\
       getchar(); \
-  } ++i; word =  mem_[++pc]; goto *opcodes[word&0xFF]
+    ++i; word =  mem_[++pc]; goto *opcodes[word&0xFF]
+#else
+#define DISPATCH() ++i; word =  mem_[++pc]; goto *opcodes[word&0xFF]
+#endif
+
   DISPATCH();
   NOP:
       DISPATCH();

@@ -21,8 +21,7 @@ class CPU {
   void RegisterVideoDMA(VideoController* controller);
   void LoadProgram(const std::map<uint32_t, std::vector<Word>>& program);
   void SetPC(uint32_t pc);
-  const bool Step(const bool debug);
-  uint32_t Run(const bool debug);
+  uint32_t Run();
 
   const std::string PrintRegisters(bool hex = false);
   const std::string PrintMemory(uint32_t from, uint32_t to);

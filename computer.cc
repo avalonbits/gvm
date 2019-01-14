@@ -11,7 +11,7 @@ void Computer::LoadRom(const Rom* rom) {
   delete rom;
 }
 
-void Computer::Run(const bool debug) {
+void Computer::Run() {
   cpu_->SetPC(16 << 20);
   std::chrono::nanoseconds runtime;
   int op_count;
@@ -20,9 +20,9 @@ void Computer::Run(const bool debug) {
       ticker_->Start();
   });
 
-  std::thread cpu_thread([this, debug, &runtime, &op_count]() {
+  std::thread cpu_thread([this, &runtime, &op_count]() {
     const auto start = std::chrono::high_resolution_clock::now();
-    op_count = cpu_->Run(debug);
+    op_count = cpu_->Run();
     runtime = std::chrono::high_resolution_clock::now() - start;
     ticker_->Stop();
     if (shutdown_on_halt_) video_controller_->Shutdown();

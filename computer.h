@@ -35,7 +35,7 @@ class Computer {
   // Takes ownership of rom.
   void LoadRom(const Rom* rom);
 
-  void Run(const bool debug);
+  void Run();
   void Shutdown();
 
  private:
