@@ -77,7 +77,63 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
   gvm::Rom* rom = gvm::rom::Textmode(0xE2410);
 
   const uint32_t user_offset = 16 << 20;
-  rom->Load(user_offset + 0x1000, {
+  rom->Load(user_offset + 0x2000, {
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
     gvm::Word(0x48),  // H
     gvm::Word(0x65),  // e
     gvm::Word(0x6C),  // l
@@ -98,7 +154,7 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
     // Set r0 to the mem start position of the string.
     gvm::MovRI(0, 16),
     gvm::LslRI(0, 0,  20),
-    gvm::AddRI(0, 0, 0x1000),
+    gvm::AddRI(0, 0, 0x2000),
 
     // Set r2 to the first position - 8 pixels.
     gvm::MovRI(2, 0xFEE),
