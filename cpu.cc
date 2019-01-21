@@ -53,7 +53,6 @@ constexpr uint32_t reladdr20(const uint32_t v) {
                             : v20bit/kWordSize;
 }
 
-
 }  // namespace
 
 CPU::CPU(const uint32_t freq, const uint32_t fps)
@@ -106,6 +105,19 @@ uint32_t CPU::Run() {
   register uint32_t pc = pc_-1;
   register uint32_t i = 0;
   register uint32_t word = 0;
+  uint32_t interrupt = 1;
+
+
+#define code_dispatch() \
+  if (interrupt > 0) {\
+    goto INTERRUPT_SERVICE;\
+  } else {\
+    ++pc;\
+    ++i;\
+    interrupt = 1;\
+    word =  mem_[pc];\
+    goto *opcodes[word&0xFF];\
+  }
 
 #ifdef DEBUG_DISPATCH
 #define DISPATCH() \
@@ -114,9 +126,9 @@ uint32_t CPU::Run() {
               << PrintInstruction(word) << std::endl; \
       std::cerr << PrintRegisters(true) << std::endl;\
       getchar(); \
-    ++i; word =  mem_[++pc]; goto *opcodes[word&0xFF]
+    code_dispatch()
 #else
-#define DISPATCH() ++i; word =  mem_[++pc]; goto *opcodes[word&0xFF]
+#define DISPATCH() code_dispatch()
 #endif
 
   DISPATCH();
@@ -304,8 +316,13 @@ uint32_t CPU::Run() {
       reg_[idx] = (idx >= 13) ? v / kWordSize : v;
       DISPATCH();
   }
-  HALT:
+  HALT: {
     return i;
+  }
+  INTERRUPT_SERVICE: {
+    interrupt = 0;
+    DISPATCH();
+  }
 }
 
 const std::string CPU::PrintRegisters(bool hex) {
