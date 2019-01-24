@@ -13,7 +13,7 @@ class NullVideoDisplay : public VideoDisplay {
   void SetFramebufferSize(int fWidth, int fHeight, int bpp) override {}
   void CopyBuffer(uint32_t* mem) override {}
   void Render() override {}
-  bool CheckEvents() override { return false; }
+  bool CheckEvents() override { return true; }
 };
 
 }  // namesapce gvm
