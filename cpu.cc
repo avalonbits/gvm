@@ -35,6 +35,9 @@ constexpr uint32_t reg2(uint32_t word) {
 constexpr uint32_t reg3(uint32_t word) {
   return (word >> 16) & 0x1F;
 }
+constexpr uint32_t reg4(uint32_t word) {
+  return (word >> 21) & 0x1F;
+}
 constexpr uint32_t v16bit(uint32_t word) {
   return (word >> 16) & 0xFFFF;
 }
@@ -100,7 +103,7 @@ uint32_t CPU::Run() {
     &&SUB_RI, &&JMP, &&JNE, &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI,
     &&CALLR, &&RET, &&AND_RR, &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR,
     &&XOR_RI, &&LSL_RR, &&LSL_RI, &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI,
-    &&MUL_RR, &&MUL_RI, &&DIV_RR, &&DIV_RI
+    &&MUL_RR, &&MUL_RI, &&DIV_RR, &&DIV_RI, &&MUL_RRR
   };
   register uint32_t pc = pc_-1;
   register uint32_t i = 0;
@@ -343,6 +346,16 @@ uint32_t CPU::Run() {
       reg_[idx] = (idx >= 29) ? v / kWordSize : v;
       DISPATCH();
   }
+  MUL_RRR: {
+      const register uint32_t idxH = reg1(word);
+      const register uint32_t idxL = reg2(word);
+      const register int64_t v = regv(reg3(word), pc, reg_) * regv(reg4(word), pc, reg_);
+      reg_[idxL] = (idxL >= 29) ? (v & 0xFFFFFFFF) / kWordSize : (v & 0xFFFFFFFF);
+      const register int32_t vH = (v >> 32);
+      reg_[idxH] = (idxH >= 29) ? vH / kWordSize : vH;
+      DISPATCH();
+  }
+
   INTERRUPT_SERVICE: {
     interrupt = 0;
     DISPATCH();

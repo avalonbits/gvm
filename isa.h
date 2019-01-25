@@ -49,6 +49,7 @@ enum ISA {
     MUL_RI,
     DIV_RR,
     DIV_RI,
+    MUL_RRR,
 };
 
 typedef uint32_t Word;
@@ -89,10 +90,11 @@ Word LsrRR(uint32_t dest, uint32_t src, uint32_t offset);
 Word LsrRI(uint32_t dest, uint32_t src, uint32_t value);
 Word AsrRR(uint32_t dest, uint32_t src, uint32_t offset);
 Word AsrRI(uint32_t dest, uint32_t src, uint32_t value);
-Word MulRR(uint32_t dest, uint32_t src, uint32_t offset);
-Word MulRI(uint32_t dest, uint32_t src, uint32_t value);
-Word DivRR(uint32_t dest, uint32_t src, uint32_t offset);
-Word DivRI(uint32_t dest, uint32_t src, uint32_t value);
+Word MulRR(uint32_t dest, uint32_t op1, uint32_t op2);
+Word MulRI(uint32_t dest, uint32_t op1, uint32_t value);
+Word DivRR(uint32_t dest, uint32_t op1, uint32_t op2);
+Word DivRI(uint32_t dest, uint32_t op1, uint32_t value);
+Word MulRRR(uint32_t destH, uint32_t destL, uint32_t op1, uint32_t op2);
 
 }  // namepsace gvm
 
