@@ -10,6 +10,7 @@ constexpr uint32_t kRegCount = 32;
 
 enum ISA {
     NOP = 0,
+    HALT,
     MOV_RR,
     MOV_RI,
     LOAD_RR,
@@ -44,7 +45,10 @@ enum ISA {
     LSR_RI,
     ASR_RR,
     ASR_RI,
-    HALT,
+    MUL_RR,
+    MUL_RI,
+    DIV_RR,
+    DIV_RI,
 };
 
 typedef uint32_t Word;
@@ -85,6 +89,11 @@ Word LsrRR(uint32_t dest, uint32_t src, uint32_t offset);
 Word LsrRI(uint32_t dest, uint32_t src, uint32_t value);
 Word AsrRR(uint32_t dest, uint32_t src, uint32_t offset);
 Word AsrRI(uint32_t dest, uint32_t src, uint32_t value);
+Word MulRR(uint32_t dest, uint32_t src, uint32_t offset);
+Word MulRI(uint32_t dest, uint32_t src, uint32_t value);
+Word DivRR(uint32_t dest, uint32_t src, uint32_t offset);
+Word DivRI(uint32_t dest, uint32_t src, uint32_t value);
+
 }  // namepsace gvm
 
 #endif  // _GVM_ISA_H_

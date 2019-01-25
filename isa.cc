@@ -235,4 +235,32 @@ Word AsrRI(uint32_t dest, uint32_t src, uint32_t value) {
   return Word(ISA::ASR_RI | dest << 6 | src << 11 | value  << 16);
 }
 
+Word MulRR(uint32_t dest, uint32_t src, uint32_t offset) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  assert(offset < kRegCount);
+  return Word(ISA::MUL_RR | dest << 6 | src << 11 | offset  << 16);
+}
+
+Word MulRI(uint32_t dest, uint32_t src, uint32_t value) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  value = value & 0xFFFF;
+  return Word(ISA::MUL_RI | dest << 6 | src << 11 | value  << 16);
+}
+
+Word DivRR(uint32_t dest, uint32_t src, uint32_t offset) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  assert(offset < kRegCount);
+  return Word(ISA::DIV_RR | dest << 6 | src << 11 | offset  << 16);
+}
+
+Word DivRI(uint32_t dest, uint32_t src, uint32_t value) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  value = value & 0xFFFF;
+  return Word(ISA::DIV_RI | dest << 6 | src << 11 | value  << 16);
+}
+
 }  // namespace gvm

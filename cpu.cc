@@ -95,12 +95,12 @@ void CPU::SetPC(uint32_t pc) {
 
 uint32_t CPU::Run() {
   static void* opcodes[] = {
-    &&NOP, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
+    &&NOP, &&HALT, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
     &&STOR_RR, &&STOR_RI, &&STOR_IX, &&ADD_RR, &&ADD_RI, &&SUB_RR,
     &&SUB_RI, &&JMP, &&JNE, &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI,
     &&CALLR, &&RET, &&AND_RR, &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR,
     &&XOR_RI, &&LSL_RR, &&LSL_RI, &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI,
-    &&HALT
+    &&MUL_RR, &&MUL_RI, &&DIV_RR, &&DIV_RI
   };
   register uint32_t pc = pc_-1;
   register uint32_t i = 0;
@@ -134,6 +134,9 @@ uint32_t CPU::Run() {
   DISPATCH();
   NOP:
       DISPATCH();
+  HALT: {
+    return i;
+  }
   MOV_RR: {
       const register int32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc, reg_);
@@ -316,8 +319,29 @@ uint32_t CPU::Run() {
       reg_[idx] = (idx >= 29) ? v / kWordSize : v;
       DISPATCH();
   }
-  HALT: {
-    return i;
+  MUL_RR: {
+      const register uint32_t idx = reg1(word);
+      const register int32_t v = regv(reg2(word), pc, reg_) * regv(reg3(word), pc, reg_);
+      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      DISPATCH();
+  }
+  MUL_RI: {
+      const register uint32_t idx = reg1(word);
+      const register int32_t v = (regv(reg2(word), pc, reg_) * v16bit(word));
+      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      DISPATCH();
+  }
+  DIV_RR: {
+      const register uint32_t idx = reg1(word);
+      const register int32_t v = regv(reg2(word), pc, reg_) / regv(reg3(word), pc, reg_);
+      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      DISPATCH();
+  }
+  DIV_RI: {
+      const register uint32_t idx = reg1(word);
+      const register int32_t v = (regv(reg2(word), pc, reg_) / v16bit(word));
+      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      DISPATCH();
   }
   INTERRUPT_SERVICE: {
     interrupt = 0;
