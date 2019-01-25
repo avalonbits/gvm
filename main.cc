@@ -195,7 +195,7 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
     gvm::Jmp(-84),
 
     gvm::MovRI(0, 1),
-    gvm::StorRI(0x00, 0),
+    gvm::StorRI(0x20, 0),
     gvm::Halt(),
   });
 

@@ -24,7 +24,7 @@ class Computer {
     assert(mem_ != nullptr);
     assert(cpu_ != nullptr);
     assert(video_controller_ != nullptr);
-    (mem_.get())[1] = 0;
+    memset(mem_.get(), 0, mem_size_bytes);
     ticker_.reset(new Ticker(1000, [this]() {
       (mem_.get())[1]++;
     }));

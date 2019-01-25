@@ -12,7 +12,7 @@
 
 namespace gvm {
 
-static const uint32_t kVideoMemReg = 0x00;
+static const uint32_t kVideoMemReg = 0x20;
 static const uint32_t kCpuJiffiesReg = 0x01;
 static const uint32_t kVideoMemStart = 0xFEE33C0;
 static const uint32_t kVideoMemSizeWords = 640 * 360;
