@@ -157,9 +157,7 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
     gvm::AddRI(0, 0, 0x2000),
 
     // Set r2 to the first position - 8 pixels.
-    gvm::MovRI(2, 0xFEE),
-    gvm::LslRI(2, 2, 16),
-    gvm::AddRI(2, 2, 0x33C0-8*4),
+    gvm::MovRI(2, 0x64),
 
     // Loop:
     gvm::LoadRR(1, 0),  // Get current char.
@@ -195,7 +193,7 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
     gvm::Jmp(-84),
 
     gvm::MovRI(0, 1),
-    gvm::StorRI(0x20, 0),
+    gvm::StorRI(0x80, 0),
     gvm::Halt(),
   });
 
