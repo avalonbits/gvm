@@ -30,15 +30,15 @@ Rom* Textmode(uint32_t memaddr) {
     // Now for the funcions.
     //
     // ==================== writec ===========================================
-    // Address: 0xE2450
-    SubRI(0, 29, 64),
+    // Address: 0x103040
+    SubRI(0, 29, 0x40),
     LslRI(3, 3, 2),
     AddRR(3, 0, 3),
     LoadRR(3, 3),
 
-    // Set r0 to point to start address of character rom
-    MovRI(0, 0xE14),
-    LslRI(0, 0, 8),
+    // Set r0 to point to start address of character rom (0x104000)
+    MovRI(0, 0x104),
+    LslRI(0, 0, 12),
 
     // Decrease framebuffer addr.
     MovRI(10, 5),

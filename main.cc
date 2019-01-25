@@ -74,9 +74,10 @@ int main(int argc, char* argv[]) {
 }
 
 const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
-  gvm::Rom* rom = gvm::rom::Textmode(0xE2410);
+  const uint32_t user_offset = 1 << 20;
 
-  const uint32_t user_offset = 16 << 20;
+  gvm::Rom* rom = gvm::rom::Textmode(user_offset + 0x3000);
+
   rom->Load(user_offset + 0x2000, {
     gvm::Word(0x48),  // H
     gvm::Word(0x65),  // e
@@ -152,7 +153,7 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
 
   rom->Load(user_offset, {
     // Set r0 to the mem start position of the string.
-    gvm::MovRI(0, 16),
+    gvm::MovRI(0, 1),
     gvm::LslRI(0, 0,  20),
     gvm::AddRI(0, 0, 0x2000),
 
@@ -177,9 +178,9 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
     gvm::SubRI(30, 30, 4),
     gvm::StorRR(30, 2),
 
-    gvm::MovRI(0, 0xE24),
-    gvm::LslRI(0, 0, 8),
-    gvm::AddRI(0, 0, 0x50),
+    gvm::MovRI(0, 1),
+    gvm::LslRI(0, 0, 20),
+    gvm::AddRI(0, 0, 0x3040),
     gvm::CallR(0),
 
     // Copy back r0, r1, r2 from stack
@@ -207,7 +208,7 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
   chrom.close();
   std::vector<gvm::Word> program(words, words + size/sizeof(gvm::Word));
   delete []words;
-  rom->Load(0xE1400, program);
+  rom->Load(user_offset + 0x4000, program);
 
   std::ofstream out("helloworld.rom", std::ios::binary);
   rom->ToFile(out);

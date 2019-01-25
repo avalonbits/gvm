@@ -12,7 +12,7 @@ void Computer::LoadRom(const Rom* rom) {
 }
 
 void Computer::Run() {
-  cpu_->SetPC(16 << 20);
+  cpu_->SetPC(1 << 20);
   std::chrono::nanoseconds runtime;
   int op_count;
 
