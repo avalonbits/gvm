@@ -31,7 +31,7 @@ Rom* Textmode(uint32_t memaddr) {
     //
     // ==================== writec ===========================================
     // Address: 0xE2450
-    SubRI(0, 13, 64),
+    SubRI(0, 29, 64),
     LslRI(3, 3, 2),
     AddRR(3, 0, 3),
     LoadRR(3, 3),
@@ -86,9 +86,9 @@ Rom* Textmode(uint32_t memaddr) {
     StorRR(6, 3),  // Store color in framebuffer
     Jmp(-44),
     Ret(),
-    
+
     // ==================== writec ============================================
-    
+
     // ==================== putc ==============================================
     // Address: 0xE24BE
     // Calls writec then signals that the buffer is ready.
@@ -96,7 +96,7 @@ Rom* Textmode(uint32_t memaddr) {
     LslRI(0, 0, 8),
     AddRI(0, 0, 0x50),
     CallR(0),
-    
+
     // Signal to the buffer.
     MovRI(0, 1),
     StorRI(0x00, 0),

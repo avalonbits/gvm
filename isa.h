@@ -6,7 +6,7 @@
 namespace gvm {
 
 constexpr uint32_t kWordSize = 4;
-constexpr uint32_t kRegCount = 14 + 2;  // 14 general purpose + sp + fp.
+constexpr uint32_t kRegCount = 32;
 
 enum ISA {
     NOP = 0,
@@ -32,7 +32,7 @@ enum ISA {
     CALLI,
     CALLR,
     RET,
-    AND_RR, 
+    AND_RR,
     AND_RI,
     ORR_RR,
     ORR_RI,

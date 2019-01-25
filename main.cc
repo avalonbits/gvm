@@ -172,12 +172,12 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
     gvm::AddRI(2, 2, 8*4),
 
     // Save r0, r1 and r2 to stack.
-    gvm::SubRI(14, 14, 4),
-    gvm::StorRR(14, 0),
-    gvm::SubRI(14, 14, 4),
-    gvm::StorRR(14, 1),
-    gvm::SubRI(14, 14, 4),
-    gvm::StorRR(14, 2),
+    gvm::SubRI(30, 30, 4),
+    gvm::StorRR(30, 0),
+    gvm::SubRI(30, 30, 4),
+    gvm::StorRR(30, 1),
+    gvm::SubRI(30, 30, 4),
+    gvm::StorRR(30, 2),
 
     gvm::MovRI(0, 0xE24),
     gvm::LslRI(0, 0, 8),
@@ -185,12 +185,12 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
     gvm::CallR(0),
 
     // Copy back r0, r1, r2 from stack
-    gvm::LoadRR(2, 14),
-    gvm::AddRI(14, 14, 4),
-    gvm::LoadRR(1, 14),
-    gvm::AddRI(14, 14, 4),
-    gvm::LoadRR(0, 14),
-    gvm::AddRI(14, 14, 4),
+    gvm::LoadRR(2, 30),
+    gvm::AddRI(30, 30, 4),
+    gvm::LoadRR(1, 30),
+    gvm::AddRI(30, 30, 4),
+    gvm::LoadRR(0, 30),
+    gvm::AddRI(30, 30, 4),
     gvm::AddRI(0, 0, 4),  // Point to next char.
     gvm::Jmp(-84),
 
