@@ -103,7 +103,7 @@ uint32_t CPU::Run() {
     &&SUB_RI, &&JMP, &&JNE, &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI,
     &&CALLR, &&RET, &&AND_RR, &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR,
     &&XOR_RI, &&LSL_RR, &&LSL_RI, &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI,
-    &&MUL_RR, &&MUL_RI, &&DIV_RR, &&DIV_RI, &&MUL_RRR
+    &&MUL_RR, &&MUL_RI, &&DIV_RR, &&DIV_RI, &&MULL_RR
   };
   register uint32_t pc = pc_-1;
   register uint32_t i = 0;
@@ -346,7 +346,7 @@ uint32_t CPU::Run() {
       reg_[idx] = (idx >= 29) ? v / kWordSize : v;
       DISPATCH();
   }
-  MUL_RRR: {
+  MULL_RR: {
       const register uint32_t idxH = reg1(word);
       const register uint32_t idxL = reg2(word);
       const register int64_t v = regv(reg3(word), pc, reg_) * regv(reg4(word), pc, reg_);

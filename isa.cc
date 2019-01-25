@@ -263,12 +263,12 @@ Word DivRI(uint32_t dest, uint32_t op1, uint32_t value) {
   return Word(ISA::DIV_RI | dest << 6 | op1 << 11 | value  << 16);
 }
 
-Word MulRRR(uint32_t destH, uint32_t destL, uint32_t op1, uint32_t op2) {
+Word MullRR(uint32_t destH, uint32_t destL, uint32_t op1, uint32_t op2) {
   assert(destH < kRegCount);
   assert(destL < kRegCount);
   assert(op1 < kRegCount);
   assert(op2 < kRegCount);
-  return Word(ISA::MUL_RR | destH << 6 | destL << 11 | op1 << 16 | op2 << 21);
+  return Word(ISA::MULL_RR | destH << 6 | destL << 11 | op1 << 16 | op2 << 21);
 }
 
 }  // namespace gvm
