@@ -78,6 +78,11 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
 
   gvm::Rom* rom = gvm::rom::Textmode(user_offset + 0x3000);
 
+  // When CPU boots at reading from address 0, which is also the address of the
+  // reset signal. Have it jump to 0x100000 which is the start of available
+  // memory.
+  rom->Load(0, {gvm::Jmp(0x100000)});
+
   rom->Load(user_offset + 0x2000, {
     gvm::Word(0x48),  // H
     gvm::Word(0x65),  // e
