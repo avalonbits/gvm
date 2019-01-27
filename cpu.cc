@@ -12,14 +12,6 @@
 
 namespace gvm {
 
-static const uint32_t kVideoMemReg = 0x80;
-static const uint32_t kCpuJiffiesReg = 0x04;
-static const uint32_t kVideoMemStart = 0x84;
-static const uint32_t kVideoMemSizeWords = 640 * 360;
-static const uint32_t kVideoMemEnd = kVideoMemStart + kVideoMemSizeWords;
-static const int kFrameBufferW = 640;
-static const int kFrameBufferH = 360;
-
 namespace {
 constexpr uint32_t regv(const uint32_t idx, const uint32_t pc, uint32_t* regs) {
   if (idx < 29) return regs[idx];
@@ -58,9 +50,8 @@ constexpr uint32_t reladdr21(const uint32_t v) {
 
 }  // namespace
 
-CPU::CPU(const uint32_t freq, const uint32_t fps)
-    : pc_(reg_[kRegCount-3]), sp_(reg_[kRegCount-2]), fp_(reg_[kRegCount-1]),
-      cycles_per_frame_(freq/fps), fps_(fps) {
+CPU::CPU()
+    : pc_(reg_[kRegCount-3]), sp_(reg_[kRegCount-2]), fp_(reg_[kRegCount-1]) {
   std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
 }
 
@@ -70,12 +61,6 @@ void CPU::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes) {
   mem_size_ = mem_size_bytes / kWordSize;
   std::memset(mem_, 0, mem_size_bytes);
   fp_ = sp_ = mem_size_;
-}
-
-void CPU::RegisterVideoDMA(VideoController* controller) {
-  assert(controller != nullptr);
-  controller->RegisterDMA(kVideoMemReg, kVideoMemStart / kWordSize, kFrameBufferW,
-                          kFrameBufferH, 32, mem_);
 }
 
 void CPU::LoadProgram(const std::map<uint32_t, std::vector<Word>>& program) {

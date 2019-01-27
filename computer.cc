@@ -4,6 +4,18 @@
 #include <iostream>
 #include <thread>
 
+namespace {
+
+static const uint32_t kVideoMemReg = 0x80;
+static const uint32_t kCpuJiffiesReg = 0x04;
+static const uint32_t kVideoMemStart = 0x84;
+static const uint32_t kVideoMemSizeWords = 640 * 360;
+static const uint32_t kVideoMemEnd = kVideoMemStart + kVideoMemSizeWords;
+static const int kFrameBufferW = 640;
+static const int kFrameBufferH = 360;
+
+}  // namespace
+
 namespace gvm {
 
 void Computer::LoadRom(const Rom* rom) {
@@ -42,6 +54,13 @@ void Computer::Run() {
   std::cerr << "CPU Instruction count: " << op_count << std::endl;
   std::cerr << "Average per instruction: " << per_inst << "ns\n";
   std::cerr << "Average clock: " << average_clock << "MHz\n";
+}
+
+void Computer::RegisterVideoDMA() {
+  assert(video_controller_ != nullptr);
+  video_controller_->RegisterDMA(
+      kVideoMemReg, kVideoMemStart / kWordSize, kFrameBufferW, kFrameBufferH,
+      32, mem_.get());
 }
 
 }  // namespace gvm

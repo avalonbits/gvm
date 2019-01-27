@@ -29,7 +29,7 @@ class Computer {
       (mem_.get())[1]++;
     }));
     cpu_->ConnectMemory(mem_.get(), mem_size_bytes);
-    cpu_->RegisterVideoDMA(video_controller);
+    RegisterVideoDMA();
   }
 
   // Takes ownership of rom.
@@ -39,6 +39,8 @@ class Computer {
   void Shutdown();
 
  private:
+  void RegisterVideoDMA();
+
   const uint32_t mem_size_bytes_;
   std::unique_ptr<uint32_t> mem_;
   std::unique_ptr<CPU> cpu_;

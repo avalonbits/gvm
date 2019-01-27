@@ -11,14 +11,13 @@
 namespace gvm {
 class CPU {
  public:
-  CPU(const uint32_t freq, const uint32_t fps);
+  CPU();
 
   // Don't allow copy construction
   CPU(const CPU&) = delete;
   CPU& operator=(const CPU&) = delete;
 
   void ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes);
-  void RegisterVideoDMA(VideoController* controller);
   void LoadProgram(const std::map<uint32_t, std::vector<Word>>& program);
   void SetPC(uint32_t pc);
   uint32_t Run();
@@ -36,8 +35,6 @@ class CPU {
   uint32_t mem_size_;
   uint32_t& sp_;
   uint32_t& fp_;
-  const uint32_t cycles_per_frame_;
-  const uint32_t fps_;
 };
 
 }  // namespace gvm

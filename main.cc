@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
   auto* display = CreateSDL2Display(mode);
   auto* controller = new gvm::VideoController(print_fps, display);
   const uint32_t mem_size = 256 << 20;  // 256MiB
-  auto* cpu = new gvm::CPU(19800000, 60);
+  auto* cpu = new gvm::CPU();
   gvm::Computer computer(mem_size, cpu, controller,
                          result["shutdown_on_halt"].as<bool>());
   const std::string prgrom = result["prgrom"].as<std::string>();
