@@ -99,7 +99,7 @@ Rom* Textmode(uint32_t memaddr) {
 
     // Signal to the buffer.
     MovRI(0, 1),
-    StorRI(0x00, 0),
+    StorRI(0x80, 0),
     Ret(),
     // ==================== putc ==============================================
   });

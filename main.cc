@@ -81,7 +81,52 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
   // When CPU boots at reading from address 0, which is also the address of the
   // reset signal. Have it jump to 0x100000 which is the start of available
   // memory.
-  rom->Load(0, {gvm::Jmp(0x100000)});
+  rom->Load(0, {
+    gvm::Jmp(0xE108C),  // Reset interrupt handler @0xE108C.
+    gvm::Jmp(0xE109C),  // Timer interrupt handler @0xE10A0. Jump is pc relative.
+  });
+
+  rom->Load(0xE108C, {
+    // For now we reset the timer counters and then jump to user code.
+    gvm::MovRI(0, 0),
+    gvm::StorRI(0xE1084, 0),
+    gvm::StorRI(0xE1088, 0),
+    gvm::Jmp(0x100000-0xE1098),  // Jump to user code.
+  });
+
+  rom->Load(0xE10A0, {
+    // Implements a 64bit tick counter.
+
+    // First, save contents of r0 so we don't disrupt user code.
+    gvm::SubRI(30, 30, 4),
+    gvm::StorRR(30, 0),
+
+    // Load low 32 bits.
+    gvm::LoadRI(0, 0xE1084),
+
+    // Increment value.
+    gvm::AddRI(0, 0, 1),
+
+    // Store back.
+    gvm::StorRI(0xE1084, 0),
+
+    // If != 0 i.e no overflow, we are done. Otherwise, increment high 32 bits.
+    gvm::Jne(0, 0x10),
+
+    // Load high 32 bits.
+    gvm::LoadRI(0, 0xE1088),
+
+    // Increment value.
+    gvm::AddRI(0, 0, 1),
+
+    // Store back.
+    gvm::StorRI(0xE1088, 0),
+
+    // We are done. Load back r0 and return.
+    gvm::LoadRR(0, 30),
+    gvm::AddRI(30, 30, 4),
+    gvm::Ret(),
+  });
 
   rom->Load(user_offset + 0x2000, {
     gvm::Word(0x48),  // H

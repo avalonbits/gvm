@@ -22,6 +22,9 @@ class CPU {
   uint32_t PowerOn();
   uint32_t Reset();
 
+  // Sets the signal for a timer tick.
+  void Tick();
+
   const std::string PrintRegisters(bool hex = false);
   const std::string PrintMemory(uint32_t from, uint32_t to);
   const std::string PrintStatusFlags();

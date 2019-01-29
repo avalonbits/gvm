@@ -54,6 +54,7 @@ void Computer::Run() {
   ticker_thread.join();
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
+  std::cerr << cpu_->PrintMemory(0xE1084, 0xE1088);
   const auto time = runtime.count();
   const auto per_inst = time / static_cast<double>(op_count);
   const auto average_clock = 1000000000 / per_inst / 1000000;

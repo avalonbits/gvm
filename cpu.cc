@@ -70,17 +70,22 @@ void CPU::SetPC(uint32_t pc) {
   assert(pc_ < mem_size_);
 }
 
+uint32_t CPU::PowerOn() {
+  Reset();
+  Run();
+  return op_count_;
+}
+
+void CPU::Tick() {
+  std::cerr << "Tick!\n";
+  interrupt_ |= 0x02;
+}
+
 uint32_t CPU::Reset() {
   const uint32_t op_count = op_count_;
   interrupt_ = 1;  // Mask out all interrupts and set bit 0 to 1, signaling reset.
   op_count_ = 0;
   return op_count;
-}
-
-uint32_t CPU::PowerOn() {
-  Reset();
-  Run();
-  return op_count_;
 }
 
 void CPU::Run() {
@@ -96,7 +101,7 @@ void CPU::Run() {
   register uint32_t word = 0;
 
 
-#define code_dispatch() \
+#define interrupt_dispatch() \
   if (interrupt_ > 0) {\
     goto INTERRUPT_SERVICE;\
   } else {\
@@ -113,9 +118,9 @@ void CPU::Run() {
               << PrintInstruction(word) << std::endl; \
       std::cerr << PrintRegisters(true) << std::endl;\
       getchar(); \
-    code_dispatch()
+    interrupt_dispatch()
 #else
-#define DISPATCH() code_dispatch()
+#define DISPATCH() interrupt_dispatch()
 #endif
 
   DISPATCH();
@@ -349,7 +354,15 @@ void CPU::Run() {
       fp_ = sp_ = mem_size_;
       pc = pc_-1;
     } else {
+      mem_[--sp_] = pc;
+      mem_[--sp_] = fp_;
+      fp_ = sp_;
+
       // Process signals in bit order. Lower bits have higher priority than higher bits.
+      if (interrupt_ & 0x02) {
+        pc = 0;  // Set to 0 because it will be incremented to 1 (addr 0x04) on DISPATCH.
+        interrupt_ &= 0xFFFFFFFD;
+      }
     }
     DISPATCH();
   }
