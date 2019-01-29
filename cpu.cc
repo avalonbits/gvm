@@ -51,7 +51,8 @@ constexpr uint32_t reladdr21(const uint32_t v) {
 }  // namespace
 
 CPU::CPU()
-    : pc_(reg_[kRegCount-3]), sp_(reg_[kRegCount-2]), fp_(reg_[kRegCount-1]) {
+    : pc_(reg_[kRegCount-3]), sp_(reg_[kRegCount-2]), fp_(reg_[kRegCount-1]),
+      interrupt_(0) {
   std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
 }
 
@@ -81,6 +82,15 @@ void CPU::SetPC(uint32_t pc) {
   assert(pc_ < mem_size_);
 }
 
+void CPU::Reset() {
+  interrupt_ |= 1;  // Set bit 0 to 1, signalling reset.
+}
+
+void CPU::PowerOn() {
+  Reset();
+  Run();
+}
+
 uint32_t CPU::Run() {
   static void* opcodes[] = {
     &&NOP, &&HALT, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
@@ -93,7 +103,6 @@ uint32_t CPU::Run() {
   register uint32_t pc = pc_-1;
   register uint32_t i = 0;
   register uint32_t word = 0;
-  uint32_t interrupt = 1;
 
 
 #define code_dispatch() \
@@ -102,7 +111,6 @@ uint32_t CPU::Run() {
   } else {\
     ++pc;\
     ++i;\
-    interrupt = 1;\
     word =  mem_[pc];\
     goto *opcodes[word&0x3F];\
   }

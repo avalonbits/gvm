@@ -18,15 +18,18 @@ class CPU {
   CPU& operator=(const CPU&) = delete;
 
   void ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes);
-  void LoadProgram(const std::map<uint32_t, std::vector<Word>>& program);
-  void SetPC(uint32_t pc);
-  uint32_t Run();
+
+  void PowerOn();
+  void Reset();
 
   const std::string PrintRegisters(bool hex = false);
   const std::string PrintMemory(uint32_t from, uint32_t to);
   const std::string PrintStatusFlags();
 
  private:
+  void Run();
+  void SetPC(uint32_t pc);
+
   std::string PrintInstruction(const Word word);
 
   uint32_t& pc_;
@@ -35,6 +38,7 @@ class CPU {
   uint32_t mem_size_;
   uint32_t& sp_;
   uint32_t& fp_;
+  uint32_t interrupt_;
 };
 
 }  // namespace gvm
