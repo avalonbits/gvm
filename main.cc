@@ -404,6 +404,7 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
   });
 
   rom->Load(user_offset, {
+    gvm::MovRI(20, 0x1000),
     // Set r0 to the mem start position of the string.
     gvm::MovRI(0, 1),
     gvm::LslRI(0, 0,  20),
@@ -447,6 +448,8 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
 
     gvm::MovRI(0, 1),
     gvm::StorRI(0x80, 0),
+    gvm::SubRI(20, 20, 1),
+    gvm::Jne(20, -116),
     gvm::Halt(),
   });
 
