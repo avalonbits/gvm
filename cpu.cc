@@ -64,34 +64,26 @@ void CPU::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes) {
   fp_ = sp_ = mem_size_;
 }
 
-void CPU::LoadProgram(const std::map<uint32_t, std::vector<Word>>& program) {
-  for (const auto& kv : program) {
-    const auto& start = kv.first / kWordSize;
-    const auto& words = kv.second;
-    assert(!words.empty());
-    assert(words.size() + start < mem_size_);
-    for (uint32_t idx = start, i = 0; i < words.size(); ++idx, ++i) {
-      mem_[idx] = words[i];
-    }
-  }
-}
-
 void CPU::SetPC(uint32_t pc) {
   assert(pc % kWordSize == 0);
   pc_ = pc / kWordSize;
   assert(pc_ < mem_size_);
 }
 
-void CPU::Reset() {
-  interrupt_ |= 1;  // Set bit 0 to 1, signalling reset.
+uint32_t CPU::Reset() {
+  const uint32_t op_count = op_count_;
+  interrupt_ = 1;  // Mask out all interrupts and set bit 0 to 1, signaling reset.
+  op_count_ = 0;
+  return op_count;
 }
 
-void CPU::PowerOn() {
+uint32_t CPU::PowerOn() {
   Reset();
   Run();
+  return op_count_;
 }
 
-uint32_t CPU::Run() {
+void CPU::Run() {
   static void* opcodes[] = {
     &&NOP, &&HALT, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
     &&STOR_RR, &&STOR_RI, &&STOR_IX, &&ADD_RR, &&ADD_RI, &&SUB_RR,
@@ -101,17 +93,16 @@ uint32_t CPU::Run() {
     &&MUL_RR, &&MUL_RI, &&DIV_RR, &&DIV_RI, &&MULL_RR
   };
   register uint32_t pc = pc_-1;
-  register uint32_t i = 0;
   register uint32_t word = 0;
 
 
 #define code_dispatch() \
-  if (interrupt > 0) {\
+  if (interrupt_ > 0) {\
     goto INTERRUPT_SERVICE;\
   } else {\
     ++pc;\
-    ++i;\
     word =  mem_[pc];\
+    ++op_count_;\
     goto *opcodes[word&0x3F];\
   }
 
@@ -131,7 +122,7 @@ uint32_t CPU::Run() {
   NOP:
       DISPATCH();
   HALT: {
-    return i;
+    return;
   }
   MOV_RR: {
       const register int32_t idx = reg1(word);
@@ -350,7 +341,16 @@ uint32_t CPU::Run() {
   }
 
   INTERRUPT_SERVICE: {
-    interrupt = 0;
+    // If reset is set, we ignore every other signal and reset the cpu.
+    if (interrupt_ & 0x01) {
+      interrupt_ = 0;
+      // We zero out all registers and setup pc, sp and fp accordingly.
+      std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
+      fp_ = sp_ = mem_size_;
+      pc = pc_-1;
+    } else {
+      // Process signals in bit order. Lower bits have higher priority than higher bits.
+    }
     DISPATCH();
   }
 }

@@ -19,14 +19,21 @@ static const int kFrameBufferH = 360;
 namespace gvm {
 
 void Computer::LoadRom(const Rom* rom) {
-  cpu_->LoadProgram(rom->Contents());
-  delete rom;
+  const auto& program = rom->Contents();
+  for (const auto& kv : program) {
+    const auto& start = kv.first / kWordSize;
+    const auto& words = kv.second;
+    assert(!words.empty());
+    assert(words.size() + start < mem_size_bytes_ / kWordSize);
+    for (uint32_t idx = start, i = 0; i < words.size(); ++idx, ++i) {
+      mem_.get()[idx] = words[i];
+    }
+  }
 }
 
 void Computer::Run() {
-  cpu_->SetPC(0);
   std::chrono::nanoseconds runtime;
-  int op_count;
+  uint32_t op_count;
 
   std::thread ticker_thread([this]() {
       ticker_->Start();
@@ -34,7 +41,7 @@ void Computer::Run() {
 
   std::thread cpu_thread([this, &runtime, &op_count]() {
     const auto start = std::chrono::high_resolution_clock::now();
-    op_count = cpu_->Run();
+    op_count = cpu_->PowerOn();
     runtime = std::chrono::high_resolution_clock::now() - start;
     ticker_->Stop();
     if (shutdown_on_halt_) video_controller_->Shutdown();

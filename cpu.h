@@ -19,8 +19,8 @@ class CPU {
 
   void ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes);
 
-  void PowerOn();
-  void Reset();
+  uint32_t PowerOn();
+  uint32_t Reset();
 
   const std::string PrintRegisters(bool hex = false);
   const std::string PrintMemory(uint32_t from, uint32_t to);
@@ -39,6 +39,7 @@ class CPU {
   uint32_t& sp_;
   uint32_t& fp_;
   uint32_t interrupt_;
+  uint32_t op_count_;
 };
 
 }  // namespace gvm
