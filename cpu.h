@@ -41,8 +41,9 @@ class CPU {
   uint32_t mem_size_;
   uint32_t& sp_;
   uint32_t& fp_;
-  uint32_t interrupt_;
   uint32_t op_count_;
+  volatile bool mask_interrupt_;
+  volatile uint32_t interrupt_;
 };
 
 }  // namespace gvm

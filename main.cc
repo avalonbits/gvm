@@ -198,6 +198,208 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
     gvm::Word(0x6C),  // l
     gvm::Word(0x64),  // d
     gvm::Word(0x21),  // !
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+
     gvm::Word(0x00),  // null
   });
 

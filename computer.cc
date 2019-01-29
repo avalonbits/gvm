@@ -34,9 +34,10 @@ void Computer::LoadRom(const Rom* rom) {
 void Computer::Run() {
   std::chrono::nanoseconds runtime;
   uint32_t op_count;
+  uint32_t ticks;
 
-  std::thread ticker_thread([this]() {
-      ticker_->Start();
+  std::thread ticker_thread([this, &ticks]() {
+      ticks = ticker_->Start();
   });
 
   std::thread cpu_thread([this, &runtime, &op_count]() {
@@ -55,6 +56,7 @@ void Computer::Run() {
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
   std::cerr << cpu_->PrintMemory(0xE1084, 0xE1088);
+  std::cerr << "Ticks: " << ticks << std::endl;
   const auto time = runtime.count();
   const auto per_inst = time / static_cast<double>(op_count);
   const auto average_clock = 1000000000 / per_inst / 1000000;

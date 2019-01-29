@@ -11,7 +11,7 @@ Ticker::Ticker(uint32_t hertz, std::function<void(void)> callback)
   assert(hertz >= 100);
 }
 
-void Ticker::Start() {
+uint64_t Ticker::Start() {
   auto start = std::chrono::high_resolution_clock::now();
   const uint64_t nsecs = 1000000000;
   const std::chrono::nanoseconds exp_sleep(nsecs/hertz_);
@@ -25,6 +25,7 @@ void Ticker::Start() {
     const auto total = (std::chrono::high_resolution_clock::now() - start);
     sleep = exp_sleep*ticks - total;
   }
+  return ticks;
 }
 
 }  // namespace gvm

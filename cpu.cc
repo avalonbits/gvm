@@ -52,7 +52,7 @@ constexpr uint32_t reladdr21(const uint32_t v) {
 
 CPU::CPU()
     : pc_(reg_[kRegCount-3]), sp_(reg_[kRegCount-2]), fp_(reg_[kRegCount-1]),
-      interrupt_(0) {
+      op_count_(0), mask_interrupt_(false), interrupt_(0) {
   std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
 }
 
@@ -77,6 +77,7 @@ uint32_t CPU::PowerOn() {
 }
 
 void CPU::Tick() {
+  if (mask_interrupt_) return;
   interrupt_ |= 0x02;
 }
 
@@ -98,11 +99,10 @@ void CPU::Run() {
   };
   register uint32_t pc = pc_-1;
   register uint32_t word = 0;
-  register bool mask_interrupt = false;
 
 
 #define interrupt_dispatch() \
-  if (!mask_interrupt && interrupt_ != 0) {\
+  if (interrupt_ != 0) {\
     goto INTERRUPT_SERVICE;\
   } else {\
     ++pc;\
@@ -236,7 +236,7 @@ void CPU::Run() {
       sp_ = fp_;
       fp_ = mem_[sp_++];
       pc = mem_[sp_++];
-      mask_interrupt = false;
+      mask_interrupt_ = false;
       DISPATCH();
   AND_RR: {
       const register uint32_t idx = reg1(word);
@@ -357,7 +357,7 @@ void CPU::Run() {
       fp_ = sp_ = mem_size_;
       pc = pc_-1;
     } else {
-      mask_interrupt = true;
+      mask_interrupt_ = true;
       mem_[--sp_] = pc;
       mem_[--sp_] = fp_;
       fp_ = sp_;
