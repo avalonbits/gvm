@@ -17,13 +17,13 @@ uint64_t Ticker::Start() {
   const std::chrono::nanoseconds exp_sleep(nsecs/hertz_);
   std::chrono::nanoseconds sleep = exp_sleep;
 
-  register uint64_t ticks = 1;
+  register uint64_t ticks = 0;
   while (!stop_) {
     std::this_thread::sleep_for(sleep);
     callback_();
     ++ticks;
     const auto total = (std::chrono::high_resolution_clock::now() - start);
-    sleep = exp_sleep*ticks - total;
+    sleep = exp_sleep*(ticks+1) - total;
   }
   return ticks;
 }

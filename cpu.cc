@@ -77,7 +77,9 @@ uint32_t CPU::PowerOn() {
 }
 
 void CPU::Tick() {
+#ifdef DEBUG_DISPATCH
   if (mask_interrupt_) return;
+#endif
   interrupt_ |= 0x02;
 }
 
@@ -117,7 +119,6 @@ void CPU::Run() {
     std::cerr << "0x" << std::hex << pc_ << ": " << std::dec \
               << PrintInstruction(word) << std::endl; \
     std::cerr << PrintRegisters(true) << std::endl;\
-    getchar();\
     interrupt_dispatch()
 #else
 #define DISPATCH() interrupt_dispatch()
