@@ -77,7 +77,6 @@ uint32_t CPU::PowerOn() {
 }
 
 void CPU::Tick() {
-  std::cerr << "Tick!\n";
   interrupt_ |= 0x02;
 }
 
@@ -99,10 +98,11 @@ void CPU::Run() {
   };
   register uint32_t pc = pc_-1;
   register uint32_t word = 0;
+  register bool mask_interrupt = false;
 
 
 #define interrupt_dispatch() \
-  if (interrupt_ > 0) {\
+  if (!mask_interrupt && interrupt_ != 0) {\
     goto INTERRUPT_SERVICE;\
   } else {\
     ++pc;\
@@ -116,8 +116,8 @@ void CPU::Run() {
     pc_ = pc * 4; \
     std::cerr << "0x" << std::hex << pc_ << ": " << std::dec \
               << PrintInstruction(word) << std::endl; \
-      std::cerr << PrintRegisters(true) << std::endl;\
-      getchar(); \
+    std::cerr << PrintRegisters(true) << std::endl;\
+    getchar();\
     interrupt_dispatch()
 #else
 #define DISPATCH() interrupt_dispatch()
@@ -150,7 +150,7 @@ void CPU::Run() {
   }
   LOAD_RI: {
       const register uint32_t idx = reg1(word);
-      const register int32_t v = mem_[((word >> 11) & 0x1FFFF)/kWordSize];
+      const register int32_t v = mem_[((word >> 11) & 0x1FFFFF) / kWordSize];
       reg_[idx] = (idx >= 29) ? v / kWordSize : v;
       DISPATCH();
   }
@@ -164,9 +164,11 @@ void CPU::Run() {
   STOR_RR:
       mem_[regv(reg1(word), pc, reg_)/kWordSize] = regv(reg2(word), pc, reg_);
       DISPATCH();
-  STOR_RI:
-      mem_[((word >> 11) & 0x1FFFFF)/kWordSize] = reg_[reg1(word)];
+  STOR_RI: {
+      const uint32_t addr = ((word >> 11) & 0x1FFFFF)/kWordSize;
+      mem_[addr] = regv(reg1(word), pc, reg_);
       DISPATCH();
+  }
   STOR_IX:
       mem_[(regv(reg1(word), pc, reg_) + v16bit(word))/kWordSize] =
           regv(reg2(word), pc, reg_);
@@ -234,6 +236,7 @@ void CPU::Run() {
       sp_ = fp_;
       fp_ = mem_[sp_++];
       pc = mem_[sp_++];
+      mask_interrupt = false;
       DISPATCH();
   AND_RR: {
       const register uint32_t idx = reg1(word);
@@ -354,6 +357,7 @@ void CPU::Run() {
       fp_ = sp_ = mem_size_;
       pc = pc_-1;
     } else {
+      mask_interrupt = true;
       mem_[--sp_] = pc;
       mem_[--sp_] = fp_;
       fp_ = sp_;
