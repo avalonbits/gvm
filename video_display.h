@@ -3,7 +3,6 @@
 
 #include <atomic>
 #include <memory>
-#include <SFML/Graphics.hpp>
 
 namespace gvm {
 
