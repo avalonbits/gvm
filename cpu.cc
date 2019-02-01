@@ -366,7 +366,7 @@ void CPU::Run() {
       // Process signals in bit order. Lower bits have higher priority than higher bits.
       if (interrupt_ & 0x02) {
         pc = 0;  // Set to 0 because it will be incremented to 1 (addr 0x04) on DISPATCH.
-        interrupt_ &= 0xFFFFFFFD;
+        interrupt_ &= ~0x02;
       }
     }
     DISPATCH();

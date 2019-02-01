@@ -7,8 +7,8 @@ namespace rom {
 
 static const uint32_t kLineLength = 640 * 4;  // 640 pixels, 32bpp.
 
-Rom* Textmode(uint32_t memaddr) {
-  return new Rom(memaddr, {
+Rom* Textmode(uint32_t user_offset) {
+  auto* rom = new Rom(user_offset + 0x3000, {
     // First the 16 colors that we support
     Word(0xFF000000),  // 0  - Black
     Word(0xFF000080),  // 1  - Maroon
@@ -103,6 +103,383 @@ Rom* Textmode(uint32_t memaddr) {
     Ret(),
     // ==================== putc ==============================================
   });
+
+  rom->Load(user_offset + 0x2000, {
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x48),  // H
+    gvm::Word(0x65),  // e
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x2C),  //,
+    gvm::Word(0x20),  // <space>
+    gvm::Word(0x57),  // W
+    gvm::Word(0x6F),  // o
+    gvm::Word(0x72),  // r
+    gvm::Word(0x6C),  // l
+    gvm::Word(0x64),  // d
+    gvm::Word(0x21),  // !
+
+    gvm::Word(0x00),  // null
+  });
+
+  rom->Load(user_offset, {
+    gvm::MovRI(20, 0x1000),
+    // Set r0 to the mem start position of the string.
+    gvm::MovRI(0, 1),
+    gvm::LslRI(0, 0,  20),
+    gvm::AddRI(0, 0, 0x2000),
+
+    // Set r2 to the first position - 8 pixels.
+    gvm::MovRI(2, 0x64),
+
+    // Loop:
+    gvm::LoadRR(1, 0),  // Get current char.
+    gvm::Jeq(1, 84),  // If it's 0, we are done.
+
+    // Load color to r3
+    gvm::MovRI(3, 2),
+
+    // Load framebuffer position to r2.
+    gvm::AddRI(2, 2, 8*4),
+
+    // Save r0, r1 and r2 to stack.
+    gvm::SubRI(30, 30, 4),
+    gvm::StorRR(30, 0),
+    gvm::SubRI(30, 30, 4),
+    gvm::StorRR(30, 1),
+    gvm::SubRI(30, 30, 4),
+    gvm::StorRR(30, 2),
+
+    gvm::MovRI(0, 1),
+    gvm::LslRI(0, 0, 20),
+    gvm::AddRI(0, 0, 0x3040),
+    gvm::CallR(0),
+
+    // Copy back r0, r1, r2 from stack
+    gvm::LoadRR(2, 30),
+    gvm::AddRI(30, 30, 4),
+    gvm::LoadRR(1, 30),
+    gvm::AddRI(30, 30, 4),
+    gvm::LoadRR(0, 30),
+    gvm::AddRI(30, 30, 4),
+    gvm::AddRI(0, 0, 4),  // Point to next char.
+    gvm::Jmp(-84),
+
+    gvm::MovRI(0, 1),
+    gvm::StorRI(0x80, 0),
+    gvm::SubRI(20, 20, 1),
+    gvm::Jne(20, -116),
+    gvm::Halt(),
+  });
+
+  // When CPU boots at reading from address 0, which is also the address of the
+  // reset signal. Have it jump to 0x100000 which is the start of available
+  // memory.
+  rom->Load(0, {
+    gvm::Jmp(0xE108C),  // Reset interrupt handler @0xE108C.
+    gvm::Jmp(0xE109C),  // Timer interrupt handler @0xE10A0. Jump is pc relative.
+  });
+
+  rom->Load(0xE108C, {
+    // For now we reset the timer counters and then jump to user code.
+    gvm::MovRI(0, 0),
+    gvm::StorRI(0xE1084, 0),
+    gvm::StorRI(0xE1088, 0),
+    gvm::Jmp(0x100000-0xE1098),  // Jump to user code.
+  });
+
+  rom->Load(0xE10A0, {
+    // Implements a 64bit tick counter.
+
+    // First, save contents of r0 so we don't disrupt user code.
+    gvm::SubRI(30, 30, 4),
+    gvm::StorRR(30, 0),
+
+    // Load low 32 bits.
+    gvm::LoadRI(0, 0xE1084),
+
+    // Increment value.
+    gvm::AddRI(0, 0, 1),
+
+    // Store back.
+    gvm::StorRI(0xE1084, 0),
+
+    // If != 0 i.e no overflow, we are done. Otherwise, increment high 32 bits.
+    gvm::Jne(0, 0x10),
+
+    // Load high 32 bits.
+    gvm::LoadRI(0, 0xE1088),
+
+    // Increment value.
+    gvm::AddRI(0, 0, 1),
+
+    // Store back.
+    gvm::StorRI(0xE1088, 0),
+
+    // We are done. Load back r0 and return.
+    gvm::LoadRR(0, 30),
+    gvm::AddRI(30, 30, 4),
+    gvm::Ret(),
+  });
+
+  return rom;
 }
 
 }  // namespace rom
