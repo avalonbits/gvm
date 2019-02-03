@@ -523,8 +523,16 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::ASR_RI:
       ss << "asr r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
+    case ISA::MUL_RI:
+      ss << "mul r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
+      break;
+    case ISA::MUL_RR:
+      ss << "mul r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
+      break;
     default:
+      ss << "Unrecognizd instrucation: 0x" << std::hex << word;
       assert(false);
+      break;
   }
   return ss.str();
 }

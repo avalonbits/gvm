@@ -6,6 +6,7 @@ namespace gvm {
 namespace rom {
 
 static const uint32_t kLineLength = 640 * 4;  // 640 pixels, 32bpp.
+static const uint32_t kFrameBufferStart = 0x84;
 
 Rom* Textmode(uint32_t user_offset) {
   auto* rom = new Rom(user_offset + 0x3000, {
@@ -380,6 +381,37 @@ Rom* Textmode(uint32_t user_offset) {
   });
 
   rom->Load(user_offset, {
+    gvm::MovRI(1, 0),
+    gvm::MovRI(2, 4),
+    gvm::MovRI(3, 636),
+    gvm::MovRI(4, 4),
+    gvm::MovRI(5, 0xFF),
+    gvm::LslRI(5, 5, 24),
+    gvm::AddRI(5, 5, 0xFF),
+    gvm::CallI(-0x1EF44),
+
+    gvm::MovRI(1, 356),
+    gvm::MovRI(2, 4),
+    gvm::MovRI(3, 636),
+    gvm::MovRI(4, 4),
+    gvm::CallI(-0x1EF5C),
+
+    gvm::MovRI(1, 0),
+    gvm::MovRI(2, 4),
+    gvm::MovRI(3, 356),
+    gvm::MovRI(4, 4),
+    gvm::CallI(-0x1EF28),
+
+    gvm::MovRI(1, 636),
+    gvm::MovRI(2, 4),
+    gvm::MovRI(3, 356),
+    gvm::MovRI(4, 4),
+    gvm::CallI(-0x1EF40),
+
+    gvm::MovRI(0, 1),
+    gvm::StorRI(0x80, 0),
+    gvm::Halt(),
+          /*
     gvm::MovRI(20, 0x1000),
     // Set r0 to the mem start position of the string.
     gvm::MovRI(0, 1),
@@ -426,7 +458,7 @@ Rom* Textmode(uint32_t user_offset) {
     gvm::StorRI(0x80, 0),
     gvm::SubRI(20, 20, 1),
     gvm::Jne(20, -116),
-    gvm::Halt(),
+    gvm::Halt(),*/
   });
 
   // When CPU boots at reading from address 0, which is also the address of the
@@ -477,6 +509,111 @@ Rom* Textmode(uint32_t user_offset) {
     gvm::LoadRR(0, 30),
     gvm::AddRI(30, 30, 4),
     gvm::Ret(),
+  });
+
+  rom->Load(0xE10D4, {
+    // hline: draws a horizontal line.
+    // r1: y-pos
+    // r2: x-start
+    // r3: x-end
+    // r4: width
+    // r5: color (RGBA)
+
+    // Multiply y-pos by kLineLength to get y in the frame buffer.
+    gvm::MulRI(1, 1, kLineLength),
+
+    // Multiply x-start and x-end by 4 for pixel size.
+    gvm::LslRI(3, 3, 2),
+
+    // Width loop:
+    gvm::LslRI(8, 2, 2),
+
+    // Now add mem start, x-start with y-pos to get the framebuffer start point.
+    gvm::AddRR(7, 1, 8),
+    gvm::AddRI(7, 7, kFrameBufferStart),
+
+    // Line loop:
+    // Write the pixel at the location.
+    gvm::StorRR(7, 5),
+
+    // Increment x-start.
+    gvm::AddRI(8, 8, 4),
+
+    // Check if we got to x-end.
+    gvm::SubRR(6, 3, 8),
+
+    // If equal, check width.
+    gvm::Jeq(6, 12),
+
+    // Increment framebuffer.
+    gvm::AddRI(7, 7, 4),
+    gvm::Jmp(-20),
+
+    // Done with one line.
+    gvm::SubRI(4, 4, 1),
+
+    // If width == 0, we are done.
+    gvm::Jle(4, 12),
+
+    // Jump to next line and start again.
+    gvm::AddRI(1, 1, kLineLength),
+    gvm::Jmp(-48),
+
+    // We are done.
+    gvm::Ret(),
+  });
+
+  rom->Load(0xE1118, {
+    // vline: draws a vertical line.
+    // r1: x-pos
+    // r2: y-start
+    // r3: y-end
+    // r4: width
+    // r5: color (RGBA)
+
+    // Multiply x-pos by 4 to get x in the frame buffer.
+    gvm::LslRI(1, 1, 2),
+
+    // Multiply y-start and y-end by kLineLength to get their positions.
+    gvm::MulRI(3, 3, kLineLength),
+
+    // Width loop:
+    gvm::MulRI(8, 2, kLineLength),
+
+    // Now add mem start, x-pos, y-start with y-end to get the framebuffer start point.
+    gvm::AddRR(7, 1, 8),
+    gvm::AddRI(7, 7, kFrameBufferStart),
+
+    // Line loop:
+    // Write the pixel at the location.
+    gvm::StorRR(7, 5),
+
+    // Increment y-start.
+    gvm::AddRI(8, 8, kLineLength),
+
+    // Check if we got to y-end.
+    gvm::SubRR(6, 3, 8),
+
+    // If equal, check width.
+    gvm::Jeq(6, 12),
+
+    // Increment framebuffer.
+    gvm::AddRI(7, 7, kLineLength),
+    gvm::Jmp(-20),
+
+    // Done with one line.
+    gvm::SubRI(4, 4, 1),
+
+    // If width == 0, we are done.
+    gvm::Jle(4, 12),
+
+    // Jump to next line and start again.
+    gvm::AddRI(1, 1, 4),
+    gvm::Jmp(-48),
+
+    // We are done.
+    gvm::Ret(),
+
   });
 
   return rom;
