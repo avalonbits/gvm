@@ -7,16 +7,37 @@
 namespace {
 
 static const uint32_t kVideoMemReg = 0x80;
-static const uint32_t kCpuJiffiesReg = 0x04;
 static const uint32_t kVideoMemStart = 0x84;
 static const uint32_t kVideoMemSizeWords = 640 * 360;
 static const uint32_t kVideoMemEnd = kVideoMemStart + kVideoMemSizeWords;
+static const uint32_t kInputMemReg = 0xE10D4;
 static const int kFrameBufferW = 640;
 static const int kFrameBufferH = 360;
 
 }  // namespace
 
 namespace gvm {
+
+Computer::Computer(
+    uint32_t mem_size_bytes, CPU* cpu, VideoController* video_controller)
+    : mem_size_bytes_(mem_size_bytes),
+      mem_(new uint32_t[mem_size_bytes/kWordSize]),
+      cpu_(cpu), video_controller_(video_controller) {
+  assert(mem_ != nullptr);
+  assert(cpu_ != nullptr);
+  assert(video_controller_ != nullptr);
+  memset(mem_.get(), 0, mem_size_bytes);
+  ticker_.reset(new Ticker(100, [this]() {
+    cpu_->Tick();
+  }));
+  input_controller_.reset(new InputController([this](uint32_t value) {
+    mem_.get()[kInputMemReg/kWordSize] = value;
+    cpu_->Input();
+  }));
+  cpu_->ConnectMemory(mem_.get(), mem_size_bytes);
+  RegisterVideoDMA();
+}
+
 
 void Computer::LoadRom(const Rom* rom) {
   const auto& program = rom->Contents();
@@ -37,7 +58,11 @@ void Computer::Run() {
   uint32_t ticks;
 
   std::thread ticker_thread([this, &ticks]() {
-      ticks = ticker_->Start();
+    ticks = ticker_->Start();
+  });
+
+  std::thread input_thread([this]() {
+    input_controller_->Run();
   });
 
   std::thread cpu_thread([this, &runtime, &op_count]() {
@@ -45,7 +70,7 @@ void Computer::Run() {
     op_count = cpu_->PowerOn();
     runtime = std::chrono::high_resolution_clock::now() - start;
     ticker_->Stop();
-    if (shutdown_on_halt_) video_controller_->Shutdown();
+    video_controller_->Shutdown();
   });
 
   // This has to run on the main thread or it won't render using OpenGL ES.
@@ -53,6 +78,7 @@ void Computer::Run() {
 
   cpu_thread.join();
   ticker_thread.join();
+  input_thread.join();
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
   std::cerr << cpu_->PrintMemory(0xE1084, 0xE1088);

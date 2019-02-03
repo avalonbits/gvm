@@ -25,6 +25,9 @@ class CPU {
   // Sets the signal for a timer tick.
   void Tick();
 
+  // Sets signal for input handling.
+  void Input();
+
   const std::string PrintRegisters(bool hex = false);
   const std::string PrintMemory(uint32_t from, uint32_t to);
   const std::string PrintStatusFlags();

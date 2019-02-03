@@ -388,30 +388,31 @@ Rom* Textmode(uint32_t user_offset) {
     gvm::MovRI(5, 0xFF),
     gvm::LslRI(5, 5, 24),
     gvm::AddRI(5, 5, 0xFF),
-    gvm::CallI(-0x1EF44),
+    gvm::CallI(-0x1DF44),
 
     gvm::MovRI(1, 356),
     gvm::MovRI(2, 4),
     gvm::MovRI(3, 636),
     gvm::MovRI(4, 4),
-    gvm::CallI(-0x1EF5C),
+    gvm::CallI(-0x1DF5C),
 
     gvm::MovRI(1, 0),
     gvm::MovRI(2, 4),
     gvm::MovRI(3, 356),
     gvm::MovRI(4, 4),
-    gvm::CallI(-0x1EF28),
+    gvm::CallI(-0x1DF28),
 
     gvm::MovRI(1, 636),
     gvm::MovRI(2, 4),
     gvm::MovRI(3, 356),
     gvm::MovRI(4, 4),
-    gvm::CallI(-0x1EF40),
+    gvm::CallI(-0x1DF40),
 
     gvm::MovRI(0, 1),
     gvm::StorRI(0x80, 0),
-    gvm::Halt(),
-          /*
+
+    // Loop until we halt.
+    gvm::Jmp(0),/*
     gvm::MovRI(20, 0x1000),
     // Set r0 to the mem start position of the string.
     gvm::MovRI(0, 1),
@@ -461,12 +462,12 @@ Rom* Textmode(uint32_t user_offset) {
     gvm::Halt(),*/
   });
 
-  // When CPU boots at reading from address 0, which is also the address of the
-  // reset signal. Have it jump to 0x100000 which is the start of available
-  // memory.
+  // When CPU boots it starts reading from address 0, which is also the address
+  // of the reset signal. Here we add jumps to each of the interrupt handlers.
   rom->Load(0, {
     gvm::Jmp(0xE108C),  // Reset interrupt handler @0xE108C.
-    gvm::Jmp(0xE109C),  // Timer interrupt handler @0xE10A0. Jump is pc relative.
+    gvm::Jmp(0xE109C),  // Timer interrupt handler @0xE10A0.
+    gvm::Jmp(0xE10D0),  // Input interrupt handler @0xE10D8.
   });
 
   rom->Load(0xE108C, {
@@ -474,7 +475,7 @@ Rom* Textmode(uint32_t user_offset) {
     gvm::MovRI(0, 0),
     gvm::StorRI(0xE1084, 0),
     gvm::StorRI(0xE1088, 0),
-    gvm::Jmp(0x100000-0xE1098),  // Jump to user code.
+    gvm::Jmp(0x1EF68),  // Jump to user code.
   });
 
   rom->Load(0xE10A0, {
@@ -511,7 +512,30 @@ Rom* Textmode(uint32_t user_offset) {
     gvm::Ret(),
   });
 
-  rom->Load(0xE10D4, {
+  rom->Load(0xE10D8, {
+    // First, save contents of r0 so we don't disrupt user code.
+    gvm::SubRI(30, 30, 4),
+    gvm::StorRR(30, 0),
+
+    // Now read the value from the input.
+    gvm::LoadRI(0, 0xE10D4),
+
+    // If it is quit, then r0 will be 1. Subtract 1 to check.
+    gvm::SubRI(0, 0, 1),
+
+    // Check if it is not zero.
+    gvm::Jne(0, 8),
+
+    // It was zero, so halt the cpu.
+    gvm::Halt(),
+
+    // It wasn't zero, so restore r0 and return.
+    gvm::LoadRR(0, 30),
+    gvm::AddRI(30, 30, 4),
+    gvm::Ret(),
+  });
+
+  rom->Load(0xE20D4, {
     // hline: draws a horizontal line.
     // r1: y-pos
     // r2: x-start
@@ -563,7 +587,7 @@ Rom* Textmode(uint32_t user_offset) {
     gvm::Ret(),
   });
 
-  rom->Load(0xE1118, {
+  rom->Load(0xE2118, {
     // vline: draws a vertical line.
     // r1: x-pos
     // r2: y-start

@@ -47,8 +47,6 @@ int main(int argc, char* argv[]) {
     ("video_mode", "Video mode used. Values can be: null, fullscreen, 480p, "
                    "540p, 900p and 1080p",
                    cxxopts::value<std::string>()->default_value("720p"))
-    ("shutdown_on_halt", "Shutdowns program when CPU halts,",
-                         cxxopts::value<bool>()->default_value("true"))
     ;
   auto result = options.parse(argc, argv);
 
@@ -58,8 +56,7 @@ int main(int argc, char* argv[]) {
   auto* controller = new gvm::VideoController(print_fps, display);
   const uint32_t mem_size = 256 << 20;  // 256MiB
   auto* cpu = new gvm::CPU();
-  gvm::Computer computer(mem_size, cpu, controller,
-                         result["shutdown_on_halt"].as<bool>());
+  gvm::Computer computer(mem_size, cpu, controller);
   const std::string prgrom = result["prgrom"].as<std::string>();
   const gvm::Rom* rom = nullptr;
   if (prgrom.empty()) {

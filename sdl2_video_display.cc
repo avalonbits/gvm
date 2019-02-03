@@ -101,7 +101,7 @@ void SDL2VideoDisplay::Render() {
 }
 
 bool SDL2VideoDisplay::CheckEvents() {
-  SDL_Event event;
-  return SDL_PollEvent(&event) == 1 && event.type == SDL_QUIT;
+  return false;
 }
+
 }  // namespace gvm

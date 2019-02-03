@@ -76,6 +76,13 @@ uint32_t CPU::PowerOn() {
   return op_count_;
 }
 
+uint32_t CPU::Reset() {
+  const uint32_t op_count = op_count_;
+  interrupt_ = 1;  // Mask out all interrupts and set bit 0 to 1, signaling reset.
+  op_count_ = 0;
+  return op_count;
+}
+
 void CPU::Tick() {
 #ifdef DEBUG_DISPATCH
   if (mask_interrupt_) return;
@@ -83,12 +90,12 @@ void CPU::Tick() {
   interrupt_ |= 0x02;
 }
 
-uint32_t CPU::Reset() {
-  const uint32_t op_count = op_count_;
-  interrupt_ = 1;  // Mask out all interrupts and set bit 0 to 1, signaling reset.
-  op_count_ = 0;
-  return op_count;
+void CPU::Input() {
+  if (mask_interrupt_) return;
+  interrupt_ |= 0x04;
 }
+
+
 
 void CPU::Run() {
   static void* opcodes[] = {
@@ -365,8 +372,13 @@ void CPU::Run() {
 
       // Process signals in bit order. Lower bits have higher priority than higher bits.
       if (interrupt_ & 0x02) {
+        // Timer interrupt.
         pc = 0;  // Set to 0 because it will be incremented to 1 (addr 0x04) on DISPATCH.
         interrupt_ &= ~0x02;
+      } else if (interrupt_ & 0x04) {
+        // Input interrupt.
+        pc = 1;  // Set to 4 because it will be incremented to 2 (addr 0x08) on DISPATCH.
+        interrupt_ &= ~0x04;
       }
     }
     DISPATCH();
