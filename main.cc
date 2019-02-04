@@ -87,7 +87,7 @@ const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
   delete []words;
   rom->Load(user_offset + 0x4000, program);
 
-  std::ofstream out("helloworld.rom", std::ios::binary);
+  std::ofstream out("gvmos.rom", std::ios::binary);
   rom->ToFile(out);
   return rom;
 }
