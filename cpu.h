@@ -1,7 +1,9 @@
 #ifndef _GVM_CPU_H_
 #define _GVM_CPU_H_
 
+#include <condition_variable>
 #include <cstring>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -47,6 +49,7 @@ class CPU {
   uint32_t op_count_;
   volatile bool mask_interrupt_;
   volatile uint32_t interrupt_;
+  std::condition_variable interrupt_event_;
 };
 
 }  // namespace gvm

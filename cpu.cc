@@ -98,13 +98,14 @@ void CPU::Input() {
 
 
 void CPU::Run() {
+  std::unique_lock<std::mutex> interrupt_lock_;
   static void* opcodes[] = {
     &&NOP, &&HALT, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
     &&STOR_RR, &&STOR_RI, &&STOR_IX, &&ADD_RR, &&ADD_RI, &&SUB_RR,
     &&SUB_RI, &&JMP, &&JNE, &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI,
     &&CALLR, &&RET, &&AND_RR, &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR,
     &&XOR_RI, &&LSL_RR, &&LSL_RI, &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI,
-    &&MUL_RR, &&MUL_RI, &&DIV_RR, &&DIV_RI, &&MULL_RR
+    &&MUL_RR, &&MUL_RI, &&DIV_RR, &&DIV_RI, &&MULL_RR, &&WFI
   };
   register uint32_t pc = pc_-1;
   register uint32_t word = 0;
@@ -354,6 +355,9 @@ void CPU::Run() {
       const register int32_t vH = (v >> 32);
       reg_[idxH] = (idxH >= 29) ? vH / kWordSize : vH;
       DISPATCH();
+  }
+  WFI: {
+    return;
   }
 
   INTERRUPT_SERVICE: {
