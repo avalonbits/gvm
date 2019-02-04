@@ -520,8 +520,8 @@ Rom* Textmode(uint32_t user_offset) {
     // Now read the value from the input.
     gvm::LoadRI(0, 0xE10D4),
 
-    // If it is quit, then r0 will be 1. Subtract 1 to check.
-    gvm::SubRI(0, 0, 1),
+    // If it is quit, then r0 will be 0xFFFFFFFF. Add 1 to check.
+    gvm::AddRI(0, 0, 1),
 
     // Check if it is not zero.
     gvm::Jne(0, 8),
