@@ -411,8 +411,8 @@ Rom* Textmode(uint32_t user_offset) {
     gvm::MovRI(0, 1),
     gvm::StorRI(0x80, 0),
 
-    // Loop until we halt.
-    gvm::Wfi(),
+    // Loop until we get an input interrupt.
+    gvm::Wfi(2),
     gvm::Jmp(-4),/*
     gvm::MovRI(20, 0x1000),
     // Set r0 to the mem start position of the string.

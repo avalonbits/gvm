@@ -271,8 +271,8 @@ Word MullRR(uint32_t destH, uint32_t destL, uint32_t op1, uint32_t op2) {
   return Word(ISA::MULL_RR | destH << 6 | destL << 11 | op1 << 16 | op2 << 21);
 }
 
-Word Wfi() {
-  return Word(ISA::WFI);
+Word Wfi(uint32_t interrupt_bits) {
+  return Word(ISA::WFI | interrupt_bits << 6);
 }
 
 }  // namespace gvm

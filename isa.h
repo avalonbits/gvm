@@ -96,7 +96,7 @@ Word MulRI(uint32_t dest, uint32_t op1, uint32_t value);
 Word DivRR(uint32_t dest, uint32_t op1, uint32_t op2);
 Word DivRI(uint32_t dest, uint32_t op1, uint32_t value);
 Word MullRR(uint32_t destH, uint32_t destL, uint32_t op1, uint32_t op2);
-Word Wfi();
+Word Wfi(uint32_t interrupt_bits);
 }  // namepsace gvm
 
 #endif  // _GVM_ISA_H_
