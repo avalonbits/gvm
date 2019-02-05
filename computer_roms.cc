@@ -412,7 +412,8 @@ Rom* Textmode(uint32_t user_offset) {
     gvm::StorRI(0x80, 0),
 
     // Loop until we halt.
-    gvm::Jmp(0),/*
+    gvm::Wfi(),
+    gvm::Jmp(-4),/*
     gvm::MovRI(20, 0x1000),
     // Set r0 to the mem start position of the string.
     gvm::MovRI(0, 1),

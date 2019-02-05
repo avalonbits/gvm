@@ -49,6 +49,7 @@ class CPU {
   uint32_t op_count_;
   volatile bool mask_interrupt_;
   volatile uint32_t interrupt_;
+  std::mutex interrupt_mutex_;
   std::condition_variable interrupt_event_;
 };
 
