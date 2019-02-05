@@ -361,9 +361,7 @@ void CPU::Run() {
   WFI: {
     // Wait on mutex.
     std::unique_lock<std::mutex> ul(interrupt_mutex_);
-    const uint32_t interrupt_mask = (word >> 6) | 0x3FFFFFF;
     interrupt_event_.wait(ul, [this]{return interrupt_ > 0;});
-    if ((interrupt_ & interrupt_mask) == 0) --pc;
     DISPATCH();
     return;
   }
