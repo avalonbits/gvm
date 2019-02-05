@@ -18,6 +18,7 @@ void VideoController::Run() {
   auto start = std::chrono::high_resolution_clock::now();
   while (!shutdown_) {
     if (print_fps_) ++fps;
+    input_controller_->Read();
     shutdown_ = display_->CheckEvents();
     if (mem_[mem_reg_] == 1) {
       display_->CopyBuffer(&mem_[mem_addr_]);

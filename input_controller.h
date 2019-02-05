@@ -9,11 +9,9 @@ class InputController {
   explicit InputController(std::function<void(uint32_t value)> callback);
   ~InputController();
 
-  void Run();
-  void Shutdown();
+  void Read();
 
  private:
-  bool shutdown_;
   std::function<void(uint32_t value)> callback_;
 };
 

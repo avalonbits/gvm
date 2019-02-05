@@ -30,7 +30,8 @@ Computer::Computer(
   ticker_.reset(new Ticker(100, [this]() {
     cpu_->Tick();
   }));
-  input_controller_.reset(new InputController([this](uint32_t value) {
+  video_controller_->SetInputController(new InputController(
+      [this](uint32_t value) {
     mem_.get()[kInputMemReg/kWordSize] = value;
     cpu_->Input();
   }));
@@ -61,10 +62,6 @@ void Computer::Run() {
     ticks = ticker_->Start();
   });
 
-  std::thread input_thread([this]() {
-    input_controller_->Run();
-  });
-
   std::thread cpu_thread([this, &runtime, &op_count]() {
     const auto start = std::chrono::high_resolution_clock::now();
     op_count = cpu_->PowerOn();
@@ -78,7 +75,6 @@ void Computer::Run() {
 
   cpu_thread.join();
   ticker_thread.join();
-  input_thread.join();
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
   std::cerr << cpu_->PrintMemory(0xE1084, 0xE1088);

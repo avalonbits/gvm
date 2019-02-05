@@ -3,6 +3,7 @@
 
 #include <cstdint>
 
+#include "input_controller.h"
 #include "video_display.h"
 
 namespace gvm {
@@ -14,7 +15,9 @@ class VideoController {
 
   void RegisterDMA(uint32_t mem_reg, uint32_t mem_addr, int fWidth,
                    int fHeight, int bpp, uint32_t* mem);
-
+  void SetInputController(InputController* input_controller) {
+    input_controller_.reset(input_controller);
+  }
   void Run();
   void Shutdown();
 
@@ -25,6 +28,7 @@ class VideoController {
   uint32_t mem_size_bytes_;
   uint32_t* mem_;
   std::unique_ptr<VideoDisplay> display_;
+  std::unique_ptr<InputController> input_controller_;
   bool shutdown_;
 
 };
