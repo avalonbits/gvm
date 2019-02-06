@@ -220,16 +220,16 @@ void CPU::Run() {
       if (reg_[reg1(word)] == 0) pc = pc + reladdr21(word) - 1;
       DISPATCH();
   JGT:
-      if (reg_[reg1(word)] > 0) pc = pc + reladdr21(word) - 1;
+      if (static_cast<int32_t>(reg_[reg1(word)]) > 0) pc = pc + reladdr21(word) - 1;
       DISPATCH();
   JGE:
-      if (reg_[reg1(word)] >= 0) pc = pc + reladdr21(word) - 1;
+      if (static_cast<int32_t>(reg_[reg1(word)]) >= 0) pc = pc + reladdr21(word) - 1;
       DISPATCH();
   JLT:
-      if (reg_[reg1(word)] < 0) pc = pc + reladdr21(word) - 1;
+      if (static_cast<int32_t>(reg_[reg1(word)]) < 0) pc = pc + reladdr21(word) - 1;
       DISPATCH();
   JLE:
-      if (reg_[reg1(word)] <= 0) pc = pc + reladdr21(word) - 1;
+      if (static_cast<int32_t>(reg_[reg1(word)]) <= 0) pc = pc + reladdr21(word) - 1;
       DISPATCH();
   CALLI:
       mem_[--sp_] = pc;

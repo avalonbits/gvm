@@ -381,44 +381,53 @@ Rom* Textmode(uint32_t user_offset) {
   });
 
   rom->Load(user_offset, {
+    gvm::LoadRI(0, 0xE1084),
+
+    gvm::MovRI(1, 0xFF),
+    gvm::LslRI(1, 1, 24),
+    gvm::AddRI(5, 1, 0xFF),
+ 
     gvm::MovRI(1, 0),
     gvm::MovRI(2, 4),
     gvm::MovRI(3, 636),
     gvm::MovRI(4, 4),
-    gvm::MovRI(5, 0xFF),
-    gvm::LslRI(5, 5, 24),
-    gvm::AddRI(5, 5, 0xFF),
-    gvm::CallI(-0x1DF44),
+    gvm::CallI(-0x1DF48),
 
     gvm::MovRI(1, 356),
     gvm::MovRI(2, 4),
     gvm::MovRI(3, 636),
     gvm::MovRI(4, 4),
-    gvm::CallI(-0x1DF5C),
+    gvm::CallI(-0x1DF60),
 
     gvm::MovRI(1, 0),
     gvm::MovRI(2, 4),
     gvm::MovRI(3, 356),
     gvm::MovRI(4, 4),
-    gvm::CallI(-0x1DF28),
+    gvm::CallI(-0x1DF2C),
 
     gvm::MovRI(1, 636),
     gvm::MovRI(2, 4),
     gvm::MovRI(3, 356),
     gvm::MovRI(4, 4),
-    gvm::CallI(-0x1DF40),
+    gvm::CallI(-0x1DF44),
 
-    gvm::MovRI(0, 1),
-    gvm::StorRI(0x80, 0),
+    gvm::MovRI(1, 1),
+    gvm::StorRI(0x80, 1),
+    gvm::LoadRI(1, 0x80),
+    gvm::Jne(1, -4),
 
-    // Wait for 5 seconds and then halt.
-    gvm::LoadRI(0, 0xE1084),
-    gvm::Wfi(),
+    // If 5 seconds have passed, halt. Otherwise, change the alpha channel
+    // and loop back. and then halt.
     gvm::LoadRI(1, 0xE1084),
     gvm::SubRR(1, 1, 0),
-    gvm::SubRI(1, 1, 500),
-    gvm::Jne(1, -16),
-    gvm::Halt(),/*
+    gvm::SubRI(1, 1, 5000),
+    gvm::Jle(1, 8),
+    gvm::Halt(),
+ 
+    gvm::AddRI(5, 5, 0x10),
+    gvm::Jmp(-120),
+
+    /*
     gvm::MovRI(20, 0x1000),
     // Set r0 to the mem start position of the string.
     gvm::MovRI(0, 1),
@@ -519,6 +528,8 @@ Rom* Textmode(uint32_t user_offset) {
   });
 
   rom->Load(0xE10D8, {
+    // Implements an input handler.
+
     // First, save contents of r0 so we don't disrupt user code.
     gvm::SubRI(30, 30, 4),
     gvm::StorRR(30, 0),
