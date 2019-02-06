@@ -27,7 +27,7 @@ Computer::Computer(
   assert(cpu_ != nullptr);
   assert(video_controller_ != nullptr);
   memset(mem_.get(), 0, mem_size_bytes);
-  ticker_.reset(new Ticker(100, [this]() {
+  ticker_.reset(new Ticker(1000, [this]() {
     cpu_->Tick();
   }));
   video_controller_->SetInputController(new InputController(

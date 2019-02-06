@@ -78,9 +78,11 @@ uint32_t CPU::PowerOn() {
 
 uint32_t CPU::Reset() {
   const uint32_t op_count = op_count_;
-  interrupt_ = 1;  // Mask out all interrupts and set bit 0 to 1, signaling reset.
   op_count_ = 0;
-  interrupt_event_.notify_one();
+
+  // std::lock_guard<std::mutex> lg(interrupt_mutex_);
+  interrupt_ = 1;  // Mask out all interrupts and set bit 0 to 1, signaling reset.
+  // interrupt_event_.notify_one();
   return op_count;
 }
 
@@ -88,16 +90,16 @@ void CPU::Tick() {
 #ifdef DEBUG_DISPATCH
   if (mask_interrupt_) return;
 #endif
-  std::lock_guard<std::mutex> lg(interrupt_mutex_);
+  //std::lock_guard<std::mutex> lg(interrupt_mutex_);
   interrupt_ |= 0x02;
-  interrupt_event_.notify_one();
+  //interrupt_event_.notify_one();
 }
 
 void CPU::Input() {
   if (mask_interrupt_) return;
-  std::lock_guard<std::mutex> lg(interrupt_mutex_);
+  //std::lock_guard<std::mutex> lg(interrupt_mutex_);
   interrupt_ |= 0x04;
-  interrupt_event_.notify_one();
+  //interrupt_event_.notify_one();
 }
 
 void CPU::Run() {
