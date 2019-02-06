@@ -413,10 +413,11 @@ Rom* Textmode(uint32_t user_offset) {
 
     // Wait for 5 seconds and then halt.
     gvm::LoadRI(0, 0xE1084),
+    gvm::Wfi(),
     gvm::LoadRI(1, 0xE1084),
     gvm::SubRR(1, 1, 0),
-    gvm::SubRI(1, 1, 5000),
-    gvm::Jne(1, -12),
+    gvm::SubRI(1, 1, 500),
+    gvm::Jne(1, -16),
     gvm::Halt(),/*
     gvm::MovRI(20, 0x1000),
     // Set r0 to the mem start position of the string.

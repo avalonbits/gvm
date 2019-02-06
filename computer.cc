@@ -27,13 +27,15 @@ Computer::Computer(
   assert(cpu_ != nullptr);
   assert(video_controller_ != nullptr);
   memset(mem_.get(), 0, mem_size_bytes);
-  ticker_.reset(new Ticker(1000, [this]() {
+  ticker_.reset(new Ticker(100, [this]() {
     cpu_->Tick();
+    std::this_thread::yield();
   }));
   video_controller_->SetInputController(new InputController(
       [this](uint32_t value) {
     mem_.get()[kInputMemReg/kWordSize] = value;
     cpu_->Input();
+    std::this_thread::yield();
   }));
   cpu_->ConnectMemory(mem_.get(), mem_size_bytes);
   RegisterVideoDMA();
