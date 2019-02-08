@@ -4,6 +4,7 @@
 #include <condition_variable>
 #include <cstring>
 #include <mutex>
+#include <cstdint>
 #include <string>
 #include <vector>
 
