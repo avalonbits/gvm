@@ -418,14 +418,16 @@ Rom* Textmode(uint32_t user_offset) {
 
     // If 5 seconds have passed, halt. Otherwise, change the alpha channel
     // and loop back. and then halt.
+    gvm::MovRI(2, 10000),
+    gvm::MulRI(2, 2, 20),
     gvm::LoadRI(1, 0xE1084),
     gvm::SubRR(1, 1, 0),
-    gvm::SubRI(1, 1, 50000),
+    gvm::SubRR(1, 1, 2),
     gvm::Jle(1, 8),
     gvm::Halt(),
  
     gvm::AddRI(5, 5, 0x10),
-    gvm::Jmp(-120),
+    gvm::Jmp(-128),
 
     /*
     gvm::MovRI(20, 0x1000),
