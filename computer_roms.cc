@@ -420,7 +420,7 @@ Rom* Textmode(uint32_t user_offset) {
     // and loop back. and then halt.
     gvm::LoadRI(1, 0xE1084),
     gvm::SubRR(1, 1, 0),
-    gvm::SubRI(1, 1, 5000),
+    gvm::SubRI(1, 1, 50000),
     gvm::Jle(1, 8),
     gvm::Halt(),
  

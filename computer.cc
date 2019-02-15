@@ -60,15 +60,16 @@ void Computer::Run() {
   uint32_t op_count;
   uint32_t ticks;
 
+  /*
   std::thread ticker_thread([this, &ticks]() {
     ticks = ticker_->Start();
-  });
+  });*/
 
   std::thread cpu_thread([this, &runtime, &op_count]() {
     const auto start = std::chrono::high_resolution_clock::now();
     op_count = cpu_->PowerOn();
     runtime = std::chrono::high_resolution_clock::now() - start;
-    ticker_->Stop();
+    //ticker_->Stop();
     video_controller_->Shutdown();
   });
 
@@ -76,7 +77,7 @@ void Computer::Run() {
   video_controller_->Run();
 
   cpu_thread.join();
-  ticker_thread.join();
+  //ticker_thread.join();
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
   std::cerr << cpu_->PrintMemory(0xE1084, 0xE1088);
