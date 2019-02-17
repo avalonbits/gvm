@@ -84,7 +84,7 @@ uint32_t CPU::Reset() {
   return op_count;
 }
 
-void CPU::Tick() { 
+void CPU::Tick() {
 #ifdef DEBUG_DISPATCH
   if (mask_interrupt_) return;
 #endif
@@ -120,7 +120,7 @@ void CPU::Run() {
 
 
 #define interrupt_dispatch() \
-  if (op_count_ % 1000 == 0) {\
+  if (op_count_ % 300 == 0) {\
     const auto run_total = (std::chrono::high_resolution_clock::now() - start);\
     if (run_total >= total) {\
       interrupt_ |= 0x02;\
