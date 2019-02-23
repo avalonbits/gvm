@@ -3,13 +3,12 @@
 
 #include <atomic>
 #include <memory>
-#include <SFML/Graphics.hpp>
 
 namespace gvm {
 
 class VideoDisplay {
  public:
-  VideoDisplay() {}
+  explicit VideoDisplay() {}
   virtual ~VideoDisplay() {}
 
   virtual void SetFramebufferSize(int fWidth, int fHeight, int bpp) = 0;

@@ -7,8 +7,8 @@ namespace gvm {
 class Ticker {
  public:
   Ticker(uint32_t hertz, std::function<void(void)> callback);
-  
-  void Start();
+
+  uint64_t Start();
   void Stop() { stop_ = true; }
 
  private:

@@ -16,11 +16,11 @@ VideoController::VideoController(const bool print_fps, VideoDisplay* display)
 void VideoController::Run() {
   register uint32_t fps = 0;
   auto start = std::chrono::high_resolution_clock::now();
-  while (!shutdown_) {
+  auto shutdown = shutdown_;
+  while (!shutdown) {
     if (print_fps_) ++fps;
-    const bool done = display_->CheckEvents();
-    if (done) shutdown_ = done;
-
+    input_controller_->Read();
+    shutdown = shutdown_ || display_->CheckEvents();
     if (mem_[mem_reg_] == 1) {
       display_->CopyBuffer(&mem_[mem_addr_]);
       mem_[mem_reg_] = 0;

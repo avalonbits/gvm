@@ -52,7 +52,7 @@ constexpr uint32_t reladdr21(const uint32_t v) {
 
 CPU::CPU()
     : pc_(reg_[kRegCount-3]), sp_(reg_[kRegCount-2]), fp_(reg_[kRegCount-1]),
-      interrupt_(0) {
+      op_count_(0), mask_interrupt_(false), interrupt_(0) {
   std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
 }
 
@@ -64,54 +64,76 @@ void CPU::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes) {
   fp_ = sp_ = mem_size_;
 }
 
-void CPU::LoadProgram(const std::map<uint32_t, std::vector<Word>>& program) {
-  for (const auto& kv : program) {
-    const auto& start = kv.first / kWordSize;
-    const auto& words = kv.second;
-    assert(!words.empty());
-    assert(words.size() + start < mem_size_);
-    for (uint32_t idx = start, i = 0; i < words.size(); ++idx, ++i) {
-      mem_[idx] = words[i];
-    }
-  }
-}
-
 void CPU::SetPC(uint32_t pc) {
   assert(pc % kWordSize == 0);
   pc_ = pc / kWordSize;
   assert(pc_ < mem_size_);
 }
 
-void CPU::Reset() {
-  interrupt_ |= 1;  // Set bit 0 to 1, signalling reset.
-}
-
-void CPU::PowerOn() {
+uint32_t CPU::PowerOn() {
   Reset();
   Run();
+  return op_count_;
 }
 
-uint32_t CPU::Run() {
+uint32_t CPU::Reset() {
+  const uint32_t op_count = op_count_;
+  std::lock_guard<std::mutex> lg(interrupt_mutex_);
+  interrupt_ = 1;  // Mask out all interrupts and set bit 0 to 1, signaling reset.
+  interrupt_event_.notify_one();
+  return op_count;
+}
+
+void CPU::Tick() {
+#ifdef DEBUG_DISPATCH
+  if (mask_interrupt_) return;
+#endif
+  std::lock_guard<std::mutex> lg(interrupt_mutex_);
+  //iinterrupt_ |= 0x02;
+  interrupt_event_.notify_all();
+}
+
+void CPU::Input() {
+  if (mask_interrupt_) return;
+  std::lock_guard<std::mutex> lg(interrupt_mutex_);
+  interrupt_ |= 0x04;
+  interrupt_event_.notify_all();
+}
+
+void CPU::Run() {
   static void* opcodes[] = {
     &&NOP, &&HALT, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
     &&STOR_RR, &&STOR_RI, &&STOR_IX, &&ADD_RR, &&ADD_RI, &&SUB_RR,
     &&SUB_RI, &&JMP, &&JNE, &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI,
     &&CALLR, &&RET, &&AND_RR, &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR,
     &&XOR_RI, &&LSL_RR, &&LSL_RI, &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI,
-    &&MUL_RR, &&MUL_RI, &&DIV_RR, &&DIV_RI, &&MULL_RR
+    &&MUL_RR, &&MUL_RI, &&DIV_RR, &&DIV_RI, &&MULL_RR, &&WFI
   };
   register uint32_t pc = pc_-1;
-  register uint32_t i = 0;
   register uint32_t word = 0;
 
+  auto start = std::chrono::high_resolution_clock::now();
+  const uint64_t nsecs = 1000000000;
+  uint64_t ticks = 1;
+  const std::chrono::nanoseconds exp_sleep(nsecs/10000);
+  std::chrono::nanoseconds total = exp_sleep*ticks;
 
-#define code_dispatch() \
-  if (interrupt > 0) {\
+
+#define interrupt_dispatch() \
+  if (op_count_ % 300 == 0) {\
+    const auto run_total = (std::chrono::high_resolution_clock::now() - start);\
+    if (run_total >= total) {\
+      interrupt_ |= 0x02;\
+      ticks++;\
+      total = exp_sleep*ticks;\
+    }\
+  }\
+  if (interrupt_ != 0) {\
     goto INTERRUPT_SERVICE;\
   } else {\
     ++pc;\
-    ++i;\
     word =  mem_[pc];\
+    ++op_count_;\
     goto *opcodes[word&0x3F];\
   }
 
@@ -120,18 +142,17 @@ uint32_t CPU::Run() {
     pc_ = pc * 4; \
     std::cerr << "0x" << std::hex << pc_ << ": " << std::dec \
               << PrintInstruction(word) << std::endl; \
-      std::cerr << PrintRegisters(true) << std::endl;\
-      getchar(); \
-    code_dispatch()
+    std::cerr << PrintRegisters(true) << std::endl;\
+    interrupt_dispatch()
 #else
-#define DISPATCH() code_dispatch()
+#define DISPATCH() interrupt_dispatch()
 #endif
 
   DISPATCH();
   NOP:
       DISPATCH();
   HALT: {
-    return i;
+    return;
   }
   MOV_RR: {
       const register int32_t idx = reg1(word);
@@ -154,7 +175,7 @@ uint32_t CPU::Run() {
   }
   LOAD_RI: {
       const register uint32_t idx = reg1(word);
-      const register int32_t v = mem_[((word >> 11) & 0x1FFFF)/kWordSize];
+      const register int32_t v = mem_[((word >> 11) & 0x1FFFFF) / kWordSize];
       reg_[idx] = (idx >= 29) ? v / kWordSize : v;
       DISPATCH();
   }
@@ -168,9 +189,11 @@ uint32_t CPU::Run() {
   STOR_RR:
       mem_[regv(reg1(word), pc, reg_)/kWordSize] = regv(reg2(word), pc, reg_);
       DISPATCH();
-  STOR_RI:
-      mem_[((word >> 11) & 0x1FFFFF)/kWordSize] = reg_[reg1(word)];
+  STOR_RI: {
+      const uint32_t addr = ((word >> 11) & 0x1FFFFF)/kWordSize;
+      mem_[addr] = regv(reg1(word), pc, reg_);
       DISPATCH();
+  }
   STOR_IX:
       mem_[(regv(reg1(word), pc, reg_) + v16bit(word))/kWordSize] =
           regv(reg2(word), pc, reg_);
@@ -211,16 +234,16 @@ uint32_t CPU::Run() {
       if (reg_[reg1(word)] == 0) pc = pc + reladdr21(word) - 1;
       DISPATCH();
   JGT:
-      if (reg_[reg1(word)] > 0) pc = pc + reladdr21(word) - 1;
+      if (static_cast<int32_t>(reg_[reg1(word)]) > 0) pc = pc + reladdr21(word) - 1;
       DISPATCH();
   JGE:
-      if (reg_[reg1(word)] >= 0) pc = pc + reladdr21(word) - 1;
+      if (static_cast<int32_t>(reg_[reg1(word)]) >= 0) pc = pc + reladdr21(word) - 1;
       DISPATCH();
   JLT:
-      if (reg_[reg1(word)] < 0) pc = pc + reladdr21(word) - 1;
+      if (static_cast<int32_t>(reg_[reg1(word)]) < 0) pc = pc + reladdr21(word) - 1;
       DISPATCH();
   JLE:
-      if (reg_[reg1(word)] <= 0) pc = pc + reladdr21(word) - 1;
+      if (static_cast<int32_t>(reg_[reg1(word)]) <= 0) pc = pc + reladdr21(word) - 1;
       DISPATCH();
   CALLI:
       mem_[--sp_] = pc;
@@ -238,6 +261,7 @@ uint32_t CPU::Run() {
       sp_ = fp_;
       fp_ = mem_[sp_++];
       pc = mem_[sp_++];
+      mask_interrupt_ = false;
       DISPATCH();
   AND_RR: {
       const register uint32_t idx = reg1(word);
@@ -348,9 +372,39 @@ uint32_t CPU::Run() {
       reg_[idxH] = (idxH >= 29) ? vH / kWordSize : vH;
       DISPATCH();
   }
+  WFI: {
+    // Wait on mutex.
+    std::unique_lock<std::mutex> ul(interrupt_mutex_);
+    interrupt_event_.wait(ul, [this]{return interrupt_ > 0;});
+    DISPATCH();
+    return;
+  }
 
   INTERRUPT_SERVICE: {
-    interrupt = 0;
+    // If reset is set, we ignore every other signal and reset the cpu.
+    if (interrupt_ & 0x01) {
+      interrupt_ = 0;
+      // We zero out all registers and setup pc, sp and fp accordingly.
+      std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
+      fp_ = sp_ = mem_size_;
+      pc = pc_-1;
+    } else {
+      mask_interrupt_ = true;
+      mem_[--sp_] = pc;
+      mem_[--sp_] = fp_;
+      fp_ = sp_;
+
+      // Process signals in bit order. Lower bits have higher priority than higher bits.
+      if (interrupt_ & 0x02) {
+        // Timer interrupt.
+        pc = 0;  // Set to 0 because it will be incremented to 1 (addr 0x04) on DISPATCH.
+        interrupt_ &= ~0x02;
+      } else if (interrupt_ & 0x04) {
+        // Input interrupt.
+        pc = 1;  // Set to 4 because it will be incremented to 2 (addr 0x08) on DISPATCH.
+        interrupt_ &= ~0x04;
+      }
+    }
     DISPATCH();
   }
 }
@@ -505,8 +559,22 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::ASR_RI:
       ss << "asr r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
+    case ISA::MUL_RI:
+      ss << "mul r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
+      break;
+    case ISA::MUL_RR:
+      ss << "mul r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
+      break;
+    case ISA::MULL_RR:
+      ss << "mull r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
+      break;
+    case ISA::WFI:
+      ss << "wfi";
+      break;
     default:
+      ss << "Unrecognizd instrucation: 0x" << std::hex << word;
       assert(false);
+      break;
   }
   return ss.str();
 }

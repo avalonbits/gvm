@@ -50,6 +50,7 @@ enum ISA {
     DIV_RR,
     DIV_RI,
     MULL_RR,
+    WFI,
 };
 
 typedef uint32_t Word;
@@ -95,7 +96,7 @@ Word MulRI(uint32_t dest, uint32_t op1, uint32_t value);
 Word DivRR(uint32_t dest, uint32_t op1, uint32_t op2);
 Word DivRI(uint32_t dest, uint32_t op1, uint32_t value);
 Word MullRR(uint32_t destH, uint32_t destL, uint32_t op1, uint32_t op2);
-
+Word Wfi();
 }  // namepsace gvm
 
 #endif  // _GVM_ISA_H_

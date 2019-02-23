@@ -1,7 +1,9 @@
 #ifndef _GVM_CPU_H_
 #define _GVM_CPU_H_
 
+#include <condition_variable>
 #include <cstring>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -19,8 +21,14 @@ class CPU {
 
   void ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes);
 
-  void PowerOn();
-  void Reset();
+  uint32_t PowerOn();
+  uint32_t Reset();
+
+  // Sets the signal for a timer tick.
+  void Tick();
+
+  // Sets signal for input handling.
+  void Input();
 
   const std::string PrintRegisters(bool hex = false);
   const std::string PrintMemory(uint32_t from, uint32_t to);
@@ -38,7 +46,11 @@ class CPU {
   uint32_t mem_size_;
   uint32_t& sp_;
   uint32_t& fp_;
-  uint32_t interrupt_;
+  uint32_t op_count_;
+  volatile bool mask_interrupt_;
+  volatile uint32_t interrupt_;
+  std::mutex interrupt_mutex_;
+  std::condition_variable interrupt_event_;
 };
 
 }  // namespace gvm
