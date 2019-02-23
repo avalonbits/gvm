@@ -6,6 +6,7 @@ import (
 
 const (
 	nop parser.Word = iota
+	halt
 	mov_rr
 	mov_ri
 	load_rr
@@ -40,7 +41,12 @@ const (
 	lsr_ri
 	asr_rr
 	asr_ri
-	halt
+	mul_rr
+	mul_ri
+	div_rr
+	div_ri
+	mull_rr
+	wfi
 )
 
 func Nop() parser.Word {
@@ -56,68 +62,68 @@ func Halt() parser.Word {
 }
 
 func MovRR(dest, src uint32) parser.Word {
-	return mov_rr | parser.Word(dest)<<8 | parser.Word(src)<<12
+	return mov_rr | parser.Word(dest)<<6 | parser.Word(src)<<11
 }
 
 func MovRI(dest, value uint32) parser.Word {
-	value = value & 0xFFFFF
-	return mov_ri | parser.Word(dest)<<8 | parser.Word(value)<<12
+	value = value & 0x1FFFFF
+	return mov_ri | parser.Word(dest)<<6 | parser.Word(value)<<11
 }
 
 func LoadRR(dest, src uint32) parser.Word {
-	return load_rr | parser.Word(dest)<<8 | parser.Word(src)<<12
+	return load_rr | parser.Word(dest)<<6 | parser.Word(src)<<11
 }
 
 func LoadRI(dest, value uint32) parser.Word {
-	value = value & 0xFFFFF
-	return load_ri | parser.Word(dest)<<8 | parser.Word(value)<<12
+	value = value & 0x1FFFFF
+	return load_ri | parser.Word(dest)<<6 | parser.Word(value)<<11
 }
 
 func LoadIX(dest, src, offset uint32) parser.Word {
 	offset = offset & 0xFFFF
-	return load_ix | parser.Word(dest)<<8 | parser.Word(src)<<12 | parser.Word(offset)<<16
+	return load_ix | parser.Word(dest)<<6 | parser.Word(src)<<11 | parser.Word(offset)<<16
 }
 
 func StorRR(dest, src uint32) parser.Word {
-	return stor_rr | parser.Word(dest)<<8 | parser.Word(src)<<12
+	return stor_rr | parser.Word(dest)<<6 | parser.Word(src)<<11
 }
 
-func StoreRI(src, value uint32) parser.Word {
-	value = value & 0xFFFFF
-	return stor_ri | parser.Word(src)<<8 | parser.Word(value)<<12
+func StorRI(src, value uint32) parser.Word {
+	value = value & 0x1FFFFF
+	return stor_ri | parser.Word(src)<<6 | parser.Word(value)<<11
 }
 
 func StorIX(dest, src, offset uint32) parser.Word {
 	offset = offset & 0xFFFF
-	return stor_ix | parser.Word(dest)<<8 | parser.Word(src)<<12 | parser.Word(offset)<<16
+	return stor_ix | parser.Word(dest)<<6 | parser.Word(src)<<11 | parser.Word(offset)<<16
 }
 
 func AddRR(dest, op1, op2 uint32) parser.Word {
-	return add_rr | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return add_rr | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func AddRI(dest, op1, op2 uint32) parser.Word {
 	op2 = op2 & 0xFFFF
-	return add_ri | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return add_ri | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func SubRR(dest, op1, op2 uint32) parser.Word {
-	return sub_rr | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return sub_rr | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func SubRI(dest, op1, op2 uint32) parser.Word {
 	op2 = op2 & 0xFFFF
-	return sub_ri | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return sub_ri | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func Jmp(addr uint32) parser.Word {
-	addr = addr & 0xFFFFFF
-	return jmp | parser.Word(addr)<<8
+	addr = addr & 0x3FFFFFF
+	return jmp | parser.Word(addr)<<6
 }
 
 func jumpc(inst parser.Word, reg, addr uint32) parser.Word {
-	addr = addr & 0xFFFFF
-	return inst | parser.Word(reg)<<8 | parser.Word(addr)<<12
+	addr = addr & 0x1FFFFF
+	return inst | parser.Word(reg)<<6 | parser.Word(addr)<<11
 }
 
 func Jne(reg, addr uint32) parser.Word {
@@ -145,64 +151,80 @@ func Jle(reg, addr uint32) parser.Word {
 }
 
 func CallI(addr uint32) parser.Word {
-	addr = addr & 0xFFFFFF
-	return call_i | parser.Word(addr)<<8
+	addr = addr & 0x3FFFFFF
+	return call_i | parser.Word(addr)<<6
 }
 
 func CallR(dest uint32) parser.Word {
-	return call_r | parser.Word(dest)<<8
+	return call_r | parser.Word(dest)<<6
 }
 
 func AndRR(dest, op1, op2 uint32) parser.Word {
-	return and_rr | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return and_rr | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func OrrRR(dest, op1, op2 uint32) parser.Word {
-	return orr_rr | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return orr_rr | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func XorRR(dest, op1, op2 uint32) parser.Word {
-	return xor_rr | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return xor_rr | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func LslRR(dest, op1, op2 uint32) parser.Word {
-	return lsl_rr | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return lsl_rr | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func LsrRR(dest, op1, op2 uint32) parser.Word {
-	return lsr_rr | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return lsr_rr | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func AsrRR(dest, op1, op2 uint32) parser.Word {
-	return asr_ri | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return asr_rr | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
+}
+
+func MulRR(dest, op1, op2 uint32) parser.Word {
+	return mul_rr | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
+}
+
+func DivRR(dest, op1, op2 uint32) parser.Word {
+	return div_rr | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func AndRI(dest, op1, op2 uint32) parser.Word {
 	op2 = op2 & 0xFFFF
-	return and_rr | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return and_ri | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func OrrRI(dest, op1, op2 uint32) parser.Word {
 	op2 = op2 & 0xFFFF
-	return orr_ri | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return orr_ri | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func XorRI(dest, op1, op2 uint32) parser.Word {
 	op2 = op2 & 0xFFFF
-	return xor_ri | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return xor_ri | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func LslRI(dest, op1, op2 uint32) parser.Word {
 	op2 = op2 & 0xFFFF
-	return lsl_ri | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return lsl_ri | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func LsrRI(dest, op1, op2 uint32) parser.Word {
 	op2 = op2 & 0xFFFF
-	return lsr_ri | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return lsr_ri | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
 
 func AsrRI(dest, op1, op2 uint32) parser.Word {
 	op2 = op2 & 0xFFFF
-	return asr_ri | parser.Word(dest)<<8 | parser.Word(op1)<<12 | parser.Word(op2)<<16
+	return asr_ri | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
+}
+
+func MulRI(dest, op1, op2 uint32) parser.Word {
+	return mul_ri | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
+}
+
+func DivRI(dest, op1, op2 uint32) parser.Word {
+	return div_ri | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }

@@ -193,6 +193,8 @@ func encode(i parser.Instruction) (parser.Word, error) {
 		return encode2op(i, MovRR, MovRI)
 	case "ldr":
 		return encode2op(i, LoadRR, LoadRI)
+	case "str":
+		return encode2opRev(i, StorRR, StorRI)
 	case "add":
 		return encode3op(i, AddRR, AddRI)
 	case "sub":
@@ -264,6 +266,21 @@ func encode2op(i parser.Instruction, rr, ri _2op) (parser.Word, error) {
 		return rr(rToI(i.Op1.Op), rToI(i.Op2.Op)), nil
 	} else {
 		return ri(rToI(i.Op1.Op), toNum(i.Op2.Op)), nil
+	}
+}
+
+func encode2opRev(i parser.Instruction, rr, ri _2op) (parser.Word, error) {
+	if i.Op2.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
+	}
+	if i.Op1.Type == parser.OP_LABEL {
+		return parser.Word(0),
+			fmt.Errorf("%q: label substitution was not performed.", i)
+	}
+	if i.Op1.Type == parser.OP_REG {
+		return rr(rToI(i.Op2.Op), rToI(i.Op1.Op)), nil
+	} else {
+		return ri(rToI(i.Op2.Op), toNum(i.Op1.Op)), nil
 	}
 }
 
