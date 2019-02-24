@@ -10,18 +10,7 @@ import (
 )
 
 func Generate(ast *parser.AST, buf *bufio.Writer) error {
-	buf.Write([]byte("1987gvm"))
-	word := make([]byte, 4)
-	for _, o := range ast.Orgs {
-		binary.LittleEndian.PutUint32(word, o.Addr)
-		if _, err := buf.Write(word); err != nil {
-			return err
-		}
-		binary.LittleEndian.PutUint32(word, uint32(o.WordCount()))
-		if _, err := buf.Write(word); err != nil {
-			return err
-		}
-	}
+	buf.Write([]byte("s1987gvm"))
 
 	labelMap := map[string]uint32{}
 	if err := assignAddresses(labelMap, ast); err != nil {
@@ -80,7 +69,7 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 						err := convertOperand(
 							statement.Instr.Name, addr, labelMap, ast.Consts, op)
 						if err != nil {
-							return fmt.Errorf("error processing instruction %q: $v",
+							return fmt.Errorf("error processing instruction %q: %v",
 								statement.Instr, err)
 						}
 					}
@@ -104,13 +93,24 @@ func convertOperand(instr string, instrAddr uint32, labelMap map[string]uint32, 
 		switch instr {
 		case "jmp", "jne", "jeq", "jlt", "jle", "jge", "jgt", "call":
 			value -= instrAddr
+		case "ldr", "str":
+			if value&0xFFFFF != value {
+				value -= instrAddr
+				v := int32(value)
+				if v > (1<<15)-1 || v < -(1<<15) {
+					return fmt.Errorf("Operand is out of range.")
+				}
+				op.Type = parser.OP_DIFF
+			}
 		}
 
 		// We need first to convert from uint32 -> int32 so we can get the value
 		// in the correct range. Then we can convert to int64 which is the required
 		// type for FormatInt.
 		op.Op = strconv.FormatInt(int64(int32(value)), 10)
-		op.Type = parser.OP_NUMBER
+		if op.Type != parser.OP_DIFF {
+			op.Type = parser.OP_NUMBER
+		}
 		return nil
 	}
 
@@ -149,6 +149,14 @@ func convertInstructions(ast *parser.AST) error {
 func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
 	word := make([]byte, 4)
 	for _, org := range ast.Orgs {
+		binary.LittleEndian.PutUint32(word, org.Addr)
+		if _, err := buf.Write(word); err != nil {
+			return err
+		}
+		binary.LittleEndian.PutUint32(word, uint32(org.WordCount()))
+		if _, err := buf.Write(word); err != nil {
+			return err
+		}
 		for _, section := range org.Sections {
 			for _, block := range section.Blocks {
 				for _, statement := range block.Statements {
@@ -193,9 +201,9 @@ func encode(i parser.Instruction) (parser.Word, error) {
 	case "mov":
 		return encode2op(i, MovRR, MovRI)
 	case "ldr":
-		return encode2op(i, LoadRR, LoadRI)
+		return encodeLoad(i)
 	case "str":
-		return encode2opRev(i, StorRR, StorRI)
+		return encodeStor(i)
 	case "add":
 		return encode3op(i, AddRR, AddRI)
 	case "sub":
@@ -274,7 +282,25 @@ func encode2op(i parser.Instruction, rr, ri _2op) (parser.Word, error) {
 	}
 }
 
-func encode2opRev(i parser.Instruction, rr, ri _2op) (parser.Word, error) {
+func encodeLoad(i parser.Instruction) (parser.Word, error) {
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
+	}
+	if i.Op2.Type == parser.OP_LABEL {
+		return parser.Word(0),
+			fmt.Errorf("%q: label substitution was not performed.", i)
+	}
+	if i.Op2.Type == parser.OP_REG {
+		return LoadRR(rToI(i.Op1.Op), rToI(i.Op2.Op)), nil
+	} else if i.Op2.Type == parser.OP_NUMBER {
+		return LoadRI(rToI(i.Op1.Op), toNum(i.Op2.Op)), nil
+	} else {
+		// We are convert a ldr -> ldri and doing it pc relative. pc is r29.
+		return LoadIX(rToI(i.Op1.Op), 29, toNum(i.Op2.Op)), nil
+	}
+}
+
+func encodeStor(i parser.Instruction) (parser.Word, error) {
 	if i.Op2.Type != parser.OP_REG {
 		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
 	}
@@ -283,9 +309,11 @@ func encode2opRev(i parser.Instruction, rr, ri _2op) (parser.Word, error) {
 			fmt.Errorf("%q: label substitution was not performed.", i)
 	}
 	if i.Op1.Type == parser.OP_REG {
-		return rr(rToI(i.Op2.Op), rToI(i.Op1.Op)), nil
+		return StorRR(rToI(i.Op1.Op), rToI(i.Op2.Op)), nil
+	} else if i.Op1.Type == parser.OP_NUMBER {
+		return StorRI(toNum(i.Op1.Op), rToI(i.Op2.Op)), nil
 	} else {
-		return ri(rToI(i.Op2.Op), toNum(i.Op1.Op)), nil
+		return StorIX(29, rToI(i.Op2.Op), toNum(i.Op1.Op)), nil
 	}
 }
 

@@ -88,9 +88,9 @@ func StorRR(dest, src uint32) parser.Word {
 	return stor_rr | parser.Word(dest)<<6 | parser.Word(src)<<11
 }
 
-func StorRI(src, value uint32) parser.Word {
-	value = value & 0x1FFFFF
-	return stor_ri | parser.Word(src)<<6 | parser.Word(value)<<11
+func StorRI(dest, src uint32) parser.Word {
+	dest = dest & 0x1FFFFF
+	return stor_ri | parser.Word(src)<<6 | parser.Word(dest)<<11
 }
 
 func StorIX(dest, src, offset uint32) parser.Word {

@@ -186,18 +186,20 @@ void CPU::Run() {
       reg_[idx] = (idx >= 29) ? v / kWordSize : v;
       DISPATCH();
   }
-  STOR_RR:
+  STOR_RR: {
       mem_[regv(reg1(word), pc, reg_)/kWordSize] = regv(reg2(word), pc, reg_);
       DISPATCH();
+  }
   STOR_RI: {
       const uint32_t addr = ((word >> 11) & 0x1FFFFF)/kWordSize;
       mem_[addr] = regv(reg1(word), pc, reg_);
       DISPATCH();
   }
-  STOR_IX:
+  STOR_IX: {
       mem_[(regv(reg1(word), pc, reg_) + v16bit(word))/kWordSize] =
           regv(reg2(word), pc, reg_);
       DISPATCH();
+  }
   ADD_RR: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc ,reg_) + regv(reg3(word), pc, reg_);

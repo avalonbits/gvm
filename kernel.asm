@@ -173,6 +173,18 @@ vline_done:
 	ret
 
 .org 0x100000
+
+.section data
+
+border_color: .int kRED 0xFF0000FF
+
 .section text
 
 USER_CODE:
+	; Draws a border around the screen. Then waits for 5 seconds and halts.
+
+	; Load the current tick value to r0.
+	ldr r0, [0xE1084]
+
+	; Now, set r5 to the border color.
+	ldr r5, [border_color]

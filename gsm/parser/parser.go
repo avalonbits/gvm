@@ -37,6 +37,7 @@ type OpType int
 const (
 	OP_REG = iota
 	OP_NUMBER
+	OP_DIFF
 	OP_LABEL
 )
 
@@ -353,17 +354,9 @@ func ParseNumber(lit string) (uint32, error) {
 		mul = int64(-1)
 	}
 
-	if strings.HasPrefix(lit, "0x") || strings.HasPrefix(lit, "0X") {
-		if n, err = strconv.ParseInt(lit[2:], 16, 32); err != nil {
-			return 0, fmt.Errorf("Expected a 32 bit hexadecimal number, got %q: %v",
-				lit, err)
-		}
-	} else if strings.HasPrefix(lit, "0") && len(lit) > 1 {
-		if n, err = strconv.ParseInt(lit[1:], 0, 32); err != nil {
-			return 0, fmt.Errorf("expected a 32 bit octal number, got %q: %v", lit, err)
-		}
-	} else if n, err = strconv.ParseInt(lit, 10, 32); err != nil {
-		return 0, fmt.Errorf("expected a 32 bit decimal number, got %q: %v", lit, err)
+	if n, err = strconv.ParseInt(lit, 0, 64); err != nil {
+		return 0, fmt.Errorf("Expected a 32 bit hexadecimal number, got %q: %v",
+			lit, err)
 	}
 
 	return uint32(mul * n), nil
