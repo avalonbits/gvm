@@ -154,11 +154,12 @@ vline_line:
 	add r8, r8, kLineLength
 
 	; Check if we got to y-end
-	sub r6, r3 ,r8
+	sub r6, r3, r8
 	jeq r6, vline_line_end
 
 	; Line is not done. Increment framebuffer and loop.
 	add r7, r7, kLineLength
+	jmp vline_line
 
 vline_line_end:
 	; Done with one line.
@@ -186,5 +187,66 @@ USER_CODE:
 	; Load the current tick value to r0.
 	ldr r0, [0xE1084]
 
-	; Now, set r5 to the border color.
+	; Set r5 to the border color.
 	ldr r5, [border_color]
+
+USER_CODE_start_draw:
+	; Draw a horizontal line from x=4-636,y=0 with 4px width.
+	mov r1, 0
+	mov r2, 4
+	mov r3, 636
+	mov r4, 4
+	call hline
+
+	; Draw a horizontal line from x=4-636,y=356 with 4px width
+	mov r1, 356
+	mov r2, 4
+	mov r3, 636
+	mov r4, 4
+	call hline
+
+	; Draw a vertical line from x=0,y=4-356 with 4px width.
+	mov r1, 0
+	mov r2, 4
+	mov r3, 356
+	mov r4, 4
+	call vline
+
+	; Draw a vertical line from x=636,y=4-356 with 4px width.
+	mov r1, 636
+	mov r2, 4
+	mov r3, 356
+	mov r4, 4
+	call vline
+
+	; Signal to the video controller that it can copy the framebuffer.
+	mov r1, 1
+	str [0x80], r1
+
+	; Wait for the video controller to signal that the copy is done.
+USER_CODE_wait_vc:
+	ldr r1, [0x80]
+	jne r1, USER_CODE_wait_vc
+
+	; If 5 seconds have passed, halt the cpu. Otherwise, change the color and
+	; loop back. The cpu timer ticks every 100 microseconds, so once it has
+    ; counted 50000 times we can halt.
+	mov r2, 50000
+
+	; Load the current tick value.
+	ldr r1, [0xE1084]
+
+	; Subtract from start value
+	sub r1, r1, r0
+
+	; Now compare with desired value.
+	sub r1, r1, r2
+	jge r1, USER_CODE_done
+
+	; Time not up. change color and loop back.
+	add r5, r5, 0x10
+	jmp USER_CODE_start_draw
+
+USER_CODE_done:
+	halt
+

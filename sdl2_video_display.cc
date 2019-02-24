@@ -51,7 +51,7 @@ SDL2VideoDisplay::SDL2VideoDisplay(
 
   renderer_ = SDL_CreateRenderer(window_, drv_index, SDL_RENDERER_ACCELERATED);
   if (renderer_ == nullptr) {
-    SDL_Log(SDL_GetError());
+    SDL_Log("%s", SDL_GetError());
     std::cerr << "Hardware acceleration unavailable. Fallback to software.\n";
     renderer_ = SDL_CreateRenderer(window_, -1, SDL_RENDERER_SOFTWARE);
   }
