@@ -125,8 +125,54 @@ hline_line_end:
 hline_line_done:
 	ret
 
+; ==== VLine: draws a vertical line on the screen.
+vline:
+	; r1: x-pos
+	; r2: y-start
+	; r3: y-end
+	; r4: width
+	; r5: color (RGBA)
+
+	; Multiply x-pos by 4 to get x in the framebuffer.
+	lsl r1, r1, 2
+
+	; Multiply y-start and y-end by kLineLength to get their positions.
+	mul r3, r3, kLineLength
+
+vline_width:
+	mul r8, r2, kLineLength
+
+	; Now add mem start, x-pos, y-start with y-end to get the framebuffer start point.
+	add r7, r1, r8
+	add r7, r7, 0x84
+
+vline_line:
+	; Write the pixel at the location.
+	str [r7], r5
+
+	; Increment y-start.
+	add r8, r8, kLineLength
+
+	; Check if we got to y-end
+	sub r6, r3 ,r8
+	jeq r6, vline_line_end
+
+	; Line is not done. Increment framebuffer and loop.
+	add r7, r7, kLineLength
+
+vline_line_end:
+	; Done with one line.
+	sub r4, r4, 1
+	jeq r4,  vline_done
+
+	; Line is still wide.
+	add r1, r1, 4
+	jmp vline_width
+
+vline_done:
+	ret
+
 .org 0x100000
 .section text
 
 USER_CODE:
-	halt
