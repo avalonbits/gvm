@@ -97,6 +97,7 @@ func convertOperand(instr string, instrAddr uint32, labelMap map[string]uint32, 
 	}
 	if value, ok := consts[op.Op]; ok {
 		op.Op = value
+		op.Type = parser.OP_NUMBER
 		return nil
 	}
 	if value, ok := labelMap[op.Op]; ok {
@@ -234,6 +235,10 @@ func encode(i parser.Instruction) (parser.Word, error) {
 		return encode3op(i, LsrRR, LsrRI)
 	case "asr":
 		return encode3op(i, AsrRR, AsrRI)
+	case "mul":
+		return encode3op(i, MulRR, MulRI)
+	case "div":
+		return encode3op(i, DivRR, DivRI)
 	}
 	return parser.Word(0), fmt.Errorf("Invalid instruction %q", i)
 }

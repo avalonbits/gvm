@@ -379,6 +379,8 @@ var (
 		"and":  3,
 		"orr":  3,
 		"xor":  3,
+		"mul":  3,
+		"div":  3,
 		"stri": 3,
 		"ldri": 3,
 		"mov":  2,
