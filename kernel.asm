@@ -86,6 +86,46 @@ memset:
 	jgt r2, memset
 	ret
 
+; ==== Memset16. Same as memset but assumes size is a multiple of 16 words.
+memset16:
+	; r1: start address
+	; r2: size in words. MUST BE A MULTIPLE OF 16.
+	; r3: value to set.
+	str [r1], r3
+	add r1, r1, 4
+	str [r1], r3
+	add r1, r1, 4
+	str [r1], r3
+	add r1, r1, 4
+    str [r1], r3
+	add r1, r1, 4
+	str [r1], r3
+	add r1, r1, 4
+	str [r1], r3
+	add r1, r1, 4
+	str [r1], r3
+	add r1, r1, 4
+    str [r1], r3
+	add r1, r1, 4
+	str [r1], r3
+	add r1, r1, 4
+	str [r1], r3
+	add r1, r1, 4
+	str [r1], r3
+	add r1, r1, 4
+    str [r1], r3
+	add r1, r1, 4
+	str [r1], r3
+	add r1, r1, 4
+	str [r1], r3
+	add r1, r1, 4
+	str [r1], r3
+	add r1, r1, 4
+    str [r1], r3
+	add r1, r1, 4
+	sub r2, r2, 16
+	jgt r2, memset16
+	ret
 
 ; ==== Memcopy. Copies the contents of one region of memory to another.
 ; Does not handle overlap.
@@ -226,7 +266,7 @@ USER_CODE_start_draw:
 	mov r1, 0x84
 	ldr r2, [screen_size]
 	ldr r3, [back_color]
-	call memset
+	call memset16
 
 	; Draw a horizontal line from x=4-636,y=0 with 4px width.
 	mov r1, 0
