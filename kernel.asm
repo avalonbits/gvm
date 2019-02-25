@@ -51,6 +51,7 @@ timer_handler_done:
 	add r30, r30, 4
 	ret
 
+
 ; ==== Input handler
 input_handler:
 	; Save the contents of r0 on the stack so we don't disrupt user code.
@@ -73,8 +74,37 @@ input_handler_quit:
 	; Quit means we want to turn of the cpu.
 	halt
 
+
+; ==== Memset. Sets a memory region to a specific value.
+memset:
+	; r1: start address
+	; r2: size in words
+	; r3: value to set.
+	str [r1], r3
+	add r1, r1, 4
+	sub r2, r2, 1
+	jgt r2, memset
+	ret
+
+
+; ==== Memcopy. Copies the contents of one region of memory to another.
+; Does not handle overlap.
+memcpy:
+	; r1: start from-address
+	; r2: start to:address
+	; r3: size in words.
+	ldr r4, [r1]
+	str [r2], r4
+	add r1, r1, 4
+	add r2, r2, 4
+	sub r3, r3, 1
+	jgt r3, memcpy
+
 .section data
 	.int kLineLength 2560  ; 640 * 4 (32bpp)
+
+screen_size:
+	.int kScreenSizeWords 230400
 
 .section text
 ; ==== HLine: draws a horizontal line on the screen.
@@ -178,6 +208,7 @@ vline_done:
 .section data
 
 border_color: .int kRED 0xFF0000FF
+back_color: .int kGREEN 0xFF0084A1
 
 .section text
 
@@ -191,6 +222,12 @@ USER_CODE:
 	ldr r5, [border_color]
 
 USER_CODE_start_draw:
+	; Fill the screen with background color.
+	mov r1, 0x84
+	ldr r2, [screen_size]
+	ldr r3, [back_color]
+	call memset
+
 	; Draw a horizontal line from x=4-636,y=0 with 4px width.
 	mov r1, 0
 	mov r2, 4
