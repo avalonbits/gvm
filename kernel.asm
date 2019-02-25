@@ -100,14 +100,9 @@ memcpy:
 	sub r3, r3, 1
 	jgt r3, memcpy
 
-.section data
-	.int kLineLength 2560  ; 640 * 4 (32bpp)
-
-screen_size:
-	.int kScreenSizeWords 230400
-
 .section text
 ; ==== HLine: draws a horizontal line on the screen.
+; Linelength is 2560 bytes (640 * 32bpp)
 hline:
 	; r1: y-pos
 	; r2: x-start
@@ -115,8 +110,8 @@ hline:
 	; r4: width
 	; r5: color (RGBA)
 
-	; Multiply y-pos by kLineLength to get y in the frameuffer.
-	mul r1, r1, kLineLength
+	; Multiply y-pos by 2560 to get y in the frameuffer.
+	mul r1, r1, 2560
 
 	; Multiply x-start and x-end by 4 for pixel size.
 	lsl r3, r3, 2
@@ -149,7 +144,7 @@ hline_line_end:
 	jeq r4, hline_line_done
 
 	; Line is still wide.
-	add r1, r1, kLineLength
+	add r1, r1, 2560
 	jmp hline_width
 
 hline_line_done:
@@ -166,11 +161,11 @@ vline:
 	; Multiply x-pos by 4 to get x in the framebuffer.
 	lsl r1, r1, 2
 
-	; Multiply y-start and y-end by kLineLength to get their positions.
-	mul r3, r3, kLineLength
+	; Multiply y-start and y-end by 2560 to get their positions.
+	mul r3, r3, 2560
 
 vline_width:
-	mul r8, r2, kLineLength
+	mul r8, r2, 2560
 
 	; Now add mem start, x-pos, y-start with y-end to get the framebuffer start point.
 	add r7, r1, r8
@@ -181,14 +176,14 @@ vline_line:
 	str [r7], r5
 
 	; Increment y-start.
-	add r8, r8, kLineLength
+	add r8, r8, 2560
 
 	; Check if we got to y-end
 	sub r6, r3, r8
 	jeq r6, vline_line_end
 
 	; Line is not done. Increment framebuffer and loop.
-	add r7, r7, kLineLength
+	add r7, r7, 2560
 	jmp vline_line
 
 vline_line_end:
@@ -207,8 +202,9 @@ vline_done:
 
 .section data
 
-border_color: .int kRED 0xFF0000FF
-back_color: .int kGREEN 0xFF0084A1
+border_color: .int 0xFF0000FF
+back_color:   .int 0xFF0084A1
+screen_size:  .int 230400  ; 640 * 360 words.
 
 .section text
 

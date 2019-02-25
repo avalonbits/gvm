@@ -279,24 +279,12 @@ func (p *Parser) data_block(cur state) state {
 		return DATA_BLOCK
 	case lexer.INT_TYPE:
 		tok = p.tokenizer.NextToken()
-		if tok.Type != lexer.IDENT {
-			p.err = fmt.Errorf("exptected a name for the constant, got %q.", tok.Literal)
-			return ERROR
-		}
-
-		name := tok.Literal
-		tok = p.tokenizer.NextToken()
 		n, err := ParseNumber(tok.Literal)
 		if err != nil {
 			p.err = err
 			return ERROR
 		}
 
-		if _, ok := p.Ast.Consts[name]; ok {
-			p.err = fmt.Errorf("constant %q was defined earlier in the file", name)
-			return ERROR
-		}
-		p.Ast.Consts[name] = tok.Literal
 		aBlock.Statements = append(aBlock.Statements, Statement{Value: n})
 		return DATA_BLOCK
 	default:
