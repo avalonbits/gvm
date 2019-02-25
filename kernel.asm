@@ -204,7 +204,7 @@ vline_done:
 
 border_color: .int 0xFF0000FF
 back_color:   .int 0xFF0084A1
-screen_size:  .int 230400  ; 640 * 360 words.
+screen_size:  .int 230400     ; 640 * 360 words.
 
 .section text
 
@@ -218,6 +218,10 @@ USER_CODE:
 	ldr r5, [border_color]
 
 USER_CODE_start_draw:
+	; Wait for the video controller to signal that memory copy is done.
+	ldr r1, [0x80]
+	jne r1, USER_CODE_start_draw
+
 	; Fill the screen with background color.
 	mov r1, 0x84
 	ldr r2, [screen_size]
@@ -255,11 +259,6 @@ USER_CODE_start_draw:
 	; Signal to the video controller that it can copy the framebuffer.
 	mov r1, 1
 	str [0x80], r1
-
-	; Wait for the video controller to signal that the copy is done.
-USER_CODE_wait_vc:
-	ldr r1, [0x80]
-	jne r1, USER_CODE_wait_vc
 
 	; If 5 seconds have passed, halt the cpu. Otherwise, change the color and
 	; loop back. The cpu timer ticks every 100 microseconds, so once it has
