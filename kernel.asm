@@ -80,8 +80,7 @@ memset:
 	; r1: start address
 	; r2: size in words
 	; r3: value to set.
-	str [r1], r3
-	add r1, r1, 4
+	strip [r1, 4], r3
 	sub r2, r2, 1
 	jgt r2, memset
 	ret
@@ -91,38 +90,22 @@ memset16:
 	; r1: start address
 	; r2: size in words. MUST BE A MULTIPLE OF 16.
 	; r3: value to set.
-	str [r1], r3
-	add r1, r1, 4
-	str [r1], r3
-	add r1, r1, 4
-	str [r1], r3
-	add r1, r1, 4
-    str [r1], r3
-	add r1, r1, 4
-	str [r1], r3
-	add r1, r1, 4
-	str [r1], r3
-	add r1, r1, 4
-	str [r1], r3
-	add r1, r1, 4
-    str [r1], r3
-	add r1, r1, 4
-	str [r1], r3
-	add r1, r1, 4
-	str [r1], r3
-	add r1, r1, 4
-	str [r1], r3
-	add r1, r1, 4
-    str [r1], r3
-	add r1, r1, 4
-	str [r1], r3
-	add r1, r1, 4
-	str [r1], r3
-	add r1, r1, 4
-	str [r1], r3
-	add r1, r1, 4
-    str [r1], r3
-	add r1, r1, 4
+	strip [r1, 4], r3
+	strip [r1, 4], r3
+	strip [r1, 4], r3
+    strip [r1, 4], r3
+	strip [r1, 4], r3
+	strip [r1, 4], r3
+	strip [r1, 4], r3
+    strip [r1, 4], r3
+	strip [r1, 4], r3
+	strip [r1, 4], r3
+	strip [r1, 4], r3
+    strip [r1, 4], r3
+	strip [r1, 4], r3
+	strip [r1, 4], r3
+	strip [r1, 4], r3
+    strip [r1, 4], r3
 	sub r2, r2, 16
 	jgt r2, memset16
 	ret

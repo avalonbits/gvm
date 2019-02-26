@@ -352,32 +352,36 @@ func ParseNumber(lit string) (uint32, error) {
 
 var (
 	operands = map[string]int{
-		"add":  3,
-		"sub":  3,
-		"lsl":  3,
-		"lsr":  3,
-		"asr":  3,
-		"and":  3,
-		"orr":  3,
-		"xor":  3,
-		"mul":  3,
-		"div":  3,
-		"stri": 3,
-		"ldri": 3,
-		"mov":  2,
-		"str":  2,
-		"ldr":  2,
-		"jeq":  2,
-		"jne":  2,
-		"jlt":  2,
-		"jle":  2,
-		"jgt":  2,
-		"jge":  2,
-		"call": 1,
-		"jmp":  1,
-		"halt": 0,
-		"nop":  0,
-		"ret":  0,
+		"add":   3,
+		"sub":   3,
+		"lsl":   3,
+		"lsr":   3,
+		"asr":   3,
+		"and":   3,
+		"orr":   3,
+		"xor":   3,
+		"mul":   3,
+		"div":   3,
+		"stri":  3,
+		"strpi": 3,
+		"strip": 3,
+		"ldri":  3,
+		"ldrpi": 3,
+		"ldrip": 3,
+		"mov":   2,
+		"str":   2,
+		"ldr":   2,
+		"jeq":   2,
+		"jne":   2,
+		"jlt":   2,
+		"jle":   2,
+		"jgt":   2,
+		"jge":   2,
+		"call":  1,
+		"jmp":   1,
+		"halt":  0,
+		"nop":   0,
+		"ret":   0,
 	}
 )
 
@@ -403,7 +407,7 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 	var err error
 	if instr.Name == "str" {
 		instr.Op1, err = p.parseAddressOperand(true)
-	} else if instr.Name == "stri" {
+	} else if instr.Name == "stri" || instr.Name == "strip" || instr.Name == "strpi" {
 		instr.Op1, instr.Op2, err = p.parseIndexOperand(true)
 	} else {
 		instr.Op1, err = p.parseOperand(opCount > 1)
@@ -419,9 +423,9 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 
 	if instr.Name == "ldr" {
 		instr.Op2, err = p.parseAddressOperand(false)
-	} else if instr.Name == "ldri" {
+	} else if instr.Name == "ldri" || instr.Name == "ldrip" || instr.Name == "ldrpi" {
 		instr.Op2, instr.Op3, err = p.parseIndexOperand(false)
-	} else if instr.Name != "stri" {
+	} else if instr.Name != "stri" && instr.Name != "strip" && instr.Name != "strpi" {
 		instr.Op2, err = p.parseOperand(opCount == 3)
 	}
 	if err != nil {
@@ -429,7 +433,7 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 		return ERROR
 	}
 
-	if opCount == 2 || instr.Name == "ldri" {
+	if opCount == 2 || instr.Name == "ldri" || instr.Name == "ldrip" || instr.Name == "ldrpi" {
 		return TEXT_BLOCK
 	}
 
@@ -501,6 +505,7 @@ func (p *Parser) parseIndexOperand(comma bool) (Operand, Operand, error) {
 	if err != nil {
 		return Operand{}, Operand{}, err
 	}
+
 	op2, err := p.parseOperand(false)
 	if err != nil {
 		return Operand{}, Operand{}, err

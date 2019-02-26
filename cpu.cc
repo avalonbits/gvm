@@ -217,13 +217,18 @@ void CPU::Run() {
       DISPATCH();
   }
   STOR_PI: {
-      mem_[(regv(reg1(word), pc, reg_) + ext16bit(word))/kWordSize] =
-          regv(reg2(word), pc, reg_);
+      const register uint32_t idx = reg1(word);
+      const register uint32_t next = regv(idx, pc, reg_) + ext16bit(word);
+      mem_[next/kWordSize] = regv(reg2(word), pc, reg_);
+      reg_[idx] = ((idx >= 29) ? next / kWordSize : next);
       DISPATCH();
   }
   STOR_IP: {
-      mem_[(regv(reg1(word), pc, reg_) + ext16bit(word))/kWordSize] =
-          regv(reg2(word), pc, reg_);
+      const register uint32_t idx = reg1(word);
+      const register uint32_t cur = regv(idx, pc, reg_);
+      const register uint32_t next = cur + ext16bit(word);
+      mem_[cur/kWordSize] = regv(reg2(word), pc, reg_);
+      reg_[idx] = ((idx >= 29) ? next / kWordSize : next);
       DISPATCH();
   } 
   ADD_RR: {

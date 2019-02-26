@@ -102,6 +102,16 @@ func StorIX(dest, src, offset uint32) parser.Word {
 	return stor_ix | parser.Word(dest)<<6 | parser.Word(src)<<11 | parser.Word(offset)<<16
 }
 
+func StorPI(dest, src, offset uint32) parser.Word {
+	offset = offset & 0xFFFF
+	return stor_pi | parser.Word(dest)<<6 | parser.Word(src)<<11 | parser.Word(offset)<<16
+}
+
+func StorIP(dest, src, offset uint32) parser.Word {
+	offset = offset & 0xFFFF
+	return stor_ip | parser.Word(dest)<<6 | parser.Word(src)<<11 | parser.Word(offset)<<16
+}
+
 func AddRR(dest, op1, op2 uint32) parser.Word {
 	return add_rr | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
