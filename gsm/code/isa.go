@@ -12,9 +12,13 @@ const (
 	load_rr
 	load_ri
 	load_ix
+	load_pi
+	load_ip
 	stor_rr
 	stor_ri
 	stor_ix
+	stor_pi
+	stor_ip
 	add_rr
 	add_ri
 	sub_rr

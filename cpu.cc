@@ -104,11 +104,12 @@ void CPU::Input() {
 void CPU::Run() {
   static void* opcodes[] = {
     &&NOP, &&HALT, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
-    &&STOR_RR, &&STOR_RI, &&STOR_IX, &&ADD_RR, &&ADD_RI, &&SUB_RR,
-    &&SUB_RI, &&JMP, &&JNE, &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI,
-    &&CALLR, &&RET, &&AND_RR, &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR,
-    &&XOR_RI, &&LSL_RR, &&LSL_RI, &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI,
-    &&MUL_RR, &&MUL_RI, &&DIV_RR, &&DIV_RI, &&MULL_RR, &&WFI
+    &&LOAD_PI, &&LOAD_IP, &&STOR_RR, &&STOR_RI, &&STOR_IX, &&STOR_PI,
+    &&STOR_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI, &&JMP, &&JNE, &&JEQ,
+    &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI, &&CALLR, &&RET, &&AND_RR, &&AND_RI,
+    &&ORR_RR, &&ORR_RI, &&XOR_RR, &&XOR_RI, &&LSL_RR, &&LSL_RI, &&LSR_RR,
+    &&LSR_RI, &&ASR_RR, &&ASR_RI, &&MUL_RR, &&MUL_RI, &&DIV_RR, &&DIV_RI,
+    &&MULL_RR, &&WFI
   };
   register uint32_t pc = pc_-1;
   register uint32_t word = 0;
@@ -187,6 +188,20 @@ void CPU::Run() {
       reg_[idx] = (idx >= 29) ? v / kWordSize : v;
       DISPATCH();
   }
+  LOAD_PI: {
+      const register uint32_t idx = reg1(word);
+      const register uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
+      const register int32_t v = mem_[addr/kWordSize];
+      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      DISPATCH();
+  }
+  LOAD_IP: {
+      const register uint32_t idx = reg1(word);
+      const register uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
+      const register int32_t v = mem_[addr/kWordSize];
+      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      DISPATCH();
+  }
   STOR_RR: {
       mem_[regv(reg1(word), pc, reg_)/kWordSize] = regv(reg2(word), pc, reg_);
       DISPATCH();
@@ -201,6 +216,16 @@ void CPU::Run() {
           regv(reg2(word), pc, reg_);
       DISPATCH();
   }
+  STOR_PI: {
+      mem_[(regv(reg1(word), pc, reg_) + ext16bit(word))/kWordSize] =
+          regv(reg2(word), pc, reg_);
+      DISPATCH();
+  }
+  STOR_IP: {
+      mem_[(regv(reg1(word), pc, reg_) + ext16bit(word))/kWordSize] =
+          regv(reg2(word), pc, reg_);
+      DISPATCH();
+  } 
   ADD_RR: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc ,reg_) + regv(reg3(word), pc, reg_);
