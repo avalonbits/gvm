@@ -148,20 +148,21 @@ hline_width:
 
 hline_line:
 	; Write pixel to framebuffer location
-	str [r7], r5
+	strip [r7, 4], r5
 
 	; Increment x-start by pixel size
 	add r8, r8, 4
 
 	; Check if we got to x-end.
 	sub r6, r3, r8
-	jeq r6, hline_line_end
 
-	; Line is not done. Increment framebuffer and loop.
-	add r7, r7, 4
-	jmp hline_line
+	; If not, loop back and continue.
+	jne r6, hline_line
 
-hline_line_end:
+	; Finished line. Need to subtract one from framebuffer because we
+    ; optimistically assume we need to increment.
+	sub r7, r7, 1
+
 	; Down with one line.
 	sub r4, r4, 1
 	jeq r4, hline_line_done
@@ -196,20 +197,21 @@ vline_width:
 
 vline_line:
 	; Write the pixel at the location.
-	str [r7], r5
+	strip [r7, 2560], r5
 
 	; Increment y-start.
 	add r8, r8, 2560
 
 	; Check if we got to y-end
 	sub r6, r3, r8
-	jeq r6, vline_line_end
 
-	; Line is not done. Increment framebuffer and loop.
-	add r7, r7, 2560
-	jmp vline_line
+	; If line is not done, loop.
+	jne r6, vline_line
 
-vline_line_end:
+	; Line is not done. Need to subtract a line from framebuffer because we
+	; optimistically assume we need to increment.
+	sub r7, r7, 2560
+
 	; Done with one line.
 	sub r4, r4, 1
 	jeq r4,  vline_done
