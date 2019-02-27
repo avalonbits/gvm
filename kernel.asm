@@ -10,7 +10,7 @@ interrupt_table:
 	jmp timer_handler
 	jmp input_handler
 
-.org 0xE108C
+.org 0xE1090
 
 .embed "./latin1.chrom"
 
@@ -62,7 +62,7 @@ input_handler:
 	str [r30], r0
 
 	; Read the value from the input.
-	ldr r0, [0xE10D4]
+	ldr r0, [0xE108C]
 
 	; Quit is the value 0xFFFFFFFF so adding 1 should result in 0.
 	add r0, r0, 1

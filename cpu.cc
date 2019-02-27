@@ -96,7 +96,8 @@ void CPU::Tick() {
 
 void CPU::Input() {
   if (mask_interrupt_) return;
-  std::lock_guard<std::mutex> lg(interrupt_mutex_);
+  std::cerr << "Input.\n";
+
   interrupt_ |= 0x04;
   interrupt_event_.notify_all();
 }
@@ -230,7 +231,7 @@ void CPU::Run() {
       mem_[cur/kWordSize] = regv(reg2(word), pc, reg_);
       reg_[idx] = ((idx >= 29) ? next / kWordSize : next);
       DISPATCH();
-  } 
+  }
   ADD_RR: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc ,reg_) + regv(reg3(word), pc, reg_);

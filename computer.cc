@@ -10,7 +10,7 @@ static const uint32_t kVideoMemReg = 0x80;
 static const uint32_t kVideoMemStart = 0x84;
 static const uint32_t kVideoMemSizeWords = 640 * 360;
 static const uint32_t kVideoMemEnd = kVideoMemStart + kVideoMemSizeWords;
-static const uint32_t kInputMemReg = 0xE10D4;
+static const uint32_t kInputMemReg = 0xE108C;
 static const int kFrameBufferW = 640;
 static const int kFrameBufferH = 360;
 
