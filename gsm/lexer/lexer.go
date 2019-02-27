@@ -28,7 +28,10 @@ const (
 	COLON
 	L_BRACKET
 	R_BRACKET
+	F_SLASH
 	SECTION
+	EMBED
+	D_QUOTE
 	S_DATA
 	S_TEXT
 	ORG
@@ -42,6 +45,7 @@ const (
 
 var keywords = map[string]TokenType{
 	".section": SECTION,
+	".embed":   EMBED,
 	"data":     S_DATA,
 	"text":     S_TEXT,
 	".org":     ORG,
@@ -181,6 +185,10 @@ func (l *Lexer) nextToken() *Token {
 		return newTok(R_BRACKET, ch)
 	case '\n':
 		return newTok(NEWLINE, ch)
+	case '/':
+		return newTok(F_SLASH, ch)
+	case '"':
+		return newTok(D_QUOTE, ch)
 	case 0:
 		return newTok(EOF, "")
 	default:

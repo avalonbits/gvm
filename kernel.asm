@@ -11,6 +11,9 @@ interrupt_table:
 	jmp input_handler
 
 .org 0xE108C
+
+.embed "./latin1.chrom"
+
 .section text
 
 ; ==== Reset interrupt handler.

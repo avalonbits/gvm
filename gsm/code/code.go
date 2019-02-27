@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/avalonbits/gsm/parser"
@@ -11,6 +12,10 @@ import (
 
 func Generate(ast *parser.AST, buf *bufio.Writer) error {
 	buf.Write([]byte("s1987gvm"))
+
+	if err := embedFile(ast); err != nil {
+		return err
+	}
 
 	labelMap := map[string]uint32{}
 	if err := assignAddresses(labelMap, ast); err != nil {
@@ -25,6 +30,52 @@ func Generate(ast *parser.AST, buf *bufio.Writer) error {
 		return err
 	}
 	return buf.Flush()
+}
+
+func embedFile(ast *parser.AST) error {
+	for _, org := range ast.Orgs {
+		for i := range org.Sections {
+			section := &org.Sections[i]
+			if section.Type != parser.EMBED_FILE {
+				continue
+			}
+
+			// Ok, we have a file. Lets convert it to a data section with blocks.
+
+			// 1. Read the file.
+			in, err := os.Open(section.EmbedFile)
+			if err != nil {
+				return err
+			}
+			defer in.Close()
+
+			stats, err := in.Stat()
+			if err != nil {
+				return err
+			}
+
+			size := stats.Size()
+			bytes := make([]byte, size)
+
+			bufr := bufio.NewReader(in)
+			if _, err := bufr.Read(bytes); err != nil {
+				return err
+			}
+
+			// 2. For every 4 bytes, create a block and add it to the current statement.
+			section.Blocks = make([]parser.Block, 1)
+			block := &section.Blocks[0]
+			for i := int64(0); i < size; i += 4 {
+				v := binary.LittleEndian.Uint32(bytes[i : i+4])
+				block.Statements = append(block.Statements, parser.Statement{Value: v})
+			}
+
+			// 3. Change the type and we are good to go!
+			section.Type = parser.DATA_SECTION
+			section.EmbedFile = ""
+		}
+	}
+	return nil
 }
 
 func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
