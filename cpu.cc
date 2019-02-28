@@ -516,6 +516,10 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::STOR_IX:
       ss << "stor [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word);
       break;
+    case ISA::STOR_IP:
+      ss << "stor post inc [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word);
+      break;
+ 
     case ISA::ADD_RR:
       ss << "add r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
       break;

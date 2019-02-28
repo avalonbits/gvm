@@ -28,6 +28,7 @@ reset_handler:
 	; Now jump to user code, which starts at the 1MiB address.
 	jmp USER_CODE
 
+
 ; ==== Timer interrupt handler.
 timer_handler:
 	; Implements a 64 bit jiffy counter.
@@ -116,15 +117,17 @@ memset16:
 ; ==== Memcopy. Copies the contents of one region of memory to another.
 ; Does not handle overlap.
 memcpy:
-	; r1: start from-address
-	; r2: start to:address
+	; r1: start to-address
+	; r2: start from:address
 	; r3: size in words.
-	ldr r4, [r1]
-	str [r2], r4
+	; r4: local variable for copying memory.
+	ldr r4, [r2]
+	str [r1], r4
 	add r1, r1, 4
 	add r2, r2, 4
 	sub r3, r3, 1
 	jgt r3, memcpy
+	ret
 
 .section text
 ; ==== HLine: draws a horizontal line on the screen.
