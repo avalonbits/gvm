@@ -271,6 +271,104 @@ text_colors:
 	.int 0xFFFFFF00 ; 14 - Aqua
 	.int 0xFFFFFFFF ; 15 - White
 
+text_colors_addr:
+	.word text_colors
+
+.section text
+; ==== PutC: Prints a character on the screen.
+putc:
+	; r1: Character unicode value
+	; r2: x-pos
+	; r3: y-pos
+	; r4: foreground color
+	; r5: background color
+
+	; Each character is 8x16 pixels encoded in 16 bytes with each byte being an
+	; 8 pixel row. In order to find the start of the char we multiply the char
+	; by 16 and sum it with the start of the character rom.
+	ldr r0, [0xE1094]
+	lsl r1, r1, 4
+	add r1, r0, r1
+
+	; To find the (x,y) position in the frame buffer, we use the formula
+	; pos(x,y) = x-pos*8*4 + 0x84 + y-pos * lineLength * 16.
+	mul r2, r2, 32
+	add r2, r2, 0x84
+	mul r3, r3, 2560
+	lsl r3, r3, 4
+	add r2, r2, r3
+
+	; And because we process the row from right to left, we need to move the
+	; start 8 pixels (3 bytes) to the right. But because this is 0 based, we
+	; need to add 31.
+	add r2, r2, 31
+
+	; Translate colors 0-15 to their RGBA values by multiplying the value by 4
+	; and then summing it with the start of the color table.
+	mov r0, 0xFF00
+	lsl r0, r0, 16
+	mov r4, r0
+	add r5, r0, 0xFF
+
+	; Number of rows per character.
+	mov r6, 4
+
+	; Copy of character start.
+	mov r3, r1
+
+putc_reset_pixel_word_counter:
+	; Number of pixels per word.
+	mov r8, 32
+
+putc_reset_pixel_row_counter:
+	; Number of pixels per row.
+	mov r7, 8
+
+putc_main_loop:
+	; For each 8 pixel row, check if we need to write the fore or background
+	; color.
+	and r0, r1, 1
+	jeq r0, putc_background_color
+
+	; Foreground.
+	strip [r2, -4], r4
+	jmp putc_next_pixel
+
+putc_background_color:
+	strip [r2, -4], r5
+
+putc_next_pixel:
+	; Shift the pixel row.
+	lsr r1, r1, 1
+
+	; Check if row is done.
+	sub r7, r7, 1
+	jeq r7, putc_row_done
+
+	jmp putc_main_loop
+
+putc_row_done:
+	; Reposition the frame buffer on the next row.
+	add r2, r2, 2592  ; 32 + 2560.
+
+	; Now check if all pixels in word are done.
+	sub r8, r8, 8
+
+	; If all pixels from row are not done, loop back.
+	jne r8, putc_reset_pixel_row_counter
+
+	; All pixels in word are done. Check if we are done.
+	sub r6, r6, 1
+	jeq r6, putc_done
+
+	; Not done yet. Get the next word row and loop.
+	add r3, r3, 4
+	mov r1, r3
+	jmp putc_reset_pixel_word_counter
+
+putc_done:
+	ret
+
 .org 0x100000
 
 .section data
@@ -295,39 +393,13 @@ USER_CODE_start_draw:
 	ldr r1, [0x80]
 	jne r1, USER_CODE_start_draw
 
-	; Fill the screen with background color.
-	mov r1, 0x84
-	ldr r2, [screen_size]
-	ldr r3, [back_color]
-	call memset16
-
-	; Draw a horizontal line from x=4-636,y=0 with 4px width.
-	mov r1, 0
-	mov r2, 4
-	mov r3, 636
-	mov r4, 4
-	call hline
-
-	; Draw a horizontal line from x=4-636,y=356 with 4px width
-	mov r1, 356
-	mov r2, 4
-	mov r3, 636
-	mov r4, 4
-	call hline
-
-	; Draw a vertical line from x=0,y=4-356 with 4px width.
-	mov r1, 0
-	mov r2, 4
-	mov r3, 356
-	mov r4, 4
-	call vline
-
-	; Draw a vertical line from x=636,y=4-356 with 4px width.
-	mov r1, 636
-	mov r2, 4
-	mov r3, 356
-	mov r4, 4
-	call vline
+	; Draw the A character ax (320,240) white on black.
+	mov r1, 0x41 ; 'A' character.
+	mov r2, 78   ; x-pos
+	mov r3, 0   ; y-pox
+	mov r4, 15   ; White foreground
+	mov r5, 1    ; Black background
+	call putc
 
 	; Signal to the video controller that it can copy the framebuffer.
 	mov r1, 1
