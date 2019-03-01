@@ -10,7 +10,7 @@ interrupt_table:
 	jmp timer_handler
 	jmp input_handler
 
-.org 0xE1090
+.org 0xE1094
 
 .embed "./latin1.chrom"
 
@@ -24,6 +24,12 @@ reset_handler:
     ; 64 bit counter words are 0xE1084 (LSW) and 0xE1088 (MSW)
 	str [0xE1084], r0
 	str [0xE1088], r0
+
+	; Clear input register
+	str [0xE108C], r0
+
+	; Clear user input vector address.
+	str [0xE1090], r0
 
 	; Now jump to user code, which starts at the 1MiB address.
 	jmp USER_CODE
@@ -69,7 +75,20 @@ input_handler:
 	add r0, r0, 1
 	jeq r0, input_handler_quit
 
-	; Input processing done. Restore restore r0 and return.
+	; Save contents of r1 on the stack so we don't disrupt user code.
+	sub r30, r30, 4
+	str [r30], r1
+
+	; Load the user jump address. If it's != 0, call it.
+	ldr r1, [0xE1090]
+	jeq r1, input_handler_done
+	call r1
+
+input_handler_done:
+	; Input processing done. Restore restore r1 and r0 and return.
+	ldr r1, [r30]
+	add r30, r30, 4
+
 	ldr r0, [r30]
 	add r30, r30, 4
 	ret
@@ -129,7 +148,6 @@ memcpy:
 	jgt r3, memcpy
 	ret
 
-.section text
 ; ==== HLine: draws a horizontal line on the screen.
 ; Linelength is 2560 bytes (640 * 32bpp)
 hline:
@@ -228,6 +246,30 @@ vline_line:
 
 vline_done:
 	ret
+
+; ====== Text mode functions and data.
+
+.section data
+
+; Text mode supports 16 colors and all functions require a foreground and a
+; background color.
+text_colors:
+	.int 0xFF000000 ;  0 - Black
+	.int 0xFF000080 ;  1 - Maroon
+	.int 0xFF008000 ;  2 - Green
+	.int 0xFF008080 ;  3 - Olive
+	.int 0xFF800000 ;  4 - Navy
+	.int 0xFF800080 ;  5 - Purple
+	.int 0xFF808000 ;  6 - Teal
+	.int 0xFFC0C0C0 ;  7 - Silver
+	.int 0xFF808080 ;  8 - Grey
+	.int 0xFF0000FF ;  9 - Read
+	.int 0xFF00FF00 ; 10 - Lime
+	.int 0xFF00FFFF ; 11 - Yellow
+	.int 0xFFFF0000 ; 12 - Blue
+	.int 0xFFFF00FF ; 13 - Fuchsia
+	.int 0xFFFFFF00 ; 14 - Aqua
+	.int 0xFFFFFFFF ; 15 - White
 
 .org 0x100000
 
