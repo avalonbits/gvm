@@ -398,10 +398,15 @@ USER_CODE_start_draw:
 	ldr r1, [0x80]
 	jne r1, USER_CODE_start_draw
 
+	mov r1, 0x84
+	ldr r2, [screen_size]
+	mov r3, 0
+	call memset16
+
 	; Draw the A character ax (320,240) white on black.
 	mov r1, 0x41 ; 'A' character.
-	mov r2, 78   ; x-pos
-	mov r3, 0    ; y-pos
+	mov r2, r28  ; x-pos
+	mov r3, r27  ; y-pos
 	mov r4, 15   ; White foreground
 	mov r5, 0    ; Black background
 	call putc
@@ -410,10 +415,11 @@ USER_CODE_start_draw:
 	mov r1, 1
 	str [0x80], r1
 
-	; If 5 seconds have passed, halt the cpu. Otherwise, change the color and
+	; If 50 seconds have passed, halt the cpu. Otherwise, change the color and
 	; loop back. The cpu timer ticks every 100 microseconds, so once it has
     ; counted 50000 times we can halt.
 	mov r2, 50000
+	mul r2, r2, 10
 
 	; Load the current tick value.
 	ldr r1, [0xE1084]
@@ -425,8 +431,18 @@ USER_CODE_start_draw:
 	sub r1, r1, r2
 	jge r1, USER_CODE_done
 
-	; Time not up. change color and loop back.
-	add r5, r5, 0x10
+	; Time not up. Update x-pos loop back.
+	add r28, r28, 1
+	sub r26, r28, 80
+	jne r26, USER_CODE_start_draw
+
+	; X is at screen end. move back, update y-pos and loop back.
+	mov r28, 0
+	add r27, r27, 1
+	sub r26, r27, 22
+	jne r26, USER_CODE_start_draw
+
+	mov r27, 0
 	jmp USER_CODE_start_draw
 
 USER_CODE_done:
