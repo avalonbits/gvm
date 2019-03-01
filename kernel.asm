@@ -428,8 +428,17 @@ USER_CODE_start_draw:
 	sub r1, r1, r0
 
 	; Now compare with desired value.
-	sub r1, r1, r2
-	jge r1, USER_CODE_done
+	sub r2, r1, r2
+	jgt r2, USER_CODE_done
+
+	; Time is not up. Wait for 16ms before updating.
+	mov r2, 1000
+
+USER_CODE_wait_before_draw:
+	ldr r3, [0xE1084]
+	sub r3, r3, r1
+	sub r3, r3, r2
+	jlt r3, USER_CODE_wait_before_draw
 
 	; Time not up. Update x-pos loop back.
 	add r28, r28, 1
