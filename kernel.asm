@@ -272,7 +272,7 @@ text_colors:
 	.int 0xFFFFFFFF ; 15 - White
 
 text_colors_addr:
-	.word text_colors
+	.int text_colors
 
 .section text
 ; ==== PutC: Prints a character on the screen.
@@ -282,13 +282,6 @@ putc:
 	; r3: y-pos
 	; r4: foreground color
 	; r5: background color
-
-	; Each character is 8x16 pixels encoded in 16 bytes with each byte being an
-	; 8 pixel row. In order to find the start of the char we multiply the char
-	; by 16 and sum it with the start of the character rom.
-	ldr r0, [0xE1094]
-	lsl r1, r1, 4
-	add r1, r0, r1
 
 	; To find the (x,y) position in the frame buffer, we use the formula
 	; pos(x,y) = x-pos*8*4 + 0x84 + y-pos * lineLength * 16.
@@ -305,18 +298,31 @@ putc:
 
 	; Translate colors 0-15 to their RGBA values by multiplying the value by 4
 	; and then summing it with the start of the color table.
-	mov r0, 0xFF00
-	lsl r0, r0, 16
-	mov r4, r0
-	add r5, r0, 0xFF
+	ldr r0, [text_colors_addr]
+	lsl r4, r4, 2
+	add r4, r0, r4
+	ldr r4, [r4]
+	lsl r5, r5, 2
+	add r5, r0, r5
+	ldr r5, [r5]
 
-	; Number of rows per character.
-	mov r6, 4
+	; Each character is 8x16 pixels encoded in 16 bytes with each byte being an
+	; 8 pixel row. In order to find the start of the char we multiply the char
+	; by 16 and sum it with the start of the character rom.
+	mov r0, 0xE1094
+	lsl r1, r1, 4
+	add r1, r0, r1
 
 	; Copy of character start.
 	mov r3, r1
 
+	; Number of rows per character.
+	mov r6, 4
+
 putc_reset_pixel_word_counter:
+	; Load the character word
+	ldr r1, [r3]
+
 	; Number of pixels per word.
 	mov r8, 32
 
@@ -363,7 +369,6 @@ putc_row_done:
 
 	; Not done yet. Get the next word row and loop.
 	add r3, r3, 4
-	mov r1, r3
 	jmp putc_reset_pixel_word_counter
 
 putc_done:
@@ -396,9 +401,9 @@ USER_CODE_start_draw:
 	; Draw the A character ax (320,240) white on black.
 	mov r1, 0x41 ; 'A' character.
 	mov r2, 78   ; x-pos
-	mov r3, 0   ; y-pox
+	mov r3, 0    ; y-pos
 	mov r4, 15   ; White foreground
-	mov r5, 1    ; Black background
+	mov r5, 0    ; Black background
 	call putc
 
 	; Signal to the video controller that it can copy the framebuffer.

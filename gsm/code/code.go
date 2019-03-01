@@ -107,22 +107,34 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 			for _, block := range section.Blocks {
 				for i := range block.Statements {
 					statement := &block.Statements[i]
-					if statement.Instr.Name == "" {
+
+					if statement.Instr.Name != "" {
+						// Processing an instruction.
+						ops := []*parser.Operand{
+							&statement.Instr.Op1,
+							&statement.Instr.Op2,
+							&statement.Instr.Op3,
+						}
+						addr := labelMap[block.Label] + uint32(i*4)
+						for _, op := range ops {
+							err := convertOperand(
+								statement.Instr.Name, addr, labelMap, ast.Consts, op)
+							if err != nil {
+								return fmt.Errorf("error processing instruction %q: %v",
+									statement.Instr, err)
+							}
+						}
 						continue
 					}
-					ops := []*parser.Operand{
-						&statement.Instr.Op1,
-						&statement.Instr.Op2,
-						&statement.Instr.Op3,
-					}
-					addr := labelMap[block.Label] + uint32(i*4)
-					for _, op := range ops {
-						err := convertOperand(
-							statement.Instr.Name, addr, labelMap, ast.Consts, op)
-						if err != nil {
-							return fmt.Errorf("error processing instruction %q: %v",
-								statement.Instr, err)
+
+					if statement.Label != "" {
+						// This is a data entry with a label. Get the address of the label and set it to the statement value.
+						addr, ok := labelMap[statement.Label]
+						if !ok {
+							return fmt.Errorf("label does not exist: %q", statement.Label)
 						}
+						statement.Label = ""
+						statement.Value = addr
 					}
 				}
 			}

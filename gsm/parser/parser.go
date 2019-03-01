@@ -30,6 +30,7 @@ func (o Org) WordCount() int {
 type Statement struct {
 	Value uint32
 	Instr Instruction
+	Label string
 }
 
 type OpType int
@@ -325,6 +326,12 @@ func (p *Parser) data_block(cur state) state {
 		return DATA_BLOCK
 	case lexer.INT_TYPE:
 		tok = p.tokenizer.NextToken()
+		if tok.Type == lexer.IDENT {
+			// This is likely a label the user wants to store the adress from.
+			aBlock.Statements = append(aBlock.Statements, Statement{Label: tok.Literal})
+			return DATA_BLOCK
+		}
+
 		n, err := ParseNumber(tok.Literal)
 		if err != nil {
 			p.err = err
