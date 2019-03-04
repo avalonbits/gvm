@@ -74,6 +74,7 @@ input_handler:
 	; Quit is the value 0xFFFFFFFF so adding 1 should result in 0.
 	add r0, r0, 1
 	jeq r0, input_handler_quit
+	sub r0, r0, 1
 
 	; Save contents of r1 on the stack so we don't disrupt user code.
 	sub r30, r30, 4
@@ -381,79 +382,75 @@ putc_done:
 border_color: .int 0xFF0000FF
 back_color:   .int 0xFF0084A1
 screen_size:  .int 230400     ; 640 * 360 words.
+wait_input_value: .int 0xFFFFFFFF
 
 .section text
 
+; We wait for a user input and print the value on screen.
 USER_CODE:
-	; Draws a border around the screen. Then waits for 5 seconds and halts.
+	; Install our input handler.
+	ldr r0, [user_input_handler_addr]
+	str [0xE1090], r0
 
-	; Load the current tick value to r0.
-	ldr r0, [0xE1084]
-
-	; Set r5 to the border color.
-	ldr r5, [border_color]
-
-USER_CODE_start_draw:
-	; Wait for the video controller to signal that memory copy is done.
-	ldr r1, [0x80]
-	jne r1, USER_CODE_start_draw
-
-	mov r1, 0x84
-	ldr r2, [screen_size]
+	; Now set the x,y start values.
+	mov r2, 1
 	mov r3, 0
-	call memset16
 
-	; Draw the A character ax (320,240) white on black.
-	mov r1, 0x41 ; 'A' character.
-	mov r2, r28  ; x-pos
-	mov r3, r27  ; y-pos
-	mov r4, 15   ; White foreground
-	mov r5, 0    ; Black background
+
+USER_CODE_wait_input:
+	; Wait until user input != 0
+	ldr r1, [user_input_value]
+	add r1, r1, 1
+	jeq r1, USER_CODE_wait_input
+	sub r1, r1, 1
+
+	; Now set user input to 0 so we don't keep writing stuff over.
+	ldr r0, [wait_input_value]
+	str [user_input_value], r0
+
+	; Now we have r1, r2 and r3 correctly set.
+	; Copy r2 and r3 to stack before calling PutC.
+	sub r30, r30, 4
+	str [r30], r2
+	sub r30, r30, 4
+	str [r30], r3
+	mov r4, 15
+	mov r5, 0
+
 	call putc
 
-	; Signal to the video controller that it can copy the framebuffer.
-	mov r1, 1
-	str [0x80], r1
+	ldr r3, [r30]
+	add r30, r30, 4
+	ldr r2, [r30]
+	add r30, r30, 4
+	add r2, r2, 1
 
-	; If 50 seconds have passed, halt the cpu. Otherwise, change the color and
-	; loop back. The cpu timer ticks every 100 microseconds, so once it has
-    ; counted 50000 times we can halt.
-	mov r2, 50000
-	mul r2, r2, 10
+	; Signal video controller.
+	mov r0, 1
+	str [0x80], r0
 
-	; Load the current tick value.
-	ldr r1, [0xE1084]
+USER_CODE_wait_video:
+	; Wait for it to finish
+	ldr r0, [0x84]
+	jne r0, USER_CODE_wait_video
 
-	; Subtract from start value
-	sub r1, r1, r0
+	; Ok, character written. Loop back and wait more.
+	jmp USER_CODE_wait_input
 
-	; Now compare with desired value.
-	sub r2, r1, r2
-	jgt r2, USER_CODE_done
 
-	; Time is not up. Wait for 16ms before updating.
-	mov r2, 1000
-
-USER_CODE_wait_before_draw:
-	ldr r3, [0xE1084]
-	sub r3, r3, r1
-	sub r3, r3, r2
-	jlt r3, USER_CODE_wait_before_draw
-
-	; Time not up. Update x-pos loop back.
-	add r28, r28, 1
-	sub r26, r28, 80
-	jne r26, USER_CODE_start_draw
-
-	; X is at screen end. move back, update y-pos and loop back.
-	mov r28, 0
-	add r27, r27, 1
-	sub r26, r27, 22
-	jne r26, USER_CODE_start_draw
-
-	mov r27, 0
-	jmp USER_CODE_start_draw
 
 USER_CODE_done:
 	halt
+
+.section data
+user_input_value: .int 0xFFFFFFFF
+user_input_handler_addr: .int USER_input_handler
+
+.section text
+; This will be called on every input that is not a quit signal.
+USER_input_handler:
+	; The input value will be stored in r0. We just copy it to a user memory
+    ; location and return. We will deal with the value later.
+	str [user_input_value], r0
+	ret
 
