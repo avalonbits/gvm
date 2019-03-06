@@ -265,6 +265,10 @@ func encode(i parser.Instruction) (parser.Word, error) {
 		return encode2op(i, MovRR, MovRI)
 	case "ldr":
 		return encodeLoad(i)
+	case "ldrip":
+		return encodeLoad(i)
+	case "ldrpi":
+		return encodeLoad(i)
 	case "str":
 		return encodeStor(i)
 	case "strip":

@@ -39,8 +39,7 @@ reset_handler:
 timer_handler:
 	; Implements a 64 bit jiffy counter.
 	; Save the contents of r0 on the stack so we don't disrupt user code.
-	sub r30, r30, 4
-	str [r30], r0
+	strpi [r30, -4], r0
 
 	; Now increment the LSB of the 64 counter.
 	ldr r0, [0xE1084]  ; Load the LSW to r0.
@@ -65,8 +64,7 @@ timer_handler_done:
 ; ==== Input handler
 input_handler:
 	; Save the contents of r0 on the stack so we don't disrupt user code.
-	sub r30, r30, 4
-	str [r30], r0
+	strpi [r30, -4], r0
 
 	; Read the value from the input.
 	ldr r0, [0xE108C]
@@ -77,8 +75,7 @@ input_handler:
 	sub r0, r0, 1
 
 	; Save contents of r1 on the stack so we don't disrupt user code.
-	sub r30, r30, 4
-	str [r30], r1
+	strpi [r30, -4], r1
 
 	; Load the user jump address. If it's != 0, call it.
 	ldr r1, [0xE1090]
@@ -142,8 +139,7 @@ memcpy:
 	; r3: size in words.
 	; r4: local variable for copying memory.
 	ldr r4, [r2]
-	str [r1], r4
-	add r1, r1, 4
+	strip [r1, 4], r4
 	add r2, r2, 4
 	sub r3, r3, 1
 	jgt r3, memcpy
