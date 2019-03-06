@@ -408,12 +408,15 @@ USER_CODE_wait_input:
 	ldr r0, [wait_input_value]
 	str [user_input_value], r0
 
+USER_CODE_wait_video:
+	; Wait for video memory to be available.
+	ldr r0, [0x84]
+	jne r0, USER_CODE_wait_video
+
 	; Now we have r1, r2 and r3 correctly set.
 	; Copy r2 and r3 to stack before calling PutC.
-	sub r30, r30, 4
-	str [r30], r2
-	sub r30, r30, 4
-	str [r30], r3
+	strpi [r30, -4], r2
+	strpi [r30, -4], r3
 	mov r4, 15
 	mov r5, 0
 
@@ -429,14 +432,8 @@ USER_CODE_wait_input:
 	mov r0, 1
 	str [0x80], r0
 
-USER_CODE_wait_video:
-	; Wait for it to finish
-	ldr r0, [0x84]
-	jne r0, USER_CODE_wait_video
-
 	; Ok, character written. Loop back and wait more.
 	jmp USER_CODE_wait_input
-
 
 
 USER_CODE_done:
