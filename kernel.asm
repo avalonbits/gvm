@@ -63,19 +63,16 @@ timer_handler_done:
 
 ; ==== Input handler
 input_handler:
-	; Save the contents of r0 on the stack so we don't disrupt user code.
+	; Save the contents of r0 and r1 on the stack so we don't disrupt user code.
 	strpi [r30, -4], r0
+	strpi [r30, -4], r1
 
 	; Read the value from the input.
 	ldr r0, [0xE108C]
 
 	; Quit is the value 0xFFFFFFFF so adding 1 should result in 0.
-	add r0, r0, 1
-	jeq r0, input_handler_quit
-	sub r0, r0, 1
-
-	; Save contents of r1 on the stack so we don't disrupt user code.
-	strpi [r30, -4], r1
+	add r1, r0, 1
+	jeq r1, input_handler_quit
 
 	; Load the user jump address. If it's != 0, call it.
 	ldr r1, [0xE1090]
@@ -389,16 +386,14 @@ USER_CODE:
 	str [0xE1090], r0
 
 	; Now set the x,y start values.
-	mov r2, 1
+	mov r2, 0
 	mov r3, 0
-
 
 USER_CODE_wait_input:
 	; Wait until user input != 0
 	ldr r1, [user_input_value]
-	add r1, r1, 1
-	jeq r1, USER_CODE_wait_input
-	sub r1, r1, 1
+	add r0, r1, 1
+	jeq r0, USER_CODE_wait_input
 
 	; Now set user input to 0 so we don't keep writing stuff over.
 	ldr r0, [wait_input_value]
@@ -406,7 +401,7 @@ USER_CODE_wait_input:
 
 USER_CODE_wait_video:
 	; Wait for video memory to be available.
-	ldr r0, [0x84]
+	ldr r0, [0x80]
 	jne r0, USER_CODE_wait_video
 
 	; Now we have r1, r2 and r3 correctly set.
@@ -418,15 +413,16 @@ USER_CODE_wait_video:
 
 	call putc
 
+	; Signal video controller.
+	mov r0, 1
+	str [0x80], r0
+
+	; Copy r3 and r2 back from stack.
 	ldr r3, [r30]
 	add r30, r30, 4
 	ldr r2, [r30]
 	add r30, r30, 4
 	add r2, r2, 1
-
-	; Signal video controller.
-	mov r0, 1
-	str [0x80], r0
 
 	; Ok, character written. Loop back and wait more.
 	jmp USER_CODE_wait_input

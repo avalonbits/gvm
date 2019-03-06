@@ -63,7 +63,6 @@ void Computer::Run() {
     const auto start = std::chrono::high_resolution_clock::now();
     op_count = cpu_->PowerOn();
     runtime = std::chrono::high_resolution_clock::now() - start;
-    //ticker_->Stop();
     video_controller_->Shutdown();
   });
 
