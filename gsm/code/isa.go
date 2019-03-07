@@ -12,6 +12,7 @@ const (
 	load_rr
 	load_ri
 	load_ix
+	load_ixr
 	load_pi
 	load_ip
 	stor_rr
@@ -86,6 +87,11 @@ func LoadRI(dest, value uint32) parser.Word {
 func LoadIX(dest, src, offset uint32) parser.Word {
 	offset = offset & 0xFFFF
 	return load_ix | parser.Word(dest)<<6 | parser.Word(src)<<11 | parser.Word(offset)<<16
+}
+
+func LoadIXR(dest, src, offset uint32) parser.Word {
+	return load_ixr | parser.Word(dest)<<6 | parser.Word(src)<<11 |
+		parser.Word(offset)<<16
 }
 
 func LoadIP(dest, src, offset uint32) parser.Word {

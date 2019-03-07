@@ -105,12 +105,12 @@ void CPU::Input() {
 void CPU::Run() {
   static void* opcodes[] = {
     &&NOP, &&HALT, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
-    &&LOAD_PI, &&LOAD_IP, &&STOR_RR, &&STOR_RI, &&STOR_IX, &&STOR_PI,
-    &&STOR_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI, &&JMP, &&JNE, &&JEQ,
-    &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI, &&CALLR, &&RET, &&AND_RR, &&AND_RI,
-    &&ORR_RR, &&ORR_RI, &&XOR_RR, &&XOR_RI, &&LSL_RR, &&LSL_RI, &&LSR_RR,
-    &&LSR_RI, &&ASR_RR, &&ASR_RI, &&MUL_RR, &&MUL_RI, &&DIV_RR, &&DIV_RI,
-    &&MULL_RR, &&WFI
+    &&LOAD_IXR, &&LOAD_PI, &&LOAD_IP, &&STOR_RR, &&STOR_RI, &&STOR_IX,
+    &&STOR_PI, &&STOR_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI, &&JMP, &&JNE,
+    &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI, &&CALLR, &&RET, &&AND_RR,
+    &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR, &&XOR_RI, &&LSL_RR, &&LSL_RI,
+    &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI, &&MUL_RR, &&MUL_RI, &&DIV_RR,
+    &&DIV_RI, &&MULL_RR, &&WFI
   };
   register uint32_t pc = pc_-1;
   register uint32_t word = 0;
@@ -185,6 +185,14 @@ void CPU::Run() {
   LOAD_IX: {
       const register uint32_t idx = reg1(word);
       const register uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
+      const register int32_t v = mem_[addr/kWordSize];
+      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      DISPATCH();
+  }
+  LOAD_IXR: {
+      const register uint32_t idx = reg1(word);
+      const register uint32_t addr =
+         regv(reg2(word), pc, reg_) + regv(reg3(word), pc, reg_);
       const register int32_t v = mem_[addr/kWordSize];
       reg_[idx] = (idx >= 29) ? v / kWordSize : v;
       DISPATCH();
@@ -512,6 +520,10 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::LOAD_IX:
       ss << "load r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
       break;
+    case ISA::LOAD_IXR:
+      ss << "load r" << reg1(word) << ", [r" << reg2(word) << ", r" << reg3(word) << "]";
+      break;
+ 
     case ISA::LOAD_IP:
       ss << "load post inc r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
       break;

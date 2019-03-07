@@ -22,9 +22,10 @@ void VideoController::Run() {
     shutdown = shutdown_;
     if (mem_[mem_reg_] == 0) continue;
 
-    if (print_fps_) start = std::chrono::high_resolution_clock::now();
     display_->CopyBuffer(&mem_[mem_addr_]);
     mem_[mem_reg_] = 0;
+
+    if (print_fps_) start = std::chrono::high_resolution_clock::now();
     display_->Render();
 
     if (print_fps_) {

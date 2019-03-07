@@ -265,6 +265,8 @@ func encode(i parser.Instruction) (parser.Word, error) {
 		return encode2op(i, MovRR, MovRI)
 	case "ldr":
 		return encodeLoad(i)
+	case "ldri":
+		return encodeLoadIX(i)
 	case "ldrip":
 		return encodeLoadIP(i)
 	case "ldrpi":
@@ -371,6 +373,20 @@ func encodeLoad(i parser.Instruction) (parser.Word, error) {
 	}
 }
 
+func encodeLoadIX(i parser.Instruction) (parser.Word, error) {
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: second operand must be a constant.", i)
+	}
+	if i.Op2.Type == parser.OP_LABEL {
+		return parser.Word(0),
+			fmt.Errorf("%q: label substitution was not performed.", i)
+	}
+	if i.Op3.Type == parser.OP_NUMBER {
+		return LoadIX(rToI(i.Op1.Op), rToI(i.Op2.Op), toNum(i.Op3.Op)), nil
+	} else {
+		return LoadIXR(rToI(i.Op1.Op), rToI(i.Op2.Op), rToI(i.Op3.Op)), nil
+	}
+}
 func encodeLoadIP(i parser.Instruction) (parser.Word, error) {
 	if i.Op3.Type != parser.OP_NUMBER {
 		return parser.Word(0), fmt.Errorf("%q: register operand must be a register.", i)

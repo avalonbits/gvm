@@ -290,11 +290,9 @@ putc:
 	; and then summing it with the start of the color table.
 	ldr r0, [text_colors_addr]
 	lsl r4, r4, 2
-	add r4, r0, r4
-	ldr r4, [r4]
+	ldri r4, [r0, r4]
 	lsl r5, r5, 2
-	add r5, r0, r5
-	ldr r5, [r5]
+	ldri r5, [r0, r5]
 
 	; Each character is 8x16 pixels encoded in 16 bytes with each byte being an
 	; 8 pixel row. In order to find the start of the char we multiply the char
@@ -404,8 +402,8 @@ USER_CODE_wait_video:
 	; Copy r2 and r3 to stack before calling PutC.
 	strpi [r30, -4], r2
 	strpi [r30, -4], r3
-	mov r4, 15
-	mov r5, 0
+	mov r4, 4
+	mov r5, 15
 
 	call putc
 
