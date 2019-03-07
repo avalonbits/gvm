@@ -266,9 +266,9 @@ func encode(i parser.Instruction) (parser.Word, error) {
 	case "ldr":
 		return encodeLoad(i)
 	case "ldrip":
-		return encodeLoad(i)
+		return encodeLoadIP(i)
 	case "ldrpi":
-		return encodeLoad(i)
+		return encodeLoadPI(i)
 	case "str":
 		return encodeStor(i)
 	case "strip":
@@ -371,6 +371,33 @@ func encodeLoad(i parser.Instruction) (parser.Word, error) {
 	}
 }
 
+func encodeLoadIP(i parser.Instruction) (parser.Word, error) {
+	if i.Op3.Type != parser.OP_NUMBER {
+		return parser.Word(0), fmt.Errorf("%q: register operand must be a register.", i)
+	}
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: second operand must be a constant.", i)
+	}
+	if i.Op2.Type == parser.OP_LABEL {
+		return parser.Word(0),
+			fmt.Errorf("%q: label substitution was not performed.", i)
+	}
+	return LoadIP(rToI(i.Op1.Op), rToI(i.Op2.Op), toNum(i.Op3.Op)), nil
+}
+
+func encodeLoadPI(i parser.Instruction) (parser.Word, error) {
+	if i.Op3.Type != parser.OP_NUMBER {
+		return parser.Word(0), fmt.Errorf("%q: register operand must be a register.", i)
+	}
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: second operand must be a constant.", i)
+	}
+	if i.Op2.Type == parser.OP_LABEL {
+		return parser.Word(0),
+			fmt.Errorf("%q: label substitution was not performed.", i)
+	}
+	return LoadPI(rToI(i.Op1.Op), rToI(i.Op2.Op), toNum(i.Op3.Op)), nil
+}
 func encodeStor(i parser.Instruction) (parser.Word, error) {
 	if i.Op2.Type != parser.OP_REG {
 		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)

@@ -122,8 +122,8 @@ void CPU::Run() {
   std::chrono::nanoseconds total = exp_sleep*ticks;
 
 
-#define interrupt_dispatch() \
-  if (op_count_ % 300 == 0) {\
+#define interrupt_dispatch(op_count_interval) \
+  if (op_count_ % op_count_interval  == 0) {\
     const auto run_total = (std::chrono::high_resolution_clock::now() - start);\
     if (run_total >= total) {\
       interrupt_ |= 0x02;\
@@ -146,9 +146,9 @@ void CPU::Run() {
     std::cerr << "0x" << std::hex << pc_ << ": " << std::dec \
               << PrintInstruction(word) << std::endl; \
     std::cerr << PrintRegisters(true) << std::endl;\
-    interrupt_dispatch()
+    interrupt_dispatch(1000000000)
 #else
-#define DISPATCH() interrupt_dispatch()
+#define DISPATCH() interrupt_dispatch(300)
 #endif
 
   DISPATCH();
@@ -191,16 +191,21 @@ void CPU::Run() {
   }
   LOAD_PI: {
       const register uint32_t idx = reg1(word);
-      const register uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
-      const register int32_t v = mem_[addr/kWordSize];
+      const register uint32_t idx2 = reg2(word);
+      const register uint32_t next = regv(idx2, pc, reg_) + ext16bit(word);
+      const register int32_t v = mem_[next/kWordSize];
       reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx2] = (idx2 >= 29) ? next / kWordSize : next;
       DISPATCH();
   }
   LOAD_IP: {
       const register uint32_t idx = reg1(word);
-      const register uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
-      const register int32_t v = mem_[addr/kWordSize];
+      const register uint32_t idx2 = reg2(word);
+      const register uint32_t cur = regv(idx2, pc, reg_);
+      const register uint32_t next = cur + ext16bit(word);
+      const register int32_t v = mem_[cur/kWordSize];
       reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx2] = (idx2 >= 29) ? next / kWordSize : next;
       DISPATCH();
   }
   STOR_RR: {
@@ -506,6 +511,12 @@ std::string CPU::PrintInstruction(const Word word) {
       break;
     case ISA::LOAD_IX:
       ss << "load r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
+      break;
+    case ISA::LOAD_IP:
+      ss << "load post inc r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
+      break;
+     case ISA::LOAD_PI:
+      ss << "load pre inc 1r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
       break;
     case ISA::STOR_RR:
       ss << "stor [r" << reg1(word) << "], r" << reg2(word);

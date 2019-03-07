@@ -56,8 +56,7 @@ timer_handler:
 
 timer_handler_done:
 	; Now lets restore r0 and return.
-	ldr r0, [r30]
-	add r30, r30, 4
+	ldrip r0, [r30, 4]
 	ret
 
 
@@ -81,11 +80,8 @@ input_handler:
 
 input_handler_done:
 	; Input processing done. Restore restore r1 and r0 and return.
-	ldr r1, [r30]
-	add r30, r30, 4
-
-	ldr r0, [r30]
-	add r30, r30, 4
+	ldrip r1, [r30, 4]
+	ldrip r0, [r30, 4]
 	ret
 
 input_handler_quit:
@@ -418,10 +414,8 @@ USER_CODE_wait_video:
 	str [0x80], r0
 
 	; Copy r3 and r2 back from stack.
-	ldr r3, [r30]
-	add r30, r30, 4
-	ldr r2, [r30]
-	add r30, r30, 4
+	ldrip r3, [r30, 4]
+	ldrip r2, [r30, 4]
 	add r2, r2, 1
 
 	; Ok, character written. Loop back and wait more.

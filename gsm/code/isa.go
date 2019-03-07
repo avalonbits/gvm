@@ -88,6 +88,11 @@ func LoadIX(dest, src, offset uint32) parser.Word {
 	return load_ix | parser.Word(dest)<<6 | parser.Word(src)<<11 | parser.Word(offset)<<16
 }
 
+func LoadIP(dest, src, offset uint32) parser.Word {
+	offset = offset & 0xFFFF
+	return load_ip | parser.Word(dest)<<6 | parser.Word(src)<<11 | parser.Word(offset)<<16
+}
+
 func StorRR(dest, src uint32) parser.Word {
 	return stor_rr | parser.Word(dest)<<6 | parser.Word(src)<<11
 }
