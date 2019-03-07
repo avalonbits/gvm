@@ -131,9 +131,8 @@ memcpy:
 	; r2: start from:address
 	; r3: size in words.
 	; r4: local variable for copying memory.
-	ldr r4, [r2]
+	ldrip r4, [r2, 4]
 	strip [r1, 4], r4
-	add r2, r2, 4
 	sub r3, r3, 1
 	jgt r3, memcpy
 	ret
