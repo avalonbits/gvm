@@ -401,8 +401,8 @@ USER_CODE_wait_video:
 	; Copy r2 and r3 to stack before calling PutC.
 	strpi [r30, -4], r2
 	strpi [r30, -4], r3
-	mov r4, 4
-	mov r5, 15
+	mov r4, 15
+	mov r5, 0
 
 	call putc
 
@@ -413,7 +413,15 @@ USER_CODE_wait_video:
 	; Copy r3 and r2 back from stack.
 	ldrip r3, [r30, 4]
 	ldrip r2, [r30, 4]
+
+	; Update position
 	add r2, r2, 1
+	sub r4, r2, 80
+	jne r4, USER_CODE_wait_input
+
+	; We reached the end of the screen. Wrap back.
+	mov r2, 0
+	add r3, r3, 1
 
 	; Ok, character written. Loop back and wait more.
 	jmp USER_CODE_wait_input
