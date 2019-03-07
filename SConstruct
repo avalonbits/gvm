@@ -5,7 +5,7 @@ if int(dstep):
   ccflags.append('-DDEBUG_DISPATCH')
 
 debug = ARGUMENTS.get('debug', 0)
-if int(dstep) or int(debug):
+if int(debug):
   ccflags.remove('-O3')
   ccflags.remove('-g')
   ccflags.append('-g3')
@@ -16,8 +16,7 @@ libs = ['SDL2', 'pthread']
 env = Environment(CCFLAGS=' '.join(ccflags), LIBS=libs)
 srcs = [
   'computer.cc', 'computer_roms.cc', 'cpu.cc', 'input_controller.cc', 'isa.cc',
-  'main.cc', 'rom.cc', 'sdl2_video_display.cc', 'ticker.cc',
-  'video_controller.cc'
+  'main.cc', 'rom.cc', 'sdl2_video_display.cc', 'video_controller.cc'
 ]
 env.Program('gvm', srcs)
 
