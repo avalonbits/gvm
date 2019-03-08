@@ -32,7 +32,7 @@ reset_handler:
 	str [0xE1090], r0
 
 	; Now jump to user code, which starts at the 1MiB address.
-	jmp USER_CODE
+	jmp USER_INTERFACE
 
 
 ; ==== Timer interrupt handler.
@@ -361,19 +361,17 @@ putc_row_done:
 putc_done:
 	ret
 
-.org 0x100000
+
+
 
 .section data
 
-border_color: .int 0xFF0000FF
-back_color:   .int 0xFF0084A1
-screen_size:  .int 230400     ; 640 * 360 words.
 wait_input_value: .int 0xFFFFFFFF
 
 .section text
 
 ; We wait for a user input and print the value on screen.
-USER_CODE:
+USER_INTERFACE:
 	; Install our input handler.
 	ldr r0, [user_input_handler_addr]
 	str [0xE1090], r0
@@ -382,20 +380,20 @@ USER_CODE:
 	mov r2, 0
 	mov r3, 0
 
-USER_CODE_wait_input:
+USER_INTERFACE_wait_input:
 	; Wait until user input != 0
 	ldr r1, [user_input_value]
 	add r0, r1, 1
-	jeq r0, USER_CODE_wait_input
+	jeq r0, USER_INTERFACE_wait_input
 
 	; Now set user input to 0 so we don't keep writing stuff over.
 	ldr r0, [wait_input_value]
 	str [user_input_value], r0
 
-USER_CODE_wait_video:
+USER_INTERFACE_wait_video:
 	; Wait for video memory to be available.
 	ldr r0, [0x80]
-	jne r0, USER_CODE_wait_video
+	jne r0, USER_INTERFACE_wait_video
 
 	; Now we have r1, r2 and r3 correctly set.
 	; Copy r2 and r3 to stack before calling PutC.
@@ -417,17 +415,17 @@ USER_CODE_wait_video:
 	; Update position
 	add r2, r2, 1
 	sub r4, r2, 80
-	jne r4, USER_CODE_wait_input
+	jne r4, USER_INTERFACE_wait_input
 
 	; We reached the end of the screen. Wrap back.
 	mov r2, 0
 	add r3, r3, 1
 
 	; Ok, character written. Loop back and wait more.
-	jmp USER_CODE_wait_input
+	jmp USER_INTERFACE_wait_input
 
 
-USER_CODE_done:
+USER_INTERFACE_done:
 	halt
 
 .section data
