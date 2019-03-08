@@ -94,7 +94,7 @@ func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 					}
 					labelMap[block.Label] = baseAddr + (wordCount * 4)
 				}
-				wordCount += uint32(len(block.Statements))
+				wordCount += uint32(block.WordCount())
 			}
 		}
 	}
@@ -224,9 +224,16 @@ func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
 			for _, block := range section.Blocks {
 				for _, statement := range block.Statements {
 					if section.Type == parser.DATA_SECTION {
-						binary.LittleEndian.PutUint32(word, statement.Value)
-						if _, err := buf.Write(word); err != nil {
-							return err
+						if statement.ArraySize != 0 {
+							bytes := make([]byte, statement.ArraySize)
+							if _, err := buf.Write(bytes); err != nil {
+								return err
+							}
+						} else {
+							binary.LittleEndian.PutUint32(word, statement.Value)
+							if _, err := buf.Write(word); err != nil {
+								return err
+							}
 						}
 						continue
 					}

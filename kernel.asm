@@ -362,11 +362,12 @@ putc_done:
 	ret
 
 
-
+; ======================== User interface code =======================
 
 .section data
 
 wait_input_value: .int 0xFFFFFFFF
+char_buffer: .array 256
 
 .section text
 

@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -28,9 +29,17 @@ func (o Org) WordCount() int {
 }
 
 type Statement struct {
-	Value uint32
-	Instr Instruction
-	Label string
+	Value     uint32
+	Instr     Instruction
+	Label     string
+	ArraySize int
+}
+
+func (s Statement) WordCount() int {
+	if s.ArraySize > 0 {
+		return s.ArraySize / 4
+	}
+	return 1
 }
 
 type OpType int
@@ -99,8 +108,12 @@ type Block struct {
 	Statements []Statement
 }
 
-func (b Block) wordCount() int {
-	return len(b.Statements)
+func (b Block) WordCount() int {
+	count := 0
+	for _, s := range b.Statements {
+		count += s.WordCount()
+	}
+	return count
 }
 
 type SType int
@@ -120,7 +133,7 @@ type Section struct {
 func (s Section) wordCount() int {
 	var count int
 	for _, b := range s.Blocks {
-		count += b.wordCount()
+		count += b.WordCount()
 	}
 	return count
 }
@@ -324,6 +337,25 @@ func (p *Parser) data_block(cur state) state {
 			aSection.Blocks = append(aSection.Blocks, Block{Label: label})
 		}
 		return DATA_BLOCK
+	case lexer.ARRAY_TYPE:
+		tok = p.tokenizer.NextToken()
+		if tok.Type != lexer.NUMBER {
+			p.err = fmt.Errorf("expected a number, got %q", tok.Literal)
+			return ERROR
+		}
+		n, err := ParseNumber(tok.Literal)
+		if err != nil {
+			p.err = err
+			return ERROR
+		}
+		if n > 0 && n%4 != 0 {
+			n += (4 - (n % 4))
+		}
+
+		log.Println(n)
+		aBlock.Statements = append(aBlock.Statements, Statement{ArraySize: int(n)})
+		return DATA_BLOCK
+
 	case lexer.INT_TYPE:
 		tok = p.tokenizer.NextToken()
 		if tok.Type == lexer.IDENT {

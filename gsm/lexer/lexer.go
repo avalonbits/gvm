@@ -37,6 +37,7 @@ const (
 	ORG
 	LABEL
 	INT_TYPE
+	ARRAY_TYPE
 	IDENT
 	NUMBER
 	REGISTER
@@ -50,6 +51,7 @@ var keywords = map[string]TokenType{
 	"text":     S_TEXT,
 	".org":     ORG,
 	".int":     INT_TYPE,
+	".array":   ARRAY_TYPE,
 	"mov":      INSTRUCTION,
 	"add":      INSTRUCTION,
 	"sub":      INSTRUCTION,
