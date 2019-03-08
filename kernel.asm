@@ -367,7 +367,10 @@ putc_done:
 .section data
 
 wait_input_value: .int 0xFFFFFFFF
-char_buffer: .array 256
+ui_x: .int 0
+ui_y: .int 0
+ui_fcolor: .int 15
+ui_bcolor: .int 0
 
 .section text
 
@@ -376,10 +379,6 @@ USER_INTERFACE:
 	; Install our input handler.
 	ldr r0, [user_input_handler_addr]
 	str [0xE1090], r0
-
-	; Now set the x,y start values.
-	mov r2, 0
-	mov r3, 0
 
 USER_INTERFACE_wait_input:
 	; Wait until user input != 0
@@ -396,12 +395,11 @@ USER_INTERFACE_wait_video:
 	ldr r0, [0x80]
 	jne r0, USER_INTERFACE_wait_video
 
-	; Now we have r1, r2 and r3 correctly set.
-	; Copy r2 and r3 to stack before calling PutC.
-	strpi [r30, -4], r2
-	strpi [r30, -4], r3
-	mov r4, 15
-	mov r5, 0
+	; Set the params for putc.
+	ldr r2, [ui_x]
+	ldr r3, [ui_y]
+	ldr r4, [ui_fcolor]
+	ldr r5, [ui_bcolor]
 
 	call putc
 
@@ -409,18 +407,22 @@ USER_INTERFACE_wait_video:
 	mov r0, 1
 	str [0x80], r0
 
-	; Copy r3 and r2 back from stack.
-	ldrip r3, [r30, 4]
-	ldrip r2, [r30, 4]
-
-	; Update position
+	; Update x position
+	ldr r2, [ui_x]
 	add r2, r2, 1
 	sub r4, r2, 80
-	jne r4, USER_INTERFACE_wait_input
+	jeq r4, USER_INTERFACE_x_end
+	str [ui_x], r2
+	jmp USER_INTERFACE_wait_input
 
+USER_INTERFACE_x_end:
 	; We reached the end of the screen. Wrap back.
 	mov r2, 0
+
+	ldr r3, [ui_y]
 	add r3, r3, 1
+	str [ui_x], r2
+	str [ui_y], r3
 
 	; Ok, character written. Loop back and wait more.
 	jmp USER_INTERFACE_wait_input
