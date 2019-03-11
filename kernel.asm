@@ -137,6 +137,48 @@ memcpy:
 	jgt r3, memcpy
 	ret
 
+; ==== Memcopy16. Same as memcpy but assumes size is a multiple of 16 words.
+memcpy16:
+	; r1: start to-address
+	; r2: start from:address
+	; r3: size in words.
+	; r4: local variable for copying memory.
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	ldrip r4, [r2, 4]
+	strip [r1, 4], r4
+	sub r3, r3, 16
+	jgt r3, memcpy16
+	ret
+
 ; ==== HLine: draws a horizontal line on the screen.
 ; Linelength is 2560 bytes (640 * 32bpp)
 hline:
