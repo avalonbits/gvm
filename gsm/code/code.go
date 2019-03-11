@@ -253,6 +253,15 @@ func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
 }
 
 func rToI(reg string) uint32 {
+	if reg == "pc" {
+		return 29
+	}
+	if reg == "sp" {
+		return 30
+	}
+	if reg == "fp" {
+		return 31
+	}
 	n, err := strconv.Atoi(reg[1:])
 	if err != nil {
 		panic(err)

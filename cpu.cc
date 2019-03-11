@@ -96,8 +96,6 @@ void CPU::Tick() {
 
 void CPU::Input() {
   if (mask_interrupt_) return;
-  std::cerr << "Input.\n";
-
   interrupt_ |= 0x04;
   interrupt_event_.notify_all();
 }

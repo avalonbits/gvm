@@ -39,7 +39,7 @@ reset_handler:
 timer_handler:
 	; Implements a 64 bit jiffy counter.
 	; Save the contents of r0 on the stack so we don't disrupt user code.
-	strpi [r30, -4], r0
+	strpi [sp, -4], r0
 
 	; Now increment the LSB of the 64 counter.
 	ldr r0, [0xE1084]  ; Load the LSW to r0.
@@ -56,15 +56,15 @@ timer_handler:
 
 timer_handler_done:
 	; Now lets restore r0 and return.
-	ldrip r0, [r30, 4]
+	ldrip r0, [sp, 4]
 	ret
 
 
 ; ==== Input handler
 input_handler:
 	; Save the contents of r0 and r1 on the stack so we don't disrupt user code.
-	strpi [r30, -4], r0
-	strpi [r30, -4], r1
+	strpi [sp, -4], r0
+	strpi [sp, -4], r1
 
 	; Read the value from the input.
 	ldr r0, [0xE108C]
@@ -80,8 +80,8 @@ input_handler:
 
 input_handler_done:
 	; Input processing done. Restore restore r1 and r0 and return.
-	ldrip r1, [r30, 4]
-	ldrip r0, [r30, 4]
+	ldrip r1, [sp, 4]
+	ldrip r0, [sp, 4]
 	ret
 
 input_handler_quit:
@@ -260,8 +260,7 @@ text_colors:
 	.int 0xFFFFFF00 ; 14 - Aqua
 	.int 0xFFFFFFFF ; 15 - White
 
-text_colors_addr:
-	.int text_colors
+text_colors_addr: .int text_colors
 
 .section text
 ; ==== PutC: Prints a character on the screen.
@@ -281,7 +280,7 @@ putc:
 	add r2, r2, r3
 
 	; And because we process the row from right to left, we need to move the
-	; start 8 pixels (3 bytes) to the right. But because this is 0 based, we
+	; start 8 pixels (32 bytes) to the right. But because this is 0 based, we
 	; need to add 31.
 	add r2, r2, 31
 
@@ -362,11 +361,25 @@ putc_done:
 	ret
 
 
+; ==== FlushVideo: tells the video controller that it can copy the framebuffer
+; to its own memory.
+flush_video:
+	mov r0, 1
+    str [0x80], r0
+	ret
+
+
+; ==== WaitVideo: waits for the video controller to signal that the framebuffer
+; available for writing.
+wait_video:
+	ldr r0, [0x80]
+	jne r0, wait_video
+	ret
+
 ; ======================== User interface code =======================
 
 .section data
 
-wait_input_value: .int 0xFFFFFFFF
 ui_x: .int 0
 ui_y: .int 0
 ui_fcolor: .int 15
@@ -380,20 +393,8 @@ USER_INTERFACE:
 	ldr r0, [user_input_handler_addr]
 	str [0xE1090], r0
 
-USER_INTERFACE_wait_input:
-	; Wait until user input != 0
-	ldr r1, [user_input_value]
-	add r0, r1, 1
-	jeq r0, USER_INTERFACE_wait_input
-
-	; Now set user input to 0 so we don't keep writing stuff over.
-	ldr r0, [wait_input_value]
-	str [user_input_value], r0
-
-USER_INTERFACE_wait_video:
-	; Wait for video memory to be available.
-	ldr r0, [0x80]
-	jne r0, USER_INTERFACE_wait_video
+USER_INTERFACE_loop:
+	call USER_INTERFACE_getc
 
 	; Set the params for putc.
 	ldr r2, [ui_x]
@@ -401,11 +402,9 @@ USER_INTERFACE_wait_video:
 	ldr r4, [ui_fcolor]
 	ldr r5, [ui_bcolor]
 
+	call wait_video
 	call putc
-
-	; Signal video controller.
-	mov r0, 1
-	str [0x80], r0
+	call flush_video
 
 	; Update x position
 	ldr r2, [ui_x]
@@ -413,7 +412,7 @@ USER_INTERFACE_wait_video:
 	sub r4, r2, 80
 	jeq r4, USER_INTERFACE_x_end
 	str [ui_x], r2
-	jmp USER_INTERFACE_wait_input
+	jmp USER_INTERFACE_loop
 
 USER_INTERFACE_x_end:
 	; We reached the end of the screen. Wrap back.
@@ -425,11 +424,27 @@ USER_INTERFACE_x_end:
 	str [ui_y], r3
 
 	; Ok, character written. Loop back and wait more.
-	jmp USER_INTERFACE_wait_input
+	jmp USER_INTERFACE_loop
 
 
 USER_INTERFACE_done:
 	halt
+
+.section data
+wait_input_value: .int 0xFFFFFFFF
+
+.section text
+; ===== UI getc. Waits for user inpu
+USER_INTERFACE_getc:
+	; Wait until user input != 0
+	ldr r1, [user_input_value]
+	add r0, r1, 1
+	jeq r0, USER_INTERFACE_getc
+
+	; Now set user input to 0 so we don't keep writing stuff over.
+	ldr r0, [wait_input_value]
+	str [user_input_value], r0
+	ret
 
 .section data
 user_input_value: .int 0xFFFFFFFF
