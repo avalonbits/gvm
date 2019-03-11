@@ -14,24 +14,26 @@ VideoController::VideoController(const bool print_fps, VideoDisplay* display)
 }
 
 void VideoController::Run() {
-  register uint32_t fps = 0;
+  auto shutdown = shutdown_;
   auto start = std::chrono::high_resolution_clock::now();
-  while (!shutdown_) {
-    if (print_fps_) ++fps;
+  display_->Render();
+  while (!shutdown) {
     input_controller_->Read();
-    shutdown_ = display_->CheckEvents();
-    if (mem_[mem_reg_] == 1) {
-      display_->CopyBuffer(&mem_[mem_addr_]);
-      mem_[mem_reg_] = 0;
-    }
+    shutdown = shutdown_;
+    if (mem_[mem_reg_] == 0) continue;
+
+    display_->CopyBuffer(&mem_[mem_addr_]);
+    mem_[mem_reg_] = 0;
+
+    if (print_fps_) start = std::chrono::high_resolution_clock::now();
     display_->Render();
-    if (print_fps_ && fps % 200 == 0) {
+
+    if (print_fps_) {
       const std::chrono::nanoseconds runtime =
           std::chrono::high_resolution_clock::now() - start;
       const auto time = runtime.count();
-      std::cerr << "Avergate fps: " << (200 / (time / static_cast<double>(1000000000)))
+      std::cout << "Avergate fps: " << (1 / (time / static_cast<double>(1000000000)))
                 << "\n";
-      start = std::chrono::high_resolution_clock::now();
     }
   }
 }

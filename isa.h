@@ -16,9 +16,14 @@ enum ISA {
     LOAD_RR,
     LOAD_RI,
     LOAD_IX,
+    LOAD_IXR,
+    LOAD_PI,
+    LOAD_IP,
     STOR_RR,
     STOR_RI,
     STOR_IX,
+    STOR_PI,
+    STOR_IP,
     ADD_RR,
     ADD_RI,
     SUB_RR,
@@ -62,9 +67,14 @@ Word MovRI(uint32_t dest, uint32_t value);
 Word LoadRI(uint32_t dest, uint32_t memadr);
 Word LoadRR(uint32_t dest, uint32_t src);
 Word LoadIX(uint32_t dest, uint32_t src, uint32_t offset);
+Word LoadIXR(uint32_t dest, uint32_t src, uint32_t offset);
+Word LoadPI(uint32_t dest, uint32_t src, uint32_t offset);
+Word LoadIP(uint32_t dest, uint32_t src, uint32_t offset);
 Word StorRI(uint32_t memaddr, uint32_t src);
 Word StorRR(uint32_t dest, uint32_t src);
 Word StorIX(uint32_t dest, uint32_t src, uint32_t offset);
+Word StorPI(uint32_t dest, uint32_t src, uint32_t offset);
+Word StorIP(uint32_t dest, uint32_t src, uint32_t offset);
 Word AddRR(uint32_t dest, uint32_t op1, uint32_t op2);
 Word AddRI(uint32_t dest, uint32_t op1, uint32_t value);
 Word SubRR(uint32_t dest, uint32_t op1, uint32_t op2);

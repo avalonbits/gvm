@@ -34,6 +34,7 @@ constexpr uint32_t v16bit(uint32_t word) {
   return (word >> 16) & 0xFFFF;
 }
 constexpr uint32_t ext16bit(uint32_t word) {
+  word = v16bit(word);
   return (0x00008000 & word) ? (0xFFFF0000 | word) : word;
 }
 
@@ -89,13 +90,14 @@ void CPU::Tick() {
   if (mask_interrupt_) return;
 #endif
   std::lock_guard<std::mutex> lg(interrupt_mutex_);
-  interrupt_ |= 0x02;
+  //iinterrupt_ |= 0x02;
   interrupt_event_.notify_all();
 }
 
 void CPU::Input() {
   if (mask_interrupt_) return;
-  std::lock_guard<std::mutex> lg(interrupt_mutex_);
+  std::cerr << "Input.\n";
+
   interrupt_ |= 0x04;
   interrupt_event_.notify_all();
 }
@@ -103,17 +105,32 @@ void CPU::Input() {
 void CPU::Run() {
   static void* opcodes[] = {
     &&NOP, &&HALT, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
-    &&STOR_RR, &&STOR_RI, &&STOR_IX, &&ADD_RR, &&ADD_RI, &&SUB_RR,
-    &&SUB_RI, &&JMP, &&JNE, &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI,
-    &&CALLR, &&RET, &&AND_RR, &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR,
-    &&XOR_RI, &&LSL_RR, &&LSL_RI, &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI,
-    &&MUL_RR, &&MUL_RI, &&DIV_RR, &&DIV_RI, &&MULL_RR, &&WFI
+    &&LOAD_IXR, &&LOAD_PI, &&LOAD_IP, &&STOR_RR, &&STOR_RI, &&STOR_IX,
+    &&STOR_PI, &&STOR_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI, &&JMP, &&JNE,
+    &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI, &&CALLR, &&RET, &&AND_RR,
+    &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR, &&XOR_RI, &&LSL_RR, &&LSL_RI,
+    &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI, &&MUL_RR, &&MUL_RI, &&DIV_RR,
+    &&DIV_RI, &&MULL_RR, &&WFI
   };
   register uint32_t pc = pc_-1;
   register uint32_t word = 0;
 
+  auto start = std::chrono::high_resolution_clock::now();
+  const uint64_t nsecs = 1000000000;
+  uint64_t ticks = 1;
+  const std::chrono::nanoseconds exp_sleep(nsecs/10000);
+  std::chrono::nanoseconds total = exp_sleep*ticks;
 
-#define interrupt_dispatch() \
+
+#define interrupt_dispatch(op_count_interval) \
+  if (op_count_ % op_count_interval  == 0) {\
+    const auto run_total = (std::chrono::high_resolution_clock::now() - start);\
+    if (run_total >= total) {\
+      interrupt_ |= 0x02;\
+      ticks++;\
+      total = exp_sleep*ticks;\
+    }\
+  }\
   if (interrupt_ != 0) {\
     goto INTERRUPT_SERVICE;\
   } else {\
@@ -129,9 +146,9 @@ void CPU::Run() {
     std::cerr << "0x" << std::hex << pc_ << ": " << std::dec \
               << PrintInstruction(word) << std::endl; \
     std::cerr << PrintRegisters(true) << std::endl;\
-    interrupt_dispatch()
+    interrupt_dispatch(1000000000)
 #else
-#define DISPATCH() interrupt_dispatch()
+#define DISPATCH() interrupt_dispatch(300)
 #endif
 
   DISPATCH();
@@ -167,23 +184,67 @@ void CPU::Run() {
   }
   LOAD_IX: {
       const register uint32_t idx = reg1(word);
-      const register int32_t v =
-          mem_[(regv(reg2(word), pc, reg_) + v16bit(word))/kWordSize];
+      const register uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
+      const register int32_t v = mem_[addr/kWordSize];
       reg_[idx] = (idx >= 29) ? v / kWordSize : v;
       DISPATCH();
   }
-  STOR_RR:
+  LOAD_IXR: {
+      const register uint32_t idx = reg1(word);
+      const register uint32_t addr =
+         regv(reg2(word), pc, reg_) + regv(reg3(word), pc, reg_);
+      const register int32_t v = mem_[addr/kWordSize];
+      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      DISPATCH();
+  }
+  LOAD_PI: {
+      const register uint32_t idx = reg1(word);
+      const register uint32_t idx2 = reg2(word);
+      const register uint32_t next = regv(idx2, pc, reg_) + ext16bit(word);
+      const register int32_t v = mem_[next/kWordSize];
+      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx2] = (idx2 >= 29) ? next / kWordSize : next;
+      DISPATCH();
+  }
+  LOAD_IP: {
+      const register uint32_t idx = reg1(word);
+      const register uint32_t idx2 = reg2(word);
+      const register uint32_t cur = regv(idx2, pc, reg_);
+      const register uint32_t next = cur + ext16bit(word);
+      const register int32_t v = mem_[cur/kWordSize];
+      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx2] = (idx2 >= 29) ? next / kWordSize : next;
+      DISPATCH();
+  }
+  STOR_RR: {
       mem_[regv(reg1(word), pc, reg_)/kWordSize] = regv(reg2(word), pc, reg_);
       DISPATCH();
+  }
   STOR_RI: {
       const uint32_t addr = ((word >> 11) & 0x1FFFFF)/kWordSize;
       mem_[addr] = regv(reg1(word), pc, reg_);
       DISPATCH();
   }
-  STOR_IX:
-      mem_[(regv(reg1(word), pc, reg_) + v16bit(word))/kWordSize] =
+  STOR_IX: {
+      mem_[(regv(reg1(word), pc, reg_) + ext16bit(word))/kWordSize] =
           regv(reg2(word), pc, reg_);
       DISPATCH();
+  }
+  STOR_PI: {
+      const register uint32_t idx = reg1(word);
+      const register uint32_t next = regv(idx, pc, reg_) + ext16bit(word);
+      mem_[next/kWordSize] = regv(reg2(word), pc, reg_);
+      reg_[idx] = ((idx >= 29) ? next / kWordSize : next);
+      DISPATCH();
+  }
+  STOR_IP: {
+      const register uint32_t idx = reg1(word);
+      const register uint32_t cur = regv(idx, pc, reg_);
+      const register uint32_t next = cur + ext16bit(word);
+      mem_[cur/kWordSize] = regv(reg2(word), pc, reg_);
+      reg_[idx] = ((idx >= 29) ? next / kWordSize : next);
+      DISPATCH();
+  }
   ADD_RR: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc ,reg_) + regv(reg3(word), pc, reg_);
@@ -459,6 +520,16 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::LOAD_IX:
       ss << "load r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
       break;
+    case ISA::LOAD_IXR:
+      ss << "load r" << reg1(word) << ", [r" << reg2(word) << ", r" << reg3(word) << "]";
+      break;
+ 
+    case ISA::LOAD_IP:
+      ss << "load post inc r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
+      break;
+     case ISA::LOAD_PI:
+      ss << "load pre inc 1r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
+      break;
     case ISA::STOR_RR:
       ss << "stor [r" << reg1(word) << "], r" << reg2(word);
       break;
@@ -467,6 +538,12 @@ std::string CPU::PrintInstruction(const Word word) {
       break;
     case ISA::STOR_IX:
       ss << "stor [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word);
+      break;
+    case ISA::STOR_IP:
+      ss << "stor post inc [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word);
+      break;
+     case ISA::STOR_PI:
+      ss << "stor pre inc [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word);
       break;
     case ISA::ADD_RR:
       ss << "add r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);

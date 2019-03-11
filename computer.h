@@ -8,7 +8,6 @@
 #include "cpu.h"
 #include "input_controller.h"
 #include "rom.h"
-#include "ticker.h"
 #include "video_controller.h"
 
 namespace gvm {
@@ -32,7 +31,6 @@ class Computer {
   std::unique_ptr<uint32_t> mem_;
   std::unique_ptr<CPU> cpu_;
   std::unique_ptr<VideoController> video_controller_;
-  std::unique_ptr<Ticker> ticker_;
   std::unique_ptr<InputController> input_controller_;
 };
 

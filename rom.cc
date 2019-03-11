@@ -6,11 +6,11 @@ namespace gvm {
 
 /* static */
 const Rom* Rom::FromFile(std::ifstream& in) {
-  const std::string header("1987gvm");
+  const std::string header("s1987gvm");
 
-  char hBuffer[7];
-  in.read(hBuffer, 7);
-  assert(header.compare(0, 7, hBuffer, 7) == 0);
+  char hBuffer[8];
+  in.read(hBuffer, 8);
+  assert(header.compare(0, 8, hBuffer, 8) == 0);
 
   auto* rom = new Rom();
   while (in) {

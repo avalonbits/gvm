@@ -1,4 +1,3 @@
-#include "isa.h"
 
 #include <cassert>
 #include <iostream>
@@ -48,6 +47,27 @@ Word LoadIX(uint32_t dest, uint32_t src, uint32_t offset) {
   return Word(ISA::LOAD_IX | dest << 6 | src << 11  | offset << 16);
 }
 
+Word LoadIXR(uint32_t dest, uint32_t src, uint32_t offset) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  assert(offset < kRegCount);
+  return Word(ISA::LOAD_IXR | dest << 6 | src << 11  | offset << 16);
+}
+
+Word LoadPI(uint32_t dest, uint32_t src, uint32_t offset) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  offset = offset & 0xFFFF;
+  return Word(ISA::LOAD_PI | dest << 6 | src << 11  | offset << 16);
+}
+
+Word LoadIP(uint32_t dest, uint32_t src, uint32_t offset) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  offset = offset & 0xFFFF;
+  return Word(ISA::LOAD_IP | dest << 6 | src << 11  | offset << 16);
+}
+
 Word StorRI(uint32_t memaddr, uint32_t src) {
   assert((memaddr & 0x1FFFFF) == memaddr);
   assert(memaddr % kWordSize == 0);  // kWordSize aligned memory.
@@ -66,6 +86,20 @@ Word StorIX(uint32_t dest, uint32_t src, uint32_t offset) {
   assert(src < kRegCount);
   offset = offset & 0xFFFF;
   return Word(ISA::STOR_IX | dest << 6 | src << 11  | offset << 16);
+}
+
+Word StorPI(uint32_t dest, uint32_t src, uint32_t offset) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  offset = offset & 0xFFFF;
+  return Word(ISA::STOR_PI | dest << 6 | src << 11  | offset << 16);
+}
+
+Word StorIP(uint32_t dest, uint32_t src, uint32_t offset) {
+  assert(dest < kRegCount);
+  assert(src < kRegCount);
+  offset = offset & 0xFFFF;
+  return Word(ISA::STOR_IP | dest << 6 | src << 11  | offset << 16);
 }
 
 Word AddRR(uint32_t dest, uint32_t op1, uint32_t op2) {

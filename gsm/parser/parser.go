@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -28,8 +29,17 @@ func (o Org) WordCount() int {
 }
 
 type Statement struct {
-	Value uint32
-	Instr Instruction
+	Value     uint32
+	Instr     Instruction
+	Label     string
+	ArraySize int
+}
+
+func (s Statement) WordCount() int {
+	if s.ArraySize > 0 {
+		return s.ArraySize / 4
+	}
+	return 1
 }
 
 type OpType int
@@ -37,6 +47,7 @@ type OpType int
 const (
 	OP_REG = iota
 	OP_NUMBER
+	OP_DIFF
 	OP_LABEL
 )
 
@@ -97,8 +108,12 @@ type Block struct {
 	Statements []Statement
 }
 
-func (b Block) wordCount() int {
-	return len(b.Statements)
+func (b Block) WordCount() int {
+	count := 0
+	for _, s := range b.Statements {
+		count += s.WordCount()
+	}
+	return count
 }
 
 type SType int
@@ -106,17 +121,19 @@ type SType int
 const (
 	DATA_SECTION SType = iota
 	TEXT_SECTION
+	EMBED_FILE
 )
 
 type Section struct {
-	Type   SType
-	Blocks []Block
+	Type      SType
+	Blocks    []Block
+	EmbedFile string
 }
 
 func (s Section) wordCount() int {
 	var count int
 	for _, b := range s.Blocks {
-		count += b.wordCount()
+		count += b.WordCount()
 	}
 	return count
 }
@@ -143,6 +160,7 @@ type state int
 const (
 	START state = iota
 	SECTION
+	EMBED_STATEMENT
 	DATA_BLOCK
 	TEXT_BLOCK
 	ERROR
@@ -157,6 +175,8 @@ func (p *Parser) Parse() error {
 			st = p.org()
 		case SECTION:
 			st = p.section()
+		case EMBED_STATEMENT:
+			st = p.embed()
 		case DATA_BLOCK:
 			st = p.data_block(st)
 		case TEXT_BLOCK:
@@ -215,15 +235,20 @@ func (p *Parser) org() state {
 }
 
 func (p *Parser) section() state {
-	tok := p.tokenizer.NextToken()
-	if tok.Type != lexer.SECTION {
+	tok := p.tokenizer.PeakToken()
+	if tok.Type != lexer.SECTION && tok.Type != lexer.EMBED {
 		p.err = fmt.Errorf("expected .section, got %q", tok.Literal)
 		return ERROR
 	}
 
+	if tok.Type == lexer.EMBED {
+		return EMBED_STATEMENT
+	}
+	p.tokenizer.NextToken()
+
 	tok = p.tokenizer.NextToken()
 	if tok.Type != lexer.S_DATA && tok.Type != lexer.S_TEXT {
-		p.err = fmt.Errorf("expected data or text, got %q", tok.Literal)
+		p.err = fmt.Errorf("expected dat, embed a or text, got %q", tok.Literal)
 		return ERROR
 	}
 
@@ -244,6 +269,38 @@ func (p *Parser) section() state {
 	return next
 }
 
+func (p *Parser) embed() state {
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.EMBED {
+		p.err = fmt.Errorf("expected .embed, got %q", tok.Literal)
+		return ERROR
+	}
+
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.D_QUOTE {
+		p.err = fmt.Errorf("expected a double quote (\"), got %q", tok.Literal)
+		return ERROR
+	}
+
+	var sb strings.Builder
+	for {
+		tok = p.tokenizer.NextToken()
+		if tok.Type == lexer.NEWLINE {
+			p.err = fmt.Errorf("expected a double quote(\"), got a new line")
+			return ERROR
+		}
+		if tok.Type == lexer.D_QUOTE {
+			break
+		}
+		sb.WriteString(tok.Literal)
+	}
+
+	s := Section{Type: EMBED_FILE, EmbedFile: sb.String()}
+	o := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
+	o.Sections = append(o.Sections, s)
+	return SECTION
+}
+
 func (p *Parser) data_block(cur state) state {
 	tok := p.tokenizer.PeakToken()
 	if tok.Type == lexer.ORG {
@@ -251,6 +308,10 @@ func (p *Parser) data_block(cur state) state {
 	}
 	if tok.Type == lexer.SECTION {
 		return SECTION
+	}
+
+	if tok.Type == lexer.EMBED {
+		return EMBED_STATEMENT
 	}
 
 	// Get the active block.
@@ -276,26 +337,39 @@ func (p *Parser) data_block(cur state) state {
 			aSection.Blocks = append(aSection.Blocks, Block{Label: label})
 		}
 		return DATA_BLOCK
-	case lexer.INT_TYPE:
+	case lexer.ARRAY_TYPE:
 		tok = p.tokenizer.NextToken()
-		if tok.Type != lexer.IDENT {
-			p.err = fmt.Errorf("exptected a name for the constant, got %q.", tok.Literal)
+		if tok.Type != lexer.NUMBER {
+			p.err = fmt.Errorf("expected a number, got %q", tok.Literal)
 			return ERROR
 		}
+		n, err := ParseNumber(tok.Literal)
+		if err != nil {
+			p.err = err
+			return ERROR
+		}
+		if n > 0 && n%4 != 0 {
+			n += (4 - (n % 4))
+		}
 
-		name := tok.Literal
+		log.Println(n)
+		aBlock.Statements = append(aBlock.Statements, Statement{ArraySize: int(n)})
+		return DATA_BLOCK
+
+	case lexer.INT_TYPE:
 		tok = p.tokenizer.NextToken()
+		if tok.Type == lexer.IDENT {
+			// This is likely a label the user wants to store the adress from.
+			aBlock.Statements = append(aBlock.Statements, Statement{Label: tok.Literal})
+			return DATA_BLOCK
+		}
+
 		n, err := ParseNumber(tok.Literal)
 		if err != nil {
 			p.err = err
 			return ERROR
 		}
 
-		if _, ok := p.Ast.Consts[name]; ok {
-			p.err = fmt.Errorf("constant %q was defined earlier in the file", name)
-			return ERROR
-		}
-		p.Ast.Consts[name] = tok.Literal
 		aBlock.Statements = append(aBlock.Statements, Statement{Value: n})
 		return DATA_BLOCK
 	default:
@@ -311,6 +385,9 @@ func (p *Parser) text_block(cur state) state {
 	}
 	if tok.Type == lexer.SECTION {
 		return SECTION
+	}
+	if tok.Type == lexer.EMBED {
+		return EMBED_STATEMENT
 	}
 
 	// Get the active block.
@@ -353,17 +430,9 @@ func ParseNumber(lit string) (uint32, error) {
 		mul = int64(-1)
 	}
 
-	if strings.HasPrefix(lit, "0x") || strings.HasPrefix(lit, "0X") {
-		if n, err = strconv.ParseInt(lit[2:], 16, 32); err != nil {
-			return 0, fmt.Errorf("Expected a 32 bit hexadecimal number, got %q: %v",
-				lit, err)
-		}
-	} else if strings.HasPrefix(lit, "0") && len(lit) > 1 {
-		if n, err = strconv.ParseInt(lit[1:], 0, 32); err != nil {
-			return 0, fmt.Errorf("expected a 32 bit octal number, got %q: %v", lit, err)
-		}
-	} else if n, err = strconv.ParseInt(lit, 10, 32); err != nil {
-		return 0, fmt.Errorf("expected a 32 bit decimal number, got %q: %v", lit, err)
+	if n, err = strconv.ParseInt(lit, 0, 64); err != nil {
+		return 0, fmt.Errorf("Expected a 32 bit hexadecimal number, got %q: %v",
+			lit, err)
 	}
 
 	return uint32(mul * n), nil
@@ -371,30 +440,36 @@ func ParseNumber(lit string) (uint32, error) {
 
 var (
 	operands = map[string]int{
-		"add":  3,
-		"sub":  3,
-		"lsl":  3,
-		"lsr":  3,
-		"asr":  3,
-		"and":  3,
-		"orr":  3,
-		"xor":  3,
-		"stri": 3,
-		"ldri": 3,
-		"mov":  2,
-		"str":  2,
-		"ldr":  2,
-		"jeq":  2,
-		"jne":  2,
-		"jlt":  2,
-		"jle":  2,
-		"jgt":  2,
-		"jge":  2,
-		"call": 1,
-		"jmp":  1,
-		"halt": 0,
-		"nop":  0,
-		"ret":  0,
+		"add":   3,
+		"sub":   3,
+		"lsl":   3,
+		"lsr":   3,
+		"asr":   3,
+		"and":   3,
+		"orr":   3,
+		"xor":   3,
+		"mul":   3,
+		"div":   3,
+		"stri":  3,
+		"strpi": 3,
+		"strip": 3,
+		"ldri":  3,
+		"ldrpi": 3,
+		"ldrip": 3,
+		"mov":   2,
+		"str":   2,
+		"ldr":   2,
+		"jeq":   2,
+		"jne":   2,
+		"jlt":   2,
+		"jle":   2,
+		"jgt":   2,
+		"jge":   2,
+		"call":  1,
+		"jmp":   1,
+		"halt":  0,
+		"nop":   0,
+		"ret":   0,
 	}
 )
 
@@ -420,7 +495,7 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 	var err error
 	if instr.Name == "str" {
 		instr.Op1, err = p.parseAddressOperand(true)
-	} else if instr.Name == "stri" {
+	} else if instr.Name == "stri" || instr.Name == "strip" || instr.Name == "strpi" {
 		instr.Op1, instr.Op2, err = p.parseIndexOperand(true)
 	} else {
 		instr.Op1, err = p.parseOperand(opCount > 1)
@@ -436,9 +511,9 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 
 	if instr.Name == "ldr" {
 		instr.Op2, err = p.parseAddressOperand(false)
-	} else if instr.Name == "ldri" {
+	} else if instr.Name == "ldri" || instr.Name == "ldrip" || instr.Name == "ldrpi" {
 		instr.Op2, instr.Op3, err = p.parseIndexOperand(false)
-	} else if instr.Name != "stri" {
+	} else if instr.Name != "stri" && instr.Name != "strip" && instr.Name != "strpi" {
 		instr.Op2, err = p.parseOperand(opCount == 3)
 	}
 	if err != nil {
@@ -446,7 +521,7 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 		return ERROR
 	}
 
-	if opCount == 2 || instr.Name == "ldri" {
+	if opCount == 2 || instr.Name == "ldri" || instr.Name == "ldrip" || instr.Name == "ldrpi" {
 		return TEXT_BLOCK
 	}
 
@@ -518,6 +593,7 @@ func (p *Parser) parseIndexOperand(comma bool) (Operand, Operand, error) {
 	if err != nil {
 		return Operand{}, Operand{}, err
 	}
+
 	op2, err := p.parseOperand(false)
 	if err != nil {
 		return Operand{}, Operand{}, err

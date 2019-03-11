@@ -4,7 +4,6 @@
 #include <memory>
 
 #include "computer.h"
-#include "computer_roms.h"
 #include "cpu.h"
 #include "cxxopts.hpp"
 #include "isa.h"
@@ -42,8 +41,6 @@ int main(int argc, char* argv[]) {
   options.add_options()
     ("prgrom", "Rom file used to boot computer. If present, will ignore chrom.",
               cxxopts::value<std::string>()->default_value(""))
-    ("chrom", "Rom file with 8x16 characters.",
-              cxxopts::value<std::string>()->default_value("./latin1.chrom"))
     ("video_mode", "Video mode used. Values can be: null, fullscreen, 480p, "
                    "540p, 900p and 1080p",
                    cxxopts::value<std::string>()->default_value("720p"))
@@ -59,35 +56,9 @@ int main(int argc, char* argv[]) {
   gvm::Computer computer(mem_size, cpu, controller);
   const std::string prgrom = result["prgrom"].as<std::string>();
   const gvm::Rom* rom = nullptr;
-  if (prgrom.empty()) {
-    rom = CreateRom(result);
-  } else {
-    rom = ReadRom(prgrom);
-  }
+  rom = ReadRom(prgrom);
   computer.LoadRom(rom);
   computer.Run();
 
   return 0;
-}
-
-const gvm::Rom* CreateRom(const cxxopts::ParseResult& result) {
-  const uint32_t user_offset = 1 << 20;
-
-  gvm::Rom* rom = gvm::rom::Textmode(user_offset);
-
-  std::ifstream chrom(result["chrom"].as<std::string>(),
-                      std::ios::binary | std::ios::ate);
-  assert(chrom.is_open());
-  const auto size = chrom.tellg();
-  chrom.seekg(0, chrom.beg);
-  gvm::Word* words = new gvm::Word[size/sizeof(gvm::Word)];
-  chrom.read(reinterpret_cast<char*>(words), size);
-  chrom.close();
-  std::vector<gvm::Word> program(words, words + size/sizeof(gvm::Word));
-  delete []words;
-  rom->Load(user_offset + 0x4000, program);
-
-  std::ofstream out("gvmos.rom", std::ios::binary);
-  rom->ToFile(out);
-  return rom;
 }
