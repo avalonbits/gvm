@@ -402,6 +402,44 @@ putc_row_done:
 putc_done:
 	ret
 
+; ==== Fill816: Fills an 8x16 pixels block with the same value.
+fill816:
+	; r1: x-pos
+	; r2: y-pos
+	; r3: value to set.
+
+	; To find the (x,y) position in the frame buffer, we use the formula
+	; pos(x,y) = x-pos*8*4 + 0x84 + y-pos * lineLength * 16.
+	mul r1, r1, 32
+	add r1, r1, 0x84
+	mul r2, r2, 2560
+	lsl r2, r2, 4
+	add r1, r1, r2
+
+	; Set the row counter to 16.
+	mov r2, 16
+
+fill816_loop:
+	; Each pixel is 4 bytes long, so we need to write 32 pixels per row.
+	strip [r1, 4], r3
+	strip [r1, 4], r3
+	strip [r1, 4], r3
+	strip [r1, 4], r3
+	strip [r1, 4], r3
+	strip [r1, 4], r3
+	strip [r1, 4], r3
+	str [r1], r3
+
+	; Check if we are done.
+	sub r2, r2, 1
+	jeq r2, fill816_done
+
+	; We are not done. Move to the next row and write again.
+	add r1, r1, 2524  ; 2560 - 32
+	jmp fill816
+
+fill816_done:
+	ret
 
 ; ==== FlushVideo: tells the video controller that it can copy the framebuffer
 ; to its own memory.
@@ -436,7 +474,13 @@ USER_INTERFACE:
 	str [0xE1090], r0
 
 USER_INTERFACE_loop:
-	call USER_INTERFACE_getc
+	call USER_INTERFACE_getin
+
+	; check if we have a control char. If we do, update ui accordingly and get next
+	; input.
+	call USER_control_chars
+	jeq r0, USER_INTERFACE_loop
+
 
 	; Set the params for putc.
 	ldr r2, [ui_x]
@@ -472,16 +516,38 @@ USER_INTERFACE_x_end:
 USER_INTERFACE_done:
 	halt
 
+
+; ==== USER_control_chars: checks for control chars and updates
+; UI state accordingling.
+USER_control_chars:
+	; Check for backspace.
+	sub r0, r1, 8
+	jeq r0, USER_control_chars_backspace
+	ret
+
+USER_control_chars_backspace:
+	ldr r1, [ui_x]
+	sub r1, r1, 1
+	ldr r2, [ui_y]
+	ldr r3, [ui_bcolor]
+
+	call fill816
+	
+	mov r0, 0
+	ret
+
 .section data
 wait_input_value: .int 0xFFFFFFFF
 
 .section text
-; ===== UI getc. Waits for user inpu
-USER_INTERFACE_getc:
+; ===== UI getc. Waits for user input.
+USER_INTERFACE_getin:
+	; r1: returns user input value.
+
 	; Wait until user input != 0
 	ldr r1, [user_input_value]
 	add r0, r1, 1
-	jeq r0, USER_INTERFACE_getc
+	jeq r0, USER_INTERFACE_getin
 
 	; Now set user input to 0 so we don't keep writing stuff over.
 	ldr r0, [wait_input_value]
