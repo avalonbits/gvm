@@ -420,7 +420,7 @@ fill816:
 	mov r2, 16
 
 fill816_loop:
-	; Each pixel is 4 bytes long, so we need to write 32 pixels per row.
+	; Each pixel is 4 bytes long, so we need to write 32 bytes per row.
 	strip [r1, 4], r3
 	strip [r1, 4], r3
 	strip [r1, 4], r3
@@ -428,15 +428,15 @@ fill816_loop:
 	strip [r1, 4], r3
 	strip [r1, 4], r3
 	strip [r1, 4], r3
-	str [r1], r3
+	strip [r1, 4], r3
 
 	; Check if we are done.
 	sub r2, r2, 1
 	jeq r2, fill816_done
 
 	; We are not done. Move to the next row and write again.
-	add r1, r1, 2524  ; 2560 - 32
-	jmp fill816
+	add r1, r1, 2528
+	jmp fill816_loop
 
 fill816_done:
 	ret
@@ -528,11 +528,17 @@ USER_control_chars:
 USER_control_chars_backspace:
 	ldr r1, [ui_x]
 	sub r1, r1, 1
+	str [ui_x], r1
 	ldr r2, [ui_y]
 	ldr r3, [ui_bcolor]
 
+	ldr r0, [text_colors_addr]
+	lsl r3, r3, 2
+	ldri r3, [r0, r3]
+
 	call fill816
-	
+	call flush_video
+
 	mov r0, 0
 	ret
 
