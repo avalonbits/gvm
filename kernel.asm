@@ -526,8 +526,30 @@ USER_control_chars:
 	ret
 
 USER_control_chars_backspace:
+	; Load the x pos and decrease it.
 	ldr r1, [ui_x]
 	sub r1, r1, 1
+
+	; if it's >= 0, we can erase the block.
+	jge r1, USER_control_chars_backspace_erase
+
+	; if < 0 then we need to load update ui_y
+	ldr r2, [ui_y]
+	sub r2, r2, 1
+
+	; if >= 0 then set ui_x and ui_y to 0.
+	jge r2, USER_control_chars_backspace_move_x_to_end
+	mov r1, 0
+	mov r2, 0
+	str [ui_y], r2
+	jmp USER_control_chars_backspace_erase
+
+USER_control_chars_backspace_move_x_to_end:
+	; if >= 0 then move ui_x to 79.
+	mov r1, 79 
+	str [ui_y], r2
+
+USER_control_chars_backspace_erase:
 	str [ui_x], r1
 	ldr r2, [ui_y]
 	ldr r3, [ui_bcolor]
