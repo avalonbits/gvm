@@ -403,7 +403,7 @@ putc_done:
 	ret
 
 ; ==== Fill816: Fills an 8x16 pixels block with the same value.
-fill816:
+@func fill816:
 	; r1: x-pos
 	; r2: y-pos
 	; r3: value to set.
@@ -419,7 +419,7 @@ fill816:
 	; Set the row counter to 16.
 	mov r2, 16
 
-fill816_loop:
+loop:
 	; Each pixel is 4 bytes long, so we need to write 32 bytes per row.
 	strip [r1, 4], r3
 	strip [r1, 4], r3
@@ -429,17 +429,15 @@ fill816_loop:
 	strip [r1, 4], r3
 	strip [r1, 4], r3
 	strip [r1, 4], r3
+	add r1, r1, 2528
 
 	; Check if we are done.
 	sub r2, r2, 1
-	jeq r2, fill816_done
-
-	; We are not done. Move to the next row and write again.
-	add r1, r1, 2528
-	jmp fill816_loop
-
-fill816_done:
+	jne r2, loop
+  
+	; We are done.
 	ret
+@endf fill816
 
 ; ==== FlushVideo: tells the video controller that it can copy the framebuffer
 ; to its own memory.
@@ -451,10 +449,11 @@ fill816_done:
 
 ; ==== WaitVideo: waits for the video controller to signal that the framebuffer
 ; available for writing.
-wait_video:
+@func wait_video:
 	ldr r0, [0x80]
 	jne r0, wait_video
 	ret
+@endf wait_video
 
 ; ======================== User interface code =======================
 

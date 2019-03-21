@@ -110,6 +110,14 @@ type Block struct {
 	Statements []Statement
 }
 
+func (b Block) LabelName() string {
+	return b.funcName + b.Label
+}
+
+func (b Block) JumpName(label string) string {
+	return b.funcName + label
+}
+
 func (b Block) WordCount() int {
 	count := 0
 	for _, s := range b.Statements {
