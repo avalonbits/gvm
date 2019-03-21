@@ -84,15 +84,15 @@ func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 		wordCount := uint32(0)
 		for _, section := range org.Sections {
 			for _, block := range section.Blocks {
-				if block.Label != "" {
-					if _, ok := labelMap[block.Label]; ok {
+				if block.LabelName() != "" {
+					if _, ok := labelMap[block.LabelName()]; ok {
 						return fmt.Errorf("label redefinition: %q", block.Label)
 					}
-					if _, ok := ast.Consts[block.Label]; ok {
+					if _, ok := ast.Consts[block.LabelName()]; ok {
 						return fmt.Errorf("label redefinition: %q was defined as a const",
 							block.Label)
 					}
-					labelMap[block.Label] = baseAddr + (wordCount * 4)
+					labelMap[block.LabelName()] = baseAddr + (wordCount * 4)
 				}
 				wordCount += uint32(block.WordCount())
 			}
@@ -115,10 +115,11 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 							&statement.Instr.Op2,
 							&statement.Instr.Op3,
 						}
-						addr := labelMap[block.Label] + uint32(i*4)
+						addr := labelMap[block.LabelName()] + uint32(i*4)
 						for _, op := range ops {
 							err := convertOperand(
-								statement.Instr.Name, addr, labelMap, ast.Consts, op)
+								statement.Instr.Name, addr, block,
+								labelMap, ast.Consts, op)
 							if err != nil {
 								return fmt.Errorf("error processing instruction %q: %v",
 									statement.Instr, err)
@@ -143,7 +144,7 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 	return nil
 }
 
-func convertOperand(instr string, instrAddr uint32, labelMap map[string]uint32, consts map[string]string, op *parser.Operand) error {
+func convertOperand(instr string, instrAddr uint32, block parser.Block, labelMap map[string]uint32, consts map[string]string, op *parser.Operand) error {
 	if op.Type != parser.OP_LABEL {
 		return nil
 	}
@@ -152,7 +153,11 @@ func convertOperand(instr string, instrAddr uint32, labelMap map[string]uint32, 
 		op.Type = parser.OP_NUMBER
 		return nil
 	}
-	if value, ok := labelMap[op.Op]; ok {
+	value, ok := labelMap[block.JumpName(op.Op)]
+	if !ok {
+		value, ok = labelMap[op.Op]
+	}
+	if ok {
 		switch instr {
 		case "jmp", "jne", "jeq", "jlt", "jle", "jge", "jgt", "call":
 			value -= instrAddr

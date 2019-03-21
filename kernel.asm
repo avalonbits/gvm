@@ -36,7 +36,7 @@ reset_handler:
 
 
 ; ==== Timer interrupt handler.
-timer_handler:
+@func timer_handler:
 	; Implements a 64 bit jiffy counter.
 	; Save the contents of r0 on the stack so we don't disrupt user code.
 	strpi [sp, -4], r0
@@ -47,21 +47,21 @@ timer_handler:
 	str [0xE1084], r0  ; write it back.
 
 	; If r0 != 0 that means we did not overflow.
-	jne r0, timer_handler_done
+	jne r0, done
 
 	; Otherwise, we need to increment the MSW.
 	ldr r0, [0xE1088]  ; Loadthe MSW to r0.
 	add r0, r0, 1	   ; increment it.
     str [0xE1088], r0  ; write it back.
 
-timer_handler_done:
+done:
 	; Now lets restore r0 and return.
 	ldrip r0, [sp, 4]
 	ret
-
+@endf timer_handler
 
 ; ==== Input handler
-input_handler:
+@func input_handler:
 	; Save the contents of r0 and r1 on the stack so we don't disrupt user code.
 	strpi [sp, -4], r0
 	strpi [sp, -4], r1
@@ -71,23 +71,23 @@ input_handler:
 
 	; Quit is the value 0xFFFFFFFF so adding 1 should result in 0.
 	add r1, r0, 1
-	jeq r1, input_handler_quit
+	jeq r1, quit
 
 	; Load the user jump address. If it's != 0, call it.
 	ldr r1, [0xE1090]
-	jeq r1, input_handler_done
+	jeq r1, done
 	call r1
 
-input_handler_done:
+done:
 	; Input processing done. Restore restore r1 and r0 and return.
 	ldrip r1, [sp, 4]
 	ldrip r0, [sp, 4]
 	ret
 
-input_handler_quit:
+quit:
 	; Quit means we want to turn of the cpu.
 	halt
-
+@endf input_handler
 
 ; ==== Memset. Sets a memory region to a specific value.
 memset:
@@ -181,7 +181,7 @@ memcpy16:
 
 ; ==== HLine: draws a horizontal line on the screen.
 ; Linelength is 2560 bytes (640 * 32bpp)
-hline:
+@func hline:
 	; r1: y-pos
 	; r2: x-start
 	; r3: y-start
@@ -194,14 +194,14 @@ hline:
 	; Multiply x-start and x-end by 4 for pixel size.
 	lsl r3, r3, 2
 
-hline_width:
+width:
 	lsl r8, r2, 2
 
 	; Now add mem start, x-start with y-pos to get the framebuffer start point.
 	add r7, r1, r8
 	add r7, r7, 0x84
 
-hline_line:
+line:
 	; Write pixel to framebuffer location
 	strip [r7, 4], r5
 
@@ -212,7 +212,7 @@ hline_line:
 	sub r6, r3, r8
 
 	; If not, loop back and continue.
-	jne r6, hline_line
+	jne r6, line
 
 	; Finished line. Need to subtract one from framebuffer because we
     ; optimistically assume we need to increment.
@@ -220,17 +220,18 @@ hline_line:
 
 	; Down with one line.
 	sub r4, r4, 1
-	jeq r4, hline_line_done
+	jeq r4, done
 
 	; Line is still wide.
 	add r1, r1, 2560
-	jmp hline_width
+	jmp width
 
-hline_line_done:
+done:
 	ret
+@endf hline
 
 ; ==== VLine: draws a vertical line on the screen.
-vline:
+@func vline:
 	; r1: x-pos
 	; r2: y-start
 	; r3: y-end
@@ -243,14 +244,14 @@ vline:
 	; Multiply y-start and y-end by 2560 to get their positions.
 	mul r3, r3, 2560
 
-vline_width:
+width:
 	mul r8, r2, 2560
 
 	; Now add mem start, x-pos, y-start with y-end to get the framebuffer start point.
 	add r7, r1, r8
 	add r7, r7, 0x84
 
-vline_line:
+line:
 	; Write the pixel at the location.
 	strip [r7, 2560], r5
 
@@ -261,7 +262,7 @@ vline_line:
 	sub r6, r3, r8
 
 	; If line is not done, loop.
-	jne r6, vline_line
+	jne r6, line
 
 	; Line is not done. Need to subtract a line from framebuffer because we
 	; optimistically assume we need to increment.
@@ -269,14 +270,15 @@ vline_line:
 
 	; Done with one line.
 	sub r4, r4, 1
-	jeq r4,  vline_done
+	jeq r4, done
 
 	; Line is still wide.
 	add r1, r1, 4
-	jmp vline_width
+	jmp width
 
-vline_done:
+done:
 	ret
+@endf vline
 
 ; ====== Text mode functions and data.
 
@@ -306,7 +308,7 @@ text_colors_addr: .int text_colors
 
 .section text
 ; ==== PutC: Prints a character on the screen.
-putc:
+@func putc:
 	; r1: Character unicode value
 	; r2: x-pos
 	; r3: y-pos
@@ -347,41 +349,41 @@ putc:
 	; Number of rows per character.
 	mov r6, 4
 
-putc_reset_pixel_word_counter:
+reset_pixel_word_counter:
 	; Load the character word
 	ldr r1, [r3]
 
 	; Number of pixels per word.
 	mov r8, 32
 
-putc_reset_pixel_row_counter:
+reset_pixel_row_counter:
 	; Number of pixels per row.
 	mov r7, 8
 
-putc_main_loop:
+main_loop:
 	; For each 8 pixel row, check if we need to write the fore or background
 	; color.
 	and r0, r1, 1
-	jeq r0, putc_background_color
+	jeq r0, background_color
 
 	; Foreground.
 	strip [r2, -4], r4
-	jmp putc_next_pixel
+	jmp next_pixel
 
-putc_background_color:
+background_color:
 	strip [r2, -4], r5
 
-putc_next_pixel:
+next_pixel:
 	; Shift the pixel row.
 	lsr r1, r1, 1
 
 	; Check if row is done.
 	sub r7, r7, 1
-	jeq r7, putc_row_done
+	jeq r7, row_done
 
-	jmp putc_main_loop
+	jmp main_loop
 
-putc_row_done:
+row_done:
 	; Reposition the frame buffer on the next row.
 	add r2, r2, 2592  ; 32 + 2560.
 
@@ -389,18 +391,19 @@ putc_row_done:
 	sub r8, r8, 8
 
 	; If all pixels from row are not done, loop back.
-	jne r8, putc_reset_pixel_row_counter
+	jne r8, reset_pixel_row_counter
 
 	; All pixels in word are done. Check if we are done.
 	sub r6, r6, 1
-	jeq r6, putc_done
+	jeq r6, done
 
 	; Not done yet. Get the next word row and loop.
 	add r3, r3, 4
-	jmp putc_reset_pixel_word_counter
+	jmp reset_pixel_word_counter
 
-putc_done:
+done:
 	ret
+@endf putc
 
 ; ==== Fill816: Fills an 8x16 pixels block with the same value.
 @func fill816:
@@ -467,18 +470,18 @@ ui_bcolor: .int 0
 .section text
 
 ; We wait for a user input and print the value on screen.
-USER_INTERFACE:
+@func USER_INTERFACE:
 	; Install our input handler.
 	ldr r0, [user_input_handler_addr]
 	str [0xE1090], r0
 
-USER_INTERFACE_loop:
+loop:
 	call USER_INTERFACE_getin
 
 	; check if we have a control char. If we do, update ui accordingly and get next
 	; input.
 	call USER_control_chars
-	jeq r0, USER_INTERFACE_loop
+	jeq r0, loop
 
 
 	; Set the params for putc.
@@ -495,11 +498,11 @@ USER_INTERFACE_loop:
 	ldr r2, [ui_x]
 	add r2, r2, 1
 	sub r4, r2, 80
-	jeq r4, USER_INTERFACE_x_end
+	jeq r4, x_end
 	str [ui_x], r2
-	jmp USER_INTERFACE_loop
+	jmp loop
 
-USER_INTERFACE_x_end:
+x_end:
 	; We reached the end of the screen. Wrap back.
 	mov r2, 0
 
@@ -509,46 +512,45 @@ USER_INTERFACE_x_end:
 	str [ui_y], r3
 
 	; Ok, character written. Loop back and wait more.
-	jmp USER_INTERFACE_loop
+	jmp loop
 
-
-USER_INTERFACE_done:
+done:
 	halt
-
+@endf USER_INTERFACE
 
 ; ==== USER_control_chars: checks for control chars and updates
 ; UI state accordingling.
-USER_control_chars:
+@func USER_control_chars:
 	; Check for backspace.
 	sub r0, r1, 8
-	jeq r0, USER_control_chars_backspace
+	jeq r0, backspace
 	ret
 
-USER_control_chars_backspace:
+backspace:
 	; Load the x pos and decrease it.
 	ldr r1, [ui_x]
 	sub r1, r1, 1
 
 	; if it's >= 0, we can erase the block.
-	jge r1, USER_control_chars_backspace_erase
+	jge r1, backspace_erase
 
 	; if < 0 then we need to load update ui_y
 	ldr r2, [ui_y]
 	sub r2, r2, 1
 
 	; if >= 0 then set ui_x and ui_y to 0.
-	jge r2, USER_control_chars_backspace_move_x_to_end
+	jge r2, backspace_move_x_to_end
 	mov r1, 0
 	mov r2, 0
 	str [ui_y], r2
-	jmp USER_control_chars_backspace_erase
+	jmp backspace_erase
 
-USER_control_chars_backspace_move_x_to_end:
+backspace_move_x_to_end:
 	; if >= 0 then move ui_x to 79.
 	mov r1, 79 
 	str [ui_y], r2
 
-USER_control_chars_backspace_erase:
+backspace_erase:
 	str [ui_x], r1
 	ldr r2, [ui_y]
 	ldr r3, [ui_bcolor]
@@ -562,6 +564,7 @@ USER_control_chars_backspace_erase:
 
 	mov r0, 0
 	ret
+@endf USER_control_chars
 
 .section data
 wait_input_value: .int 0xFFFFFFFF

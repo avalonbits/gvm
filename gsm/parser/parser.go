@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -360,7 +359,6 @@ func (p *Parser) data_block(cur state) state {
 			n += (4 - (n % 4))
 		}
 
-		log.Println(n)
 		aBlock.Statements = append(aBlock.Statements, Statement{ArraySize: int(n)})
 		return DATA_BLOCK
 
@@ -464,20 +462,22 @@ func (p *Parser) text_block(cur state) state {
 
 		// If the current block has no instructions, then we can reuse the block.
 		if len(aBlock.Statements) == 0 {
-			aBlock.Label = label
 			aBlock.inFunc = inFunc
-			aBlock.funcName = label
+			if inFunc {
+				aBlock.funcName = label
+			} else {
+				aBlock.Label = label
+			}
 		} else {
-			b := Block{
-				Label:  label,
-				inFunc: inFunc,
-			}
-			if inFunc && aBlock.inFunc {
-				b.funcName = aBlock.funcName
-			} else if inFunc {
+			b := Block{inFunc: inFunc}
+			if inFuncScope && inFunc {
 				b.funcName = label
+			} else if inFunc {
+				b.funcName = aBlock.funcName
+				b.Label = label
+			} else {
+				b.Label = label
 			}
-
 			aSection.Blocks = append(aSection.Blocks, b)
 		}
 		return TEXT_BLOCK
