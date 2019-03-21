@@ -443,11 +443,11 @@ fill816_done:
 
 ; ==== FlushVideo: tells the video controller that it can copy the framebuffer
 ; to its own memory.
-flush_video:
+@func flush_video:
 	mov r0, 1
     str [0x80], r0
 	ret
-
+@endf flush_video
 
 ; ==== WaitVideo: waits for the video controller to signal that the framebuffer
 ; available for writing.
