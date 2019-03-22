@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/avalonbits/gsm/lexer"
 )
@@ -39,7 +40,8 @@ func (s Statement) WordCount() int {
 	if s.ArraySize > 0 {
 		return s.ArraySize / 4
 	} else if len(s.Str) > 0 {
-		sz := len(s.Str) * 2
+		sz := utf8.RuneCountInString(s.Str) + 1
+		sz *= 2
 		if sz%4 != 0 {
 			sz += 2
 		}

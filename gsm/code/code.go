@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"unicode/utf8"
 
 	"github.com/avalonbits/gsm/parser"
 )
@@ -235,11 +236,17 @@ func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
 								return err
 							}
 						} else if len(statement.Str) > 0 {
-							sz := len(statement.Str) * 2
+							sz := utf8.RuneCountInString(statement.Str) + 1
+							sz *= 2
 							if sz%4 != 0 {
 								sz += 2
 							}
 							bytes := make([]byte, sz)
+							i := 0
+							for _, r := range statement.Str {
+								binary.LittleEndian.PutUint16(bytes[i:i+2], uint16(r&0xFFFF))
+								i += 2
+							}
 							if _, err := buf.Write(bytes); err != nil {
 								return err
 							}

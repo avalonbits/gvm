@@ -584,7 +584,7 @@ USER_INTERFACE_getin:
 .section data
 user_input_value: .int 0xFFFFFFFF
 user_input_handler_addr: .int USER_input_handler
-.str "teste"
+.str "te"
 
 .section text
 ; This will be called on every input that is not a quit signal.
