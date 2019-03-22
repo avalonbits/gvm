@@ -218,15 +218,15 @@ line:
     ; optimistically assume we need to increment.
 	sub r7, r7, 1
 
-	; Down with one line.
+	; Done with one line.
 	sub r4, r4, 1
-	jeq r4, done
 
-	; Line is still wide.
+	; We increment r1 even if we are done to avoid an extra instruction.
 	add r1, r1, 2560
-	jmp width
 
-done:
+    ; If still has lines, loop.
+	jne r4, width
+
 	ret
 @endf hline
 
@@ -270,13 +270,13 @@ line:
 
 	; Done with one line.
 	sub r4, r4, 1
-	jeq r4, done
 
-	; Line is still wide.
+    ; Line is still wide.
 	add r1, r1, 4
-	jmp width
 
-done:
+    ; Loop back if we still need to print line.
+	jne r4, width
+
 	ret
 @endf vline
 
@@ -379,11 +379,10 @@ next_pixel:
 
 	; Check if row is done.
 	sub r7, r7, 1
-	jeq r7, row_done
 
-	jmp main_loop
+    ; If not then loop back.
+	jne r7, main_loop
 
-row_done:
 	; Reposition the frame buffer on the next row.
 	add r2, r2, 2592  ; 32 + 2560.
 
@@ -395,13 +394,11 @@ row_done:
 
 	; All pixels in word are done. Check if we are done.
 	sub r6, r6, 1
-	jeq r6, done
 
-	; Not done yet. Get the next word row and loop.
+	; Get the next word row and loop.
 	add r3, r3, 4
-	jmp reset_pixel_word_counter
+	jne r6, reset_pixel_word_counter
 
-done:
 	ret
 @endf putc
 
@@ -587,6 +584,7 @@ USER_INTERFACE_getin:
 .section data
 user_input_value: .int 0xFFFFFFFF
 user_input_handler_addr: .int USER_input_handler
+.str "teste"
 
 .section text
 ; This will be called on every input that is not a quit signal.

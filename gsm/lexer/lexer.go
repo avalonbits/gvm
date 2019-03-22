@@ -38,6 +38,7 @@ const (
 	LABEL
 	INT_TYPE
 	ARRAY_TYPE
+	STRING_TYPE
 	IDENT
 	NUMBER
 	REGISTER
@@ -56,6 +57,7 @@ var keywords = map[string]TokenType{
 	".org":     ORG,
 	".int":     INT_TYPE,
 	".array":   ARRAY_TYPE,
+	".str":     STRING_TYPE,
 	"mov":      INSTRUCTION,
 	"add":      INSTRUCTION,
 	"sub":      INSTRUCTION,

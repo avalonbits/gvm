@@ -234,6 +234,15 @@ func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
 							if _, err := buf.Write(bytes); err != nil {
 								return err
 							}
+						} else if len(statement.Str) > 0 {
+							sz := len(statement.Str) * 2
+							if sz%4 != 0 {
+								sz += 2
+							}
+							bytes := make([]byte, sz)
+							if _, err := buf.Write(bytes); err != nil {
+								return err
+							}
 						} else {
 							binary.LittleEndian.PutUint32(word, statement.Value)
 							if _, err := buf.Write(word); err != nil {

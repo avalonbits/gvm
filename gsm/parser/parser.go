@@ -32,11 +32,18 @@ type Statement struct {
 	Instr     Instruction
 	Label     string
 	ArraySize int
+	Str       string
 }
 
 func (s Statement) WordCount() int {
 	if s.ArraySize > 0 {
 		return s.ArraySize / 4
+	} else if len(s.Str) > 0 {
+		sz := len(s.Str) * 2
+		if sz%4 != 0 {
+			sz += 2
+		}
+		return sz / 4
 	}
 	return 1
 }
@@ -360,6 +367,28 @@ func (p *Parser) data_block(cur state) state {
 		}
 
 		aBlock.Statements = append(aBlock.Statements, Statement{ArraySize: int(n)})
+		return DATA_BLOCK
+
+	case lexer.STRING_TYPE:
+		tok = p.tokenizer.NextToken()
+		if tok.Type != lexer.D_QUOTE {
+			p.err = fmt.Errorf("expected '\"', got %q", tok.Literal)
+			return ERROR
+		}
+
+		var sb strings.Builder
+		for {
+			tok = p.tokenizer.NextToken()
+			if tok.Type == lexer.NEWLINE {
+				p.err = fmt.Errorf("epxected '\"', got a new line.")
+				return ERROR
+			}
+			if tok.Type == lexer.D_QUOTE {
+				break
+			}
+			sb.WriteString(tok.Literal)
+		}
+		aBlock.Statements = append(aBlock.Statements, Statement{Str: sb.String()})
 		return DATA_BLOCK
 
 	case lexer.INT_TYPE:
