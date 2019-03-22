@@ -145,7 +145,7 @@ func (l *Lexer) readRune() {
 	if sz == 0 || err != nil {
 		l.r = 0
 	} else {
-		l.r = unicode.ToLower(r)
+		l.r = r
 	}
 }
 

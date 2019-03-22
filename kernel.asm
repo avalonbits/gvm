@@ -340,7 +340,7 @@ loop:
     ldrip r2, [sp, 4]
 
     ; Update (x,y)
-    call incXY
+    call incxy
 
     ; Next char in same word
     ldr r1, [r20]
