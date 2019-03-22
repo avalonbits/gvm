@@ -322,15 +322,15 @@ text_colors_addr: .int text_colors
 
 loop:
     ; Chars in string are 16-bit wide. So we need to AND and shift.
-    and r0, r20, 0xFFFF
-    jeq r0, done
     ldr r1, [r20]
+    and r1, r1, 0xFFFF
+    jeq r1, done
 
     ; Save context in stack before calling putc.
-    strpi [sp, 4], r2
-    strpi [sp, 4], r3
-    strpi [sp, 4], r4
-    strpi [sp, 4], r5
+    strpi [sp, -4], r2
+    strpi [sp, -4], r3
+    strpi [sp, -4], r4
+    strpi [sp, -4], r5
     call putc
 
     ; Restore context.
@@ -343,15 +343,14 @@ loop:
     call incXY
 
     ; Next char in same word
-    lsl r0, r20, 16
-    and r0, r20, 0xFFFF
-    jeq r0, done
     ldr r1, [r20]
+    lsr r1, r1, 16
+    jeq r1, done
 
-    strpi [sp, 4], r2
-    strpi [sp, 4], r3
-    strpi [sp, 4], r4
-    strpi [sp, 4], r5
+    strpi [sp, -4], r2
+    strpi [sp, -4], r3
+    strpi [sp, -4], r4
+    strpi [sp, -4], r5
     call putc
     ldrip r5, [sp, 4]
     ldrip r4, [sp, 4]
@@ -377,8 +376,8 @@ done:
     ; r2: x-pos
     ; r3: y-pos
     add r2, r2, 1
-    sub r2, r2, 80
-    jne r2, done
+    sub r21, r2, 80
+    jne r21, done
 
     mov r2, 0
     add r3, r3, 1
