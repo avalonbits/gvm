@@ -63,14 +63,8 @@ void InputController::Read() {
     }
     case SDL_KEYDOWN: {
       const uint32_t sym = event.key.keysym.sym;
+      std::cerr << "Keydown: " << sym << std::endl;
       if (IsControlKey(sym)) callback_(sym);
-      break;
-    }
-    case SDL_KEYUP: {
-      const uint32_t sym = event.key.keysym.sym;
-
-      // use bit 29 to signify key up.
-      if (IsControlKey(sym)) callback_(sym | 0x20000000);
       break;
     }
     case SDL_TEXTINPUT: {

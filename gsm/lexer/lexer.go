@@ -42,9 +42,13 @@ const (
 	NUMBER
 	REGISTER
 	INSTRUCTION
+	FUNC_START
+	FUNC_END
 )
 
 var keywords = map[string]TokenType{
+	"@func":    FUNC_START,
+	"@endf":    FUNC_END,
 	".section": SECTION,
 	".embed":   EMBED,
 	"data":     S_DATA,
@@ -112,9 +116,6 @@ var keywords = map[string]TokenType{
 	"r26":      REGISTER,
 	"r27":      REGISTER,
 	"r28":      REGISTER,
-	"r29":      REGISTER,
-	"r30":      REGISTER,
-	"r31":      REGISTER,
 	"pc":       REGISTER,
 	"sp":       REGISTER,
 	"fp":       REGISTER,
@@ -194,7 +195,7 @@ func (l *Lexer) nextToken() *Token {
 	case 0:
 		return newTok(EOF, "")
 	default:
-		if l.r == '.' || unicode.IsLetter(l.r) {
+		if l.r == '.' || l.r == '@' || unicode.IsLetter(l.r) {
 			ident := l.readIdent()
 			return newTok(lookupIdent(ident), ident)
 		}
@@ -212,7 +213,7 @@ func newTok(tp TokenType, lit string) *Token {
 
 func (l *Lexer) readIdent() string {
 	var sb strings.Builder
-	for unicode.IsLetter(l.r) || unicode.IsDigit(l.r) || l.r == '_' || l.r == '.' {
+	for unicode.IsLetter(l.r) || unicode.IsDigit(l.r) || l.r == '_' || l.r == '.' || l.r == '@' {
 		sb.WriteRune(l.r)
 		l.readRune()
 	}

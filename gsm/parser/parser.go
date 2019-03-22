@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -105,7 +104,17 @@ func (i Instruction) String() string {
 
 type Block struct {
 	Label      string
+	inFunc     bool
+	funcName   string
 	Statements []Statement
+}
+
+func (b Block) LabelName() string {
+	return b.funcName + b.Label
+}
+
+func (b Block) JumpName(label string) string {
+	return b.funcName + label
 }
 
 func (b Block) WordCount() int {
@@ -253,17 +262,15 @@ func (p *Parser) section() state {
 	}
 
 	s := Section{Blocks: make([]Block, 1, 4)}
-	if tok.Type == lexer.S_DATA {
-		s.Type = DATA_SECTION
-	} else {
-		s.Type = TEXT_SECTION
-	}
 	var next state
 	if tok.Type == lexer.S_DATA {
+		s.Type = DATA_SECTION
 		next = DATA_BLOCK
 	} else {
+		s.Type = TEXT_SECTION
 		next = TEXT_BLOCK
 	}
+
 	o := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
 	o.Sections = append(o.Sections, s)
 	return next
@@ -352,7 +359,6 @@ func (p *Parser) data_block(cur state) state {
 			n += (4 - (n % 4))
 		}
 
-		log.Println(n)
 		aBlock.Statements = append(aBlock.Statements, Statement{ArraySize: int(n)})
 		return DATA_BLOCK
 
@@ -379,25 +385,74 @@ func (p *Parser) data_block(cur state) state {
 }
 
 func (p *Parser) text_block(cur state) state {
-	tok := p.tokenizer.PeakToken()
-	if tok.Type == lexer.ORG {
-		return START
-	}
-	if tok.Type == lexer.SECTION {
-		return SECTION
-	}
-	if tok.Type == lexer.EMBED {
-		return EMBED_STATEMENT
-	}
-
 	// Get the active block.
 	aOrg := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
 	aSection := &aOrg.Sections[len(aOrg.Sections)-1]
 	aBlock := &aSection.Blocks[len(aSection.Blocks)-1]
 
+	tok := p.tokenizer.PeakToken()
+	if tok.Type == lexer.ORG {
+		if aBlock.inFunc {
+			p.err = fmt.Errorf(
+				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
+			return ERROR
+		}
+		return START
+	}
+	if tok.Type == lexer.SECTION {
+		if aBlock.inFunc {
+			p.err = fmt.Errorf(
+				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
+			return ERROR
+		}
+
+		return SECTION
+	}
+	if tok.Type == lexer.EMBED {
+		if aBlock.inFunc {
+			p.err = fmt.Errorf(
+				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
+			return ERROR
+		}
+
+		return EMBED_STATEMENT
+	}
+
+	inFunc := aBlock.inFunc
 	tok = p.tokenizer.NextToken()
+	inFuncScope := tok.Type == lexer.FUNC_START || tok.Type == lexer.FUNC_END
+	if tok.Type == lexer.FUNC_START {
+		tok = p.tokenizer.NextToken()
+		if inFunc {
+			p.err = fmt.Errorf("expected function end for %q, got function start for %q",
+				aBlock.funcName, tok.Literal)
+			return ERROR
+		}
+		inFunc = true
+	} else if tok.Type == lexer.FUNC_END {
+		tok = p.tokenizer.NextToken()
+		if !aBlock.inFunc {
+			p.err = fmt.Errorf(
+				"found @endf for %q, but %q is not @func.", tok.Literal, tok.Literal)
+			return ERROR
+		}
+		inFunc = false
+	}
+
 	if tok.Type == lexer.IDENT {
 		label := tok.Literal
+		if !inFunc && aBlock.inFunc {
+			if label != aBlock.funcName {
+				p.err = fmt.Errorf("expected @endf %v, got @endf %v", aBlock.funcName, label)
+				return ERROR
+			}
+
+			// At this point we know we reached the end of a block, so we need to create
+			// a new one.
+			aSection.Blocks = append(aSection.Blocks, Block{})
+			return TEXT_BLOCK
+		}
+
 		tok = p.tokenizer.NextToken()
 		if tok.Type != lexer.COLON {
 			p.err = fmt.Errorf("expected \"%s:\", got \"%s%s\"",
@@ -407,11 +462,28 @@ func (p *Parser) text_block(cur state) state {
 
 		// If the current block has no instructions, then we can reuse the block.
 		if len(aBlock.Statements) == 0 {
-			aBlock.Label = label
+			aBlock.inFunc = inFunc
+			if inFunc {
+				aBlock.funcName = label
+			} else {
+				aBlock.Label = label
+			}
 		} else {
-			aSection.Blocks = append(aSection.Blocks, Block{Label: label})
+			b := Block{inFunc: inFunc}
+			if inFuncScope && inFunc {
+				b.funcName = label
+			} else if inFunc {
+				b.funcName = aBlock.funcName
+				b.Label = label
+			} else {
+				b.Label = label
+			}
+			aSection.Blocks = append(aSection.Blocks, b)
 		}
 		return TEXT_BLOCK
+	} else if inFuncScope {
+		p.err = fmt.Errorf("Expected an identifier for func, got %q", tok.Literal)
+		return ERROR
 	}
 
 	if tok.Type != lexer.INSTRUCTION {
