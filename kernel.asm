@@ -307,6 +307,86 @@ text_colors:
 text_colors_addr: .int text_colors
 
 .section text
+
+; ==== PutS: Prints a string on the screen.
+@func puts:
+    ; r1: Address to string start.
+    ; r2: x-pos start.
+    ; r3: y-pos start.
+    ; r4: foreground color.
+    ; r5: background color.
+
+    ; We copy the start addres to r1 because we will use r1 as the actual
+    ; char value to print with putc.
+    mov r20, r1
+
+loop:
+    ; Chars in string are 16-bit wide. So we need to AND and shift.
+    and r0, r20, 0xFFFF
+    jeq r0, done
+    ldr r1, [r20]
+
+    ; Save context in stack before calling putc.
+    strpi [sp, 4], r2
+    strpi [sp, 4], r3
+    strpi [sp, 4], r4
+    strpi [sp, 4], r5
+    call putc
+
+    ; Restore context.
+    ldrip r5, [sp, 4]
+    ldrip r4, [sp, 4]
+    ldrip r3, [sp, 4]
+    ldrip r2, [sp, 4]
+
+    ; Update (x,y)
+    call incXY
+
+    ; Next char in same word
+    lsl r0, r20, 16
+    and r0, r20, 0xFFFF
+    jeq r0, done
+    ldr r1, [r20]
+
+    strpi [sp, 4], r2
+    strpi [sp, 4], r3
+    strpi [sp, 4], r4
+    strpi [sp, 4], r5
+    call putc
+    ldrip r5, [sp, 4]
+    ldrip r4, [sp, 4]
+    ldrip r3, [sp, 4]
+    ldrip r2, [sp, 4]
+
+    ; Update (x,y)
+    call incxy
+
+    ; Advance to next string word.
+    add r20, r20, 4
+    jmp loop
+
+done:
+    call flush_video
+    ret
+@endf puts
+
+
+; ==== IncXY: Given an (x,y) position, moves to the next position respecting
+; screen boundaries.
+@func incxy:
+    ; r2: x-pos
+    ; r3: y-pos
+    add r2, r2, 1
+    sub r2, r2, 80
+    jne r2, done
+
+    mov r2, 0
+    add r3, r3, 1
+
+done:
+    ret
+@endf incxy
+
 ; ==== PutC: Prints a character on the screen.
 @func putc:
 	; r1: Character unicode value
@@ -464,10 +544,23 @@ ui_y: .int 0
 ui_fcolor: .int 15
 ui_bcolor: .int 0
 
+ready: .str "READY"
+ready_addr: .int ready
+
 .section text
 
 ; We wait for a user input and print the value on screen.
 @func USER_INTERFACE:
+    ; Print ready sign.
+    ldr r1, [ready_addr]
+    mov r2, 0
+    mov r3, 0
+    ldr r4, [ui_fcolor]
+    ldr r5, [ui_bcolor]
+    call puts
+    mov r0, 1
+    str [ui_y], r0
+
 	; Install our input handler.
 	ldr r0, [user_input_handler_addr]
 	str [0xE1090], r0
@@ -584,7 +677,6 @@ USER_INTERFACE_getin:
 .section data
 user_input_value: .int 0xFFFFFFFF
 user_input_handler_addr: .int USER_input_handler
-.str "te"
 
 .section text
 ; This will be called on every input that is not a quit signal.
