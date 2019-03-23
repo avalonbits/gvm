@@ -10,6 +10,11 @@ interrupt_table:
 	jmp timer_handler
 	jmp input_handler
 
+.org 0x80
+.section data
+vram_reg: .int 0x10E1000
+vram_start: .int 0x1000000
+
 .org 0xE1094
 
 .embed "./latin1.chrom"
@@ -199,7 +204,8 @@ width:
 
 	; Now add mem start, x-start with y-pos to get the framebuffer start point.
 	add r7, r1, r8
-	add r7, r7, 0x84
+	ldr r9, [0x84]
+	add r7, r7, r9
 
 line:
 	; Write pixel to framebuffer location
@@ -249,7 +255,8 @@ width:
 
 	; Now add mem start, x-pos, y-start with y-end to get the framebuffer start point.
 	add r7, r1, r8
-	add r7, r7, 0x84
+	ldr r9, [0x84]
+	add r7, r7, r9
 
 line:
 	; Write the pixel at the location.
@@ -396,8 +403,9 @@ done:
 
 	; To find the (x,y) position in the frame buffer, we use the formula
 	; pos(x,y) = x-pos*8*4 + 0x84 + y-pos * lineLength * 16.
+	ldr r6, [0x84]
 	mul r2, r2, 32
-	add r2, r2, 0x84
+	add r2, r2, r6
 	mul r3, r3, 2560
 	lsl r3, r3, 4
 	add r2, r2, r3
@@ -489,8 +497,9 @@ next_pixel:
 
 	; To find the (x,y) position in the frame buffer, we use the formula
 	; pos(x,y) = x-pos*8*4 + 0x84 + y-pos * lineLength * 16.
+	ldr r6, [0x84]
 	mul r1, r1, 32
-	add r1, r1, 0x84
+	add r1, r1, r6
 	mul r2, r2, 2560
 	lsl r2, r2, 4
 	add r1, r1, r2
@@ -521,8 +530,9 @@ loop:
 ; ==== FlushVideo: tells the video controller that it can copy the framebuffer
 ; to its own memory.
 @func flush_video:
-	mov r0, 1
-    str [0x80], r0
+	ldr r0, [0x80]
+	mov r1, 1
+    str [r0], r1
 	ret
 @endf flush_video
 
@@ -530,6 +540,7 @@ loop:
 ; available for writing.
 @func wait_video:
 	ldr r0, [0x80]
+	ldr r0, [r0]
 	jne r0, wait_video
 	ret
 @endf wait_video
