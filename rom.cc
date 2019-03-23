@@ -58,4 +58,12 @@ void Rom::ToFile(std::ofstream& out) const {
   out.close();
 }
 
+const uint32_t Rom::Size() const {
+  uint32_t size = 0;
+  for (const auto kv : rom_) {
+    size += kv.second.size();
+  }
+  return size * sizeof(Word);
+}
+
 }  // namespace gvm

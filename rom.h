@@ -22,6 +22,8 @@ class Rom {
   const std::map<uint32_t, std::vector<Word>>& Contents() const { return rom_; }
   void ToFile(std::ofstream& out) const;
 
+  const uint32_t Size() const;
+
  private:
   Rom() {};
   std::map<uint32_t, std::vector<Word>> rom_;
