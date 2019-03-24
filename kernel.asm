@@ -23,18 +23,24 @@ reset_handler:
 	mov r0, 0
 
     ; 64 bit counter words are 0xE1084 (LSW) and 0xE1088 (MSW)
-	str [0xE1084], r0
-	str [0xE1088], r0
+	str [timer_low32], r0
+	str [timer_high32], r0
 
 	; Clear input register
-	str [0xE108C], r0
+	ldr r1, [input_value_addr]
+	str [r1], r0
 
 	; Clear user input vector address.
-	str [0xE1090], r0
+	str [input_jump_addr], r0
 
-	; Now jump to user code, which starts at the 1MiB address.
+	; Now jump to main kernel code.
 	jmp USER_INTERFACE
 
+.section data
+timer_low32: .int 0
+timer_high32: .int 0
+
+.section text
 ; ==== Timer interrupt handler.
 @func timer_handler:
 	; Implements a 64 bit jiffy counter.
@@ -42,17 +48,17 @@ reset_handler:
 	strpi [sp, -4], r0
 
 	; Now increment the LSB of the 64 counter.
-	ldr r0, [0xE1084]  ; Load the LSW to r0.
+	ldr r0, [timer_low32]  ; Load the LSW to r0.
     add r0, r0, 1      ; increment it.
-	str [0xE1084], r0  ; write it back.
+	str [timer_low32], r0  ; write it back.
 
 	; If r0 != 0 that means we did not overflow.
 	jne r0, done
 
 	; Otherwise, we need to increment the MSW.
-	ldr r0, [0xE1088]  ; Loadthe MSW to r0.
+	ldr r0, [timer_high32]  ; Loadthe MSW to r0.
 	add r0, r0, 1	   ; increment it.
-    str [0xE1088], r0  ; write it back.
+    str [timer_high32], r0  ; write it back.
 
 done:
 	; Now lets restore r0 and return.
