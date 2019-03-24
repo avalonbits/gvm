@@ -400,6 +400,10 @@ done:
     ret
 @endf incxy
 
+.section data
+chrom_addr: .int 0x1100000
+
+.section text
 ; ==== PutC: Prints a character on the screen.
 @func putc:
 	; r1: Character unicode value
@@ -433,7 +437,7 @@ done:
 	; Each character is 8x16 pixels encoded in 16 bytes with each byte being an
 	; 8 pixel row. In order to find the start of the char we multiply the char
 	; by 16 and sum it with the start of the character rom.
-	mov r0, 0xF0000
+	ldr r0, [chrom_addr]
 	lsl r1, r1, 4
 	add r1, r0, r1
 
@@ -704,6 +708,6 @@ USER_input_handler:
 	ret
 
 
-.org 0xF0000
+.org 0x1100000
 
-.embed "./latin1.chrom"
+.embed "./unicode16.chrom"
