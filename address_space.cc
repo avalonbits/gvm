@@ -14,12 +14,13 @@ namespace {
   const uint32_t kUserMemSize = 15 * 1024 * 1024;
   const uint32_t kVramSize = 640 * 360 * 4;
 
-  // For now the only io that we have is the video signal register.
-  const uint32_t kIOMemSize = 4;
+  const uint32_t kIOMemSize = 8;
   const uint32_t kMemLimit = kKernelMemSize + kUserMemSize + kVramSize + kIOMemSize;
 
   const uint32_t kVramStart = kKernelMemSize + kUserMemSize;
-  const uint32_t kVramReg = kVramStart + kVramSize;
+  const uint32_t kIOStart = kVramStart + kVramSize;
+  const uint32_t kVramReg = kIOStart;
+  const uint32_t kInputReg = kIOStart + 4;
 }  // namespace
 
 AddressSpace::AddressSpace(std::function<void(const uint32_t addr)> illegal_address)
@@ -38,8 +39,10 @@ uint32_t& AddressSpace::operator[](std::size_t idx) const {
 
   if (idx == kVramReg) {
     video_signal_(&mem_[m2w(kVramReg)], &mem_[m2w(kVramStart)], kVramSize);
+  } else if (idx == kInputReg) {
+    illegal_address_(idx);
+    return kDummy;
   }
-  
 
   return mem_[m2w(idx)];
 }

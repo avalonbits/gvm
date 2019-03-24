@@ -39,7 +39,6 @@ reset_handler:
 	; Now jump to user code, which starts at the 1MiB address.
 	jmp USER_INTERFACE
 
-
 ; ==== Timer interrupt handler.
 @func timer_handler:
 	; Implements a 64 bit jiffy counter.
@@ -65,6 +64,11 @@ done:
 	ret
 @endf timer_handler
 
+.section data
+input_value_addr: .int 0x10E1004
+input_jump_addr: .int 0
+
+.section text
 ; ==== Input handler
 @func input_handler:
 	; Save the contents of r0 and r1 on the stack so we don't disrupt user code.
@@ -72,14 +76,15 @@ done:
 	strpi [sp, -4], r1
 
 	; Read the value from the input.
-	ldr r0, [0xE108C]
+	ldr r0, [input_value_addr]
+	ldr r0, [r0]
 
 	; Quit is the value 0xFFFFFFFF so adding 1 should result in 0.
 	add r1, r0, 1
 	jeq r1, quit
 
 	; Load the user jump address. If it's != 0, call it.
-	ldr r1, [0xE1090]
+	ldr r1, [input_jump_addr]
 	jeq r1, done
 	call r1
 
@@ -573,7 +578,7 @@ ready_addr: .int ready
 
 	; Install our input handler.
 	ldr r0, [user_input_handler_addr]
-	str [0xE1090], r0
+	str [input_jump_addr], r0
 
 loop:
 	call USER_INTERFACE_getin
