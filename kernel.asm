@@ -15,10 +15,6 @@ interrupt_table:
 vram_reg: .int 0x10E1000
 vram_start: .int 0x1000000
 
-.org 0xE1094
-
-.embed "./latin1.chrom"
-
 .section text
 
 ; ==== Reset interrupt handler.
@@ -431,7 +427,7 @@ done:
 	; Each character is 8x16 pixels encoded in 16 bytes with each byte being an
 	; 8 pixel row. In order to find the start of the char we multiply the char
 	; by 16 and sum it with the start of the character rom.
-	mov r0, 0xE1094
+	mov r0, 0xF0000
 	lsl r1, r1, 4
 	add r1, r0, r1
 
@@ -701,3 +697,7 @@ USER_input_handler:
 	str [user_input_value], r0
 	ret
 
+
+.org 0xF0000
+
+.embed "./latin1.chrom"
