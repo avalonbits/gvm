@@ -11,14 +11,17 @@ namespace {
     return addr / sizeof(uint32_t);
   }
   const uint32_t kKernelMemSize = 1024 * 1024;
-  const uint32_t kUserMemSize = 15 * 1024 * 1024;
   const uint32_t kVramSize = 640 * 360 * 4;
-
+  const uint32_t kUnmappedVram = 1024 * 1024 - kVramSize;
+  const uint32_t kUserMemSize = 15 * 1024 * 1024 + kUnmappedVram;
+  const uint32_t kUnicodeBitmapFont = 1024 * 1024
   const uint32_t kIOMemSize = 8;
-  const uint32_t kMemLimit = kKernelMemSize + kUserMemSize + kVramSize + kIOMemSize;
+  const uint32_t kMemLimit =
+    kKernelMemSize + kUserMemSize + kVramSize + kUnicodeBitmapFont + kIOMemSize;
 
   const uint32_t kVramStart = kKernelMemSize + kUserMemSize;
-  const uint32_t kIOStart = kVramStart + kVramSize;
+  const uint32_t kUnicodeRomStart = kVramStart + kVramSize;
+  const uint32_t kIOStart = kUnicodeRomStart + kUnicodeBitmapFont;
   const uint32_t kVramReg = kIOStart;
   const uint32_t kInputReg = kIOStart + 4;
 }  // namespace
