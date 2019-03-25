@@ -12,8 +12,8 @@ interrupt_table:
 
 .org 0x80
 .section data
-vram_reg: .int 0x10E1000
-vram_start: .int 0x1000000
+vram_reg:   .int 0x1200000
+vram_start: .int 0x101F000
 
 .section text
 
@@ -67,8 +67,8 @@ done:
 @endf timer_handler
 
 .section data
-input_value_addr: .int 0x10E1004
-input_jump_addr: .int 0
+input_value_addr: .int 0x1200004
+input_jump_addr:  .int 0
 
 .section text
 ; ==== Input handler
@@ -533,7 +533,7 @@ loop:
 	; Check if we are done.
 	sub r2, r2, 1
 	jne r2, loop
-  
+
 	; We are done.
 	ret
 @endf fill816
@@ -658,7 +658,7 @@ backspace:
 
 backspace_move_x_to_end:
 	; if >= 0 then move ui_x to 79.
-	mov r1, 79 
+	mov r1, 79
 	str [ui_y], r2
 
 backspace_erase:

@@ -6,11 +6,11 @@
 
 namespace {
 
-static const uint32_t kVideoMemReg = 0x10E1000;
+static const uint32_t kVideoMemReg = 0x1200000;
 static const uint32_t kVideoMemStart = 0x101F000;
 static const uint32_t kVideoMemSizeWords = 640 * 360;
 static const uint32_t kVideoMemEnd = kVideoMemStart + kVideoMemSizeWords;
-static const uint32_t kInputMemReg = 0x10E1004;
+static const uint32_t kInputMemReg = 0x1200004;
 static const int kFrameBufferW = 640;
 static const int kFrameBufferH = 360;
 
