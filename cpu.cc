@@ -13,10 +13,12 @@
 namespace gvm {
 
 namespace {
+constexpr uint32_t m2w(uint32_t idx) {
+  return idx / kWordSize;
+}
 constexpr uint32_t regv(const uint32_t idx, const uint32_t pc, uint32_t* regs) {
-  if (idx < 29) return regs[idx];
-  if (idx == 29) return  pc << 2;
-  return regs[idx] << 2;
+  if (idx != 29) return regs[idx];
+  return pc;
 }
 constexpr uint32_t reg1(uint32_t word) {
   return (word >> 6) & 0x1F;
@@ -39,14 +41,14 @@ constexpr uint32_t ext16bit(uint32_t word) {
 }
 
 constexpr uint32_t reladdr26(const uint32_t v26bit) {
-  return (v26bit >> 25) & 1 ? -((~(0xFC000000 | v26bit) + 1)/kWordSize)
-                            : v26bit/kWordSize;
+  return (v26bit >> 25) & 1 ? -(~(0xFC000000 | v26bit) + 1)
+                            : v26bit;
 }
 
 constexpr uint32_t reladdr21(const uint32_t v) {
   const uint32_t v21bit = v >> 11;
-  return (v21bit >> 20) & 1 ? -((~(0xFFE00000 | v21bit) + 1)/kWordSize)
-                            : v21bit/kWordSize;
+  return (v21bit >> 20) & 1 ? -(~(0xFFE00000 | v21bit) + 1)
+                            : v21bit;
 }
 
 }  // namespace
@@ -60,14 +62,14 @@ CPU::CPU()
 void CPU::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes) {
   assert(mem != nullptr);
   mem_ = mem;
-  mem_size_ = mem_size_bytes / kWordSize;
-  std::memset(mem_, 0, mem_size_bytes);
+  mem_size_ = mem_size_bytes;
+  std::memset(mem_, 0, m2w(mem_size_bytes));
   fp_ = sp_ = mem_size_;
 }
 
 void CPU::SetPC(uint32_t pc) {
   assert(pc % kWordSize == 0);
-  pc_ = pc / kWordSize;
+  pc_ = pc;
   assert(pc_ < mem_size_);
 }
 
@@ -110,7 +112,7 @@ void CPU::Run() {
     &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI, &&MUL_RR, &&MUL_RI, &&DIV_RR,
     &&DIV_RI, &&MULL_RR, &&WFI
   };
-  register uint32_t pc = pc_-1;
+  register uint32_t pc = pc_-4;
   register uint32_t word = 0;
 
   auto start = std::chrono::high_resolution_clock::now();
@@ -132,15 +134,15 @@ void CPU::Run() {
   if (interrupt_ != 0) {\
     goto INTERRUPT_SERVICE;\
   } else {\
-    ++pc;\
-    word =  mem_[pc];\
+    pc += 4;\
+    word =  mem_[m2w(pc)];\
     ++op_count_;\
     goto *opcodes[word&0x3F];\
   }
 
 #ifdef DEBUG_DISPATCH
 #define DISPATCH() \
-    pc_ = pc * 4; \
+    pc_ = pc; \
     std::cerr << "0x" << std::hex << pc_ << ": " << std::dec \
               << PrintInstruction(word) << std::endl; \
     std::cerr << PrintRegisters(true) << std::endl;\
@@ -158,50 +160,50 @@ void CPU::Run() {
   MOV_RR: {
       const register int32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc, reg_);
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   MOV_RI: {
       const register uint32_t idx = reg1(word);
       register int32_t v = (word >> 11);
       if (((v >> 20) & 1) == 1) v = 0xFFE00000 | v;
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   LOAD_RR: {
       const register uint32_t idx = reg1(word);
-      const register int32_t v = mem_[regv(reg2(word), pc, reg_)/kWordSize];
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      const register int32_t v = mem_[m2w(regv(reg2(word), pc, reg_))];
+      reg_[idx] = v;
       DISPATCH();
   }
   LOAD_RI: {
       const register uint32_t idx = reg1(word);
-      const register int32_t v = mem_[((word >> 11) & 0x1FFFFF) / kWordSize];
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      const register int32_t v = mem_[m2w((word >> 11) & 0x1FFFFF)];
+      reg_[idx] = v;
       DISPATCH();
   }
   LOAD_IX: {
       const register uint32_t idx = reg1(word);
       const register uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
-      const register int32_t v = mem_[addr/kWordSize];
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      const register int32_t v = mem_[m2w(addr)];
+      reg_[idx] = v;
       DISPATCH();
   }
   LOAD_IXR: {
       const register uint32_t idx = reg1(word);
       const register uint32_t addr =
          regv(reg2(word), pc, reg_) + regv(reg3(word), pc, reg_);
-      const register int32_t v = mem_[addr/kWordSize];
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      const register int32_t v = mem_[m2w(addr)];
+      reg_[idx] = v;
       DISPATCH();
   }
   LOAD_PI: {
       const register uint32_t idx = reg1(word);
       const register uint32_t idx2 = reg2(word);
       const register uint32_t next = regv(idx2, pc, reg_) + ext16bit(word);
-      const register int32_t v = mem_[next/kWordSize];
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
-      reg_[idx2] = (idx2 >= 29) ? next / kWordSize : next;
+      const register int32_t v = mem_[m2w(next)];
+      reg_[idx] = v;
+      reg_[idx2] = next;
       DISPATCH();
   }
   LOAD_IP: {
@@ -209,164 +211,170 @@ void CPU::Run() {
       const register uint32_t idx2 = reg2(word);
       const register uint32_t cur = regv(idx2, pc, reg_);
       const register uint32_t next = cur + ext16bit(word);
-      const register int32_t v = mem_[cur/kWordSize];
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
-      reg_[idx2] = (idx2 >= 29) ? next / kWordSize : next;
+      const register int32_t v = mem_[m2w(cur)];
+      reg_[idx] = v;
+      reg_[idx2] = next;
       DISPATCH();
   }
   STOR_RR: {
-      mem_[regv(reg1(word), pc, reg_)/kWordSize] = regv(reg2(word), pc, reg_);
+      mem_[m2w(regv(reg1(word), pc, reg_))] = regv(reg2(word), pc, reg_);
       DISPATCH();
   }
   STOR_RI: {
-      const uint32_t addr = ((word >> 11) & 0x1FFFFF)/kWordSize;
+      const uint32_t addr = m2w((word >> 11) & 0x1FFFFF);
       mem_[addr] = regv(reg1(word), pc, reg_);
       DISPATCH();
   }
   STOR_IX: {
-      mem_[(regv(reg1(word), pc, reg_) + ext16bit(word))/kWordSize] =
+      mem_[m2w(regv(reg1(word), pc, reg_) + ext16bit(word))] =
           regv(reg2(word), pc, reg_);
       DISPATCH();
   }
   STOR_PI: {
       const register uint32_t idx = reg1(word);
       const register uint32_t next = regv(idx, pc, reg_) + ext16bit(word);
-      mem_[next/kWordSize] = regv(reg2(word), pc, reg_);
-      reg_[idx] = ((idx >= 29) ? next / kWordSize : next);
+      mem_[m2w(next)] = regv(reg2(word), pc, reg_);
+      reg_[idx] = next;
       DISPATCH();
   }
   STOR_IP: {
       const register uint32_t idx = reg1(word);
       const register uint32_t cur = regv(idx, pc, reg_);
       const register uint32_t next = cur + ext16bit(word);
-      mem_[cur/kWordSize] = regv(reg2(word), pc, reg_);
-      reg_[idx] = ((idx >= 29) ? next / kWordSize : next);
+      mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
+      reg_[idx] = next;
       DISPATCH();
   }
   ADD_RR: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc ,reg_) + regv(reg3(word), pc, reg_);
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   ADD_RI: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc, reg_) + v16bit(word);
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   SUB_RR: {
       const register uint32_t idx = reg1(word);
       const register uint32_t op2 = (~regv(reg3(word), pc, reg_) + 1);
       const register int32_t v = regv(reg2(word), pc, reg_) + op2;
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   SUB_RI: {
       const register uint32_t op2 = (~v16bit(word) + 1);
       const register uint32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc, reg_) + op2;
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   JMP:
-      pc = pc + reladdr26(word >> 6) - 1;
+      pc = pc + reladdr26(word >> 6) - 4;
       DISPATCH();
   JNE:
-      if (reg_[reg1(word)] != 0) pc = pc + reladdr21(word) - 1;
+      if (reg_[reg1(word)] != 0) pc = pc + reladdr21(word) - 4;
       DISPATCH();
   JEQ:
-      if (reg_[reg1(word)] == 0) pc = pc + reladdr21(word) - 1;
+      if (reg_[reg1(word)] == 0) pc = pc + reladdr21(word) - 4;
       DISPATCH();
   JGT:
-      if (static_cast<int32_t>(reg_[reg1(word)]) > 0) pc = pc + reladdr21(word) - 1;
+      if (static_cast<int32_t>(reg_[reg1(word)]) > 0) pc = pc + reladdr21(word) - 4;
       DISPATCH();
   JGE:
-      if (static_cast<int32_t>(reg_[reg1(word)]) >= 0) pc = pc + reladdr21(word) - 1;
+      if (static_cast<int32_t>(reg_[reg1(word)]) >= 0) pc = pc + reladdr21(word) - 4;
       DISPATCH();
   JLT:
-      if (static_cast<int32_t>(reg_[reg1(word)]) < 0) pc = pc + reladdr21(word) - 1;
+      if (static_cast<int32_t>(reg_[reg1(word)]) < 0) pc = pc + reladdr21(word) - 4;
       DISPATCH();
   JLE:
-      if (static_cast<int32_t>(reg_[reg1(word)]) <= 0) pc = pc + reladdr21(word) - 1;
+      if (static_cast<int32_t>(reg_[reg1(word)]) <= 0) pc = pc + reladdr21(word) - 4;
       DISPATCH();
   CALLI:
-      mem_[--sp_] = pc;
-      mem_[--sp_] = fp_;
+      sp_ -= 4;
+      mem_[m2w(sp_)] = pc;
+      sp_ -= 4;
+      mem_[m2w(sp_)] = fp_;
       fp_ = sp_;
-      pc = pc + reladdr26(word >> 6) - 1;
+      pc = pc + reladdr26(word >> 6) - 4;
       DISPATCH();
   CALLR:
-      mem_[--sp_] = pc;
-      mem_[--sp_] = fp_;
+      sp_ -= 4;
+      mem_[m2w(sp_)] = pc;
+      sp_ -= 4;
+      mem_[m2w(sp_)] = fp_;
       fp_ = sp_;
-      pc = reg_[reg1(word)]/kWordSize - 1;
+      pc = reg_[reg1(word)] - 4;
       DISPATCH();
   RET:
       sp_ = fp_;
-      fp_ = mem_[sp_++];
-      pc = mem_[sp_++];
+      fp_ = mem_[m2w(sp_)];
+      sp_ += 4;
+      pc = mem_[m2w(sp_)];
+      sp_ += 4;
       mask_interrupt_ = false;
       DISPATCH();
   AND_RR: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc, reg_) & regv(reg3(word), pc, reg_);
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   AND_RI: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = (regv(reg2(word), pc, reg_) & v16bit(word));
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   ORR_RR: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc, reg_) | regv(reg3(word), pc, reg_);
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   ORR_RI: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = (regv(reg2(word), pc, reg_) | v16bit(word));
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   XOR_RR: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc, reg_) ^ regv(reg3(word), pc, reg_);
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   XOR_RI: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = (regv(reg2(word), pc, reg_) ^ v16bit(word));
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   LSL_RR: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc, reg_) << regv(reg3(word), pc, reg_);
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   LSL_RI: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = (regv(reg2(word), pc, reg_) << v16bit(word));
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   LSR_RR: {
       const register uint32_t idx = reg1(word);
       const register int32_t v =
           (regv(reg2(word), pc, reg_) >> regv(reg3(word), pc, reg_));
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   LSR_RI: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = (regv(reg2(word), pc, reg_) >> v16bit(word));
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   ASR_RR: {
@@ -374,47 +382,47 @@ void CPU::Run() {
       const register int32_t v =
           static_cast<int32_t>((regv(reg2(word), pc, reg_)) >>
               regv(reg3(word), pc, reg_));
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   ASR_RI: {
       const register uint32_t idx = reg1(word);
       const register int32_t v =
           (static_cast<int32_t>(regv(reg2(word), pc, reg_)) >> v16bit(word));
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   MUL_RR: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc, reg_) * regv(reg3(word), pc, reg_);
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   MUL_RI: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = (regv(reg2(word), pc, reg_) * v16bit(word));
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   DIV_RR: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = regv(reg2(word), pc, reg_) / regv(reg3(word), pc, reg_);
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   DIV_RI: {
       const register uint32_t idx = reg1(word);
       const register int32_t v = (regv(reg2(word), pc, reg_) / v16bit(word));
-      reg_[idx] = (idx >= 29) ? v / kWordSize : v;
+      reg_[idx] = v;
       DISPATCH();
   }
   MULL_RR: {
       const register uint32_t idxH = reg1(word);
       const register uint32_t idxL = reg2(word);
       const register int64_t v = regv(reg3(word), pc, reg_) * regv(reg4(word), pc, reg_);
-      reg_[idxL] = (idxL >= 29) ? (v & 0xFFFFFFFF) / kWordSize : (v & 0xFFFFFFFF);
+      reg_[idxL] = (v & 0xFFFFFFFF);
       const register int32_t vH = (v >> 32);
-      reg_[idxH] = (idxH >= 29) ? vH / kWordSize : vH;
+      reg_[idxH] = vH;
       DISPATCH();
   }
   WFI: {
@@ -432,21 +440,23 @@ void CPU::Run() {
       // We zero out all registers and setup pc, sp and fp accordingly.
       std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
       fp_ = sp_ = mem_size_;
-      pc = pc_-1;
+      pc = pc_-4;
     } else {
       mask_interrupt_ = true;
-      mem_[--sp_] = pc;
-      mem_[--sp_] = fp_;
+      sp_ -= 4;
+      mem_[m2w(sp_)] = pc;
+      sp_ -= 4;
+      mem_[m2w(sp_)] = fp_;
       fp_ = sp_;
 
       // Process signals in bit order. Lower bits have higher priority than higher bits.
       if (interrupt_ & 0x02) {
         // Timer interrupt.
-        pc = 0;  // Set to 0 because it will be incremented to 1 (addr 0x04) on DISPATCH.
+        pc = 0;  // Set to 0 because it will be incremented to addr 0x04 on DISPATCH.
         interrupt_ &= ~0x02;
       } else if (interrupt_ & 0x04) {
         // Input interrupt.
-        pc = 1;  // Set to 4 because it will be incremented to 2 (addr 0x08) on DISPATCH.
+        pc = 4;  // Set to 4 because it will be incremented to addr 0x08 on DISPATCH.
         interrupt_ &= ~0x04;
       }
     }
@@ -521,7 +531,6 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::LOAD_IXR:
       ss << "load r" << reg1(word) << ", [r" << reg2(word) << ", r" << reg3(word) << "]";
       break;
- 
     case ISA::LOAD_IP:
       ss << "load post inc r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
       break;

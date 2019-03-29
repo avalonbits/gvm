@@ -23,11 +23,10 @@ gvm::VideoDisplay* CreateSDL2Display(const std::string& mode) {
     return new gvm::SDL2VideoDisplay(1920, 1080);
   } else if (mode == "fullscreen") {
     return new gvm::SDL2VideoDisplay();
-  } else if (mode != "null") {
-      std::cerr << mode << " is not a valid mode. Going with \"null\".\n";
   }
 
-  return new gvm::NullVideoDisplay();
+  std::cerr << "No valid video mode provided. Defaulting to 720p.\n";
+  return new gvm::SDL2VideoDisplay(1280, 720);
 }
 
 const gvm::Rom* CreateRom(const cxxopts::ParseResult& result);
