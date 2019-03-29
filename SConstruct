@@ -15,7 +15,7 @@ libs = ['SDL2', 'pthread']
 
 env = Environment(CCFLAGS=' '.join(ccflags), LIBS=libs)
 srcs = [
-  'address_space.cc', 'computer.cc', 'cpu.cc', 'input_controller.cc', 'isa.cc',
+  'computer.cc', 'cpu.cc', 'input_controller.cc', 'isa.cc',
   'main.cc', 'rom.cc', 'sdl2_video_display.cc', 'video_controller.cc'
 ]
 env.Program('gvm', srcs)
