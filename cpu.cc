@@ -144,8 +144,7 @@ void CPU::Run() {
 #ifdef DEBUG_DISPATCH
 #define DISPATCH() \
     pc_ = pc; \
-    std::cerr << "0x" << std::hex << pc_ << ": " << std::dec \
-              << PrintInstruction(word) << std::endl; \
+    std::cerr << PrintInstruction(word) << std::endl; \
     std::cerr << PrintRegisters(true) << std::endl;\
     interrupt_dispatch(1000000000)
 #else
@@ -503,13 +502,14 @@ const std::string CPU::PrintMemory(uint32_t from, uint32_t to) {
 
 std::string CPU::PrintInstruction(const Word word) {
   std::ostringstream ss;
+  ss << "0x" << std::hex << pc_ << ": " << std::dec;
 
   switch (word & 0x3F) {  // first 8 bits define the instruction.
     case ISA::HALT:
-      return "halt";
+      ss << "halt";
       break;
     case ISA::NOP:
-      return "nop";
+      ss << "nop";
       break;
     case ISA::MOV_RR:
       ss << "mov r" << reg1(word) << ", r" << reg2(word);
@@ -593,7 +593,8 @@ std::string CPU::PrintInstruction(const Word word) {
       ss << "call [r" << reg1(word) << "]";
       break;
     case ISA::RET:
-      return "ret";
+      ss << "ret";
+      break;
     case ISA::AND_RR:
       ss << "and r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
       break;
