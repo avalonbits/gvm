@@ -8,7 +8,6 @@
 #include "cxxopts.hpp"
 #include "isa.h"
 #include "sdl2_video_display.h"
-#include "null_video_display.h"
 
 gvm::VideoDisplay* CreateSDL2Display(const std::string& mode) {
   if (mode == "480p") {
@@ -29,7 +28,6 @@ gvm::VideoDisplay* CreateSDL2Display(const std::string& mode) {
   return new gvm::SDL2VideoDisplay(1280, 720);
 }
 
-const gvm::Rom* CreateRom(const cxxopts::ParseResult& result);
 const gvm::Rom* ReadRom(const std::string& prgrom) {
   std::ifstream in(prgrom, std::ifstream::binary | std::ifstream::in);
   return gvm::Rom::FromFile(in);
