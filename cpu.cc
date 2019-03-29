@@ -471,7 +471,7 @@ const std::string CPU::PrintRegisters(bool hex) {
   ss << "[";
   for (uint32_t i = 0; i < kRegCount; ++i) {
     if (i != 0) ss << " ";
-    const uint32_t r = (i >= 29) ? 4 *reg_[i] : reg_[i];
+    const uint32_t r = reg_[i];
     if (hex) {
       ss << std::hex << "0x";
     } else {
@@ -566,28 +566,28 @@ std::string CPU::PrintInstruction(const Word word) {
       ss << "sub r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
     case ISA::JMP:
-      ss << "jmp 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr26(word >> 6)));
+      ss << "jmp 0x" << std::hex << pc_;
       break;
     case ISA::JNE:
-      ss << "jne 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr26(word >> 6)));
+      ss << "jne 0x" << std::hex << pc_;
       break;
     case ISA::JEQ:
-      ss << "jeq 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr26(word >> 6)));
+      ss << "jeq 0x" << std::hex << pc_;
       break;
     case ISA::JGT:
-      ss << "jgt 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr26(word >> 6)));
+      ss << "jgt 0x" << std::hex << pc_;
       break;
     case ISA::JGE:
-      ss << "jge 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr26(word >> 6)));
+      ss << "jge 0x" << std::hex << pc_;
       break;
     case ISA::JLT:
-      ss << "jlt 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr26(word >> 6)));
+      ss << "jlt 0x" << std::hex << pc_;
       break;
     case ISA::JLE:
-      ss << "jle 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr26(word >> 6)));
+      ss << "jle 0x" << std::hex << pc_;
       break;
     case ISA::CALLI:
-      ss << "call 0x" << std::hex << (pc_ + static_cast<int32_t>(reladdr26(word >> 6)));
+      ss << "call 0x" << std::hex << pc_;
       break;
     case ISA::CALLR:
       ss << "call [r" << reg1(word) << "]";
