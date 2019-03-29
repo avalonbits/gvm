@@ -502,9 +502,14 @@ const std::string CPU::PrintMemory(uint32_t from, uint32_t to) {
 
 std::string CPU::PrintInstruction(const Word word) {
   std::ostringstream ss;
-  ss << "0x" << std::hex << pc_ << ": " << std::dec;
+  const auto opcode = word & 0x3F;
+  auto pc = pc_;
+  if (opcode == ISA::RET) {
+      pc += 4;
+  }
+  ss << "0x" << std::hex << pc << ": " << std::dec;
 
-  switch (word & 0x3F) {  // first 8 bits define the instruction.
+  switch (opcode) {  // first 8 bits define the instruction.
     case ISA::HALT:
       ss << "halt";
       break;
@@ -566,28 +571,28 @@ std::string CPU::PrintInstruction(const Word word) {
       ss << "sub r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
     case ISA::JMP:
-      ss << "jmp 0x" << std::hex << pc_;
+      ss << "jmp 0x" << std::hex << pc;
       break;
     case ISA::JNE:
-      ss << "jne 0x" << std::hex << pc_;
+      ss << "jne 0x" << std::hex << pc;
       break;
     case ISA::JEQ:
-      ss << "jeq 0x" << std::hex << pc_;
+      ss << "jeq 0x" << std::hex << pc;
       break;
     case ISA::JGT:
-      ss << "jgt 0x" << std::hex << pc_;
+      ss << "jgt 0x" << std::hex << pc;
       break;
     case ISA::JGE:
-      ss << "jge 0x" << std::hex << pc_;
+      ss << "jge 0x" << std::hex << pc;
       break;
     case ISA::JLT:
-      ss << "jlt 0x" << std::hex << pc_;
+      ss << "jlt 0x" << std::hex << pc;
       break;
     case ISA::JLE:
-      ss << "jle 0x" << std::hex << pc_;
+      ss << "jle 0x" << std::hex << pc;
       break;
     case ISA::CALLI:
-      ss << "call 0x" << std::hex << pc_;
+      ss << "call 0x" << std::hex << pc;
       break;
     case ISA::CALLR:
       ss << "call [r" << reg1(word) << "]";
