@@ -10,9 +10,11 @@ class InputController {
   ~InputController();
 
   void Read();
+  void Shutdown() { shutdown_ = true; }
 
  private:
   std::function<void(uint32_t value)> callback_;
+  volatile bool shutdown_;
 };
 
 }  // namepsace gvm

@@ -3,6 +3,7 @@
 #include <cassert>
 #include <chrono>
 #include <iostream>
+#include <SDL2/SDL.h>
 
 #include "isa.h"
 
@@ -13,12 +14,18 @@ VideoController::VideoController(const bool print_fps, VideoDisplay* display)
   assert(display != nullptr);
 }
 
+static int ReadInput(void* ptr) {
+  InputController* input = reinterpret_cast<InputController*>(ptr);
+  input->Read();
+  return 0;
+}
+
 void VideoController::Run() {
+  auto thread = SDL_CreateThread(ReadInput, "ReadInput", reinterpret_cast<void*>(input_controller_.get()));
   auto shutdown = shutdown_;
   auto start = std::chrono::high_resolution_clock::now();
   display_->Render();
   while (!shutdown) {
-    input_controller_->Read();
     shutdown = shutdown_;
     if (mem_[mem_reg_] == 0) continue;
 
@@ -36,6 +43,9 @@ void VideoController::Run() {
                 << "\n";
     }
   }
+  input_controller_->Shutdown();
+  int v;
+  SDL_WaitThread(thread, &v);
 }
 
 void VideoController::RegisterDMA(

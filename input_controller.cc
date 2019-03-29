@@ -9,7 +9,7 @@
 namespace gvm {
 
 InputController::InputController(std::function<void(uint32_t value)> callback)
-    : callback_(callback) {
+    : callback_(callback), shutdown_(false) {
   if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_JOYSTICK) < 0) {
     std::cerr << SDL_GetError() << std::endl;
     assert(false);
@@ -52,30 +52,32 @@ static const bool IsControlKey(uint32_t sym) {
 }
 
 void InputController::Read() {
-  SDL_Event event;
-  if (!SDL_PollEvent(&event)) return;
+  while (!shutdown_) {
+    SDL_Event event;
+    if (!SDL_WaitEvent(&event)) return;
 
-  // Event available
-  switch (event.type) {
-    case SDL_QUIT: {
-      callback_(0xFFFFFFFF);
-      break;
+    // Event available
+    switch (event.type) {
+      case SDL_QUIT: {
+        callback_(0xFFFFFFFF);
+        break;
+      }
+      case SDL_KEYDOWN: {
+        const uint32_t sym = event.key.keysym.sym;
+        std::cerr << "Keydown: " << sym << std::endl;
+        if (IsControlKey(sym)) callback_(sym);
+        break;
+      }
+      case SDL_TEXTINPUT: {
+        const char* text = event.text.text;
+        int codepoint = 0;
+        utf8codepoint(text, &codepoint);
+        callback_(static_cast<uint32_t>(codepoint));
+        break;
+      }
+      default:
+        break;
     }
-    case SDL_KEYDOWN: {
-      const uint32_t sym = event.key.keysym.sym;
-      std::cerr << "Keydown: " << sym << std::endl;
-      if (IsControlKey(sym)) callback_(sym);
-      break;
-    }
-    case SDL_TEXTINPUT: {
-      const char* text = event.text.text;
-      int codepoint = 0;
-      utf8codepoint(text, &codepoint);
-      callback_(static_cast<uint32_t>(codepoint));
-      break;
-    }
-    default:
-      break;
   }
 }
 
