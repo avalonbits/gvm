@@ -48,9 +48,8 @@ int main(int argc, char* argv[]) {
   const bool print_fps = mode != "null";
   auto* display = CreateSDL2Display(mode);
   auto* controller = new gvm::VideoController(print_fps, display);
-  const uint32_t mem_size = 256 << 20;  // 17MiB
   auto* cpu = new gvm::CPU();
-  gvm::Computer computer(mem_size, cpu, controller);
+  gvm::Computer computer(cpu, controller);
   const std::string prgrom = result["prgrom"].as<std::string>();
   const gvm::Rom* rom = nullptr;
   rom = ReadRom(prgrom);

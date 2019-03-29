@@ -20,7 +20,8 @@ class CPU {
   CPU(const CPU&) = delete;
   CPU& operator=(const CPU&) = delete;
 
-  void ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes);
+  void ConnectMemory(
+      uint32_t* mem, uint32_t mem_size_bytes, uint32_t user_ram_limit);
 
   uint32_t PowerOn();
   uint32_t Reset();
@@ -45,6 +46,7 @@ class CPU {
   uint32_t* mem_;
   uint32_t reg_[kRegCount];
   uint32_t mem_size_;
+  uint32_t user_ram_limit_;
   uint32_t& sp_;
   uint32_t& fp_;
   uint32_t op_count_;

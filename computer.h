@@ -15,8 +15,7 @@ namespace gvm {
 class Computer {
  public:
   // Owns cpu and video_display.
-  Computer(uint32_t mem_size_bytes, CPU* cpu,
-           VideoController* video_controller);
+  Computer(CPU* cpu, VideoController* video_controller);
 
   // Takes ownership of rom.
   void LoadRom(const Rom* rom);

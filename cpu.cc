@@ -59,12 +59,13 @@ CPU::CPU()
   std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
 }
 
-void CPU::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes) {
+void CPU::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes, uint32_t user_ram_limit) {
   assert(mem != nullptr);
   mem_ = mem;
   mem_size_ = mem_size_bytes;
+  user_ram_limit_ = user_ram_limit;
   std::memset(mem_, 0, m2w(mem_size_bytes));
-  fp_ = sp_ = mem_size_;
+  fp_ = sp_ = user_ram_limit_;
 }
 
 void CPU::SetPC(uint32_t pc) {
@@ -439,7 +440,7 @@ void CPU::Run() {
       interrupt_ = 0;
       // We zero out all registers and setup pc, sp and fp accordingly.
       std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
-      fp_ = sp_ = mem_size_;
+      fp_ = sp_ = user_ram_limit_;
       pc = pc_-4;
     } else {
       mask_interrupt_ = true;
