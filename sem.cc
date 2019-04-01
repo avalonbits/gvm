@@ -3,7 +3,7 @@
 #include <condition_variable>
 #include <thread>
 
-#include "sync_chan.h"
+#include "sync_types.h"
 using gvm::SyncChan;
 
 void thread1chan(SyncChan<int>* chan) {

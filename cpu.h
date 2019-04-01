@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "isa.h"
+#include "sync_types.h"
 #include "video_controller.h"
 
 namespace gvm {
@@ -32,6 +33,8 @@ class CPU {
   // Sets signal for input handling.
   void Input();
 
+  void SetVideoSignal(SyncPoint* video_signal) { video_signal_ = video_signal; }
+
   const std::string PrintRegisters(bool hex = false);
   const std::string PrintMemory(uint32_t from, uint32_t to);
   const std::string PrintStatusFlags();
@@ -54,6 +57,7 @@ class CPU {
   volatile uint32_t interrupt_;
   std::mutex interrupt_mutex_;
   std::condition_variable interrupt_event_;
+  SyncPoint* video_signal_;
 };
 
 }  // namespace gvm

@@ -41,7 +41,9 @@ Computer::Computer(CPU* cpu, VideoController* video_controller)
     cpu_->Input();
     std::this_thread::yield();
   }));
+  video_controller_->SetSignal(&video_signal_);
   cpu_->ConnectMemory(mem_.get(), mem_size_bytes_, kVramStart);
+  cpu_->SetVideoSignal(&video_signal_);
   RegisterVideoDMA();
 }
 
