@@ -1,5 +1,5 @@
-#ifndef _GVM_SYNC_CHAN_H_
-#define _GVM_SYNC_CHAN_H_
+#ifndef _GVM_SYNC_TYPES_H_
+#define _GVM_SYNC_TYPES_H_
 
 #include <condition_variable>
 #include <functional>
@@ -11,65 +11,93 @@ namespace gvm {
 template <typename VALUE>
 class SyncChan {
  public:
-  SyncChan() : full_(false), reader_(false), writer_(false) {}
+  SyncChan() : sync_(false), receiver_waiting_(false) {}
 
   void send(VALUE value) {
-    // Make sure we are the only writer.
     {
       std::unique_lock<std::mutex> lk(mu_);
-      cond_.wait(lk, [this]() { return !writer_; });
-      writer_ = true;
+      cond_.wait(lk, [this]() { return receiver_waiting_; });
     }
 
-    // Make sure there is a reader available to receive the data.
     {
       std::unique_lock<std::mutex> lk(mu_);
-      cond_.wait(lk, [this]() { return reader_; });
-    }
-
-    // Wait for the channel to be empty, then write to it.
-    {
-      std::unique_lock<std::mutex> lk(mu_);
-      cond_.wait(lk, [this]() { return !full_; });
+      cond_.wait(lk, [this]() { return !sync_; });
       value_ = value;
-      full_ = true;  // Channel has data.
-      writer_ = false;
+      sync_ = true;
     }
     cond_.notify_all();
   }
 
   VALUE recv() {
-    // Make sure we are the only reader in the channel.
     {
       std::unique_lock<std::mutex> lk(mu_);
-      cond_.wait(lk, [this]() { return !reader_; });
-      reader_ = true;
+      cond_.wait(lk, [this]() { return !receiver_waiting_; });
+      receiver_waiting_ = true;
     }
     cond_.notify_all();
 
-    // Now wait for data to be sent to the channel and read it.
     VALUE value;
     {
       std::unique_lock<std::mutex> lk(mu_);
-      cond_.wait(lk, [this]() { return full_; });
+      cond_.wait(lk, [this]() { return sync_; });
       value = value_;
-      full_ = false;  // channel has been drained.
-      reader_ = false;
+      sync_ = false;
+      receiver_waiting_ = false;
     }
     cond_.notify_all();
-
     return value;
   }
 
  private:
-  bool full_;
-  bool reader_;
-  bool writer_;
+  bool sync_;
+  bool receiver_waiting_;
   std::mutex mu_;
   std::condition_variable cond_;
   VALUE value_;
 };
 
+class SyncPoint {
+ public:
+  SyncPoint() : sync_(false), receiver_waiting_(false) {}
+
+  void send() {
+    {
+      std::unique_lock<std::mutex> lk(mu_);
+      cond_.wait(lk, [this]() { return receiver_waiting_; });
+    }
+    {
+      std::unique_lock<std::mutex> lk(mu_);
+      cond_.wait(lk, [this]() { return !sync_; });
+      sync_ = true;
+    }
+    cond_.notify_all();
+  }
+
+  void recv() {
+    {
+      std::unique_lock<std::mutex> lk(mu_);
+      cond_.wait(lk, [this]() { return !receiver_waiting_; });
+      receiver_waiting_ = true;
+    }
+    cond_.notify_all();
+
+    {
+      std::unique_lock<std::mutex> lk(mu_);
+      cond_.wait(lk, [this]() { return sync_; });
+      sync_ = false;
+      receiver_waiting_ = false;
+    }
+    cond_.notify_all();
+  }
+
+ private:
+  bool sync_;
+  bool receiver_waiting_;
+  std::mutex mu_;
+  std::condition_variable cond_;
+};
+
+
 }  // namespace
 
-#endif  // _GVM_SYNC_CHAN_H_
+#endif  // _GVM_SYNC_TYPES_H_
