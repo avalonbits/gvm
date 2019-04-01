@@ -60,6 +60,7 @@ void InputController::Read() {
     switch (event.type) {
       case SDL_QUIT: {
         callback_(0xFFFFFFFF);
+        shutdown_ = true;
         break;
       }
       case SDL_KEYDOWN: {

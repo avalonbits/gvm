@@ -32,7 +32,7 @@ class VideoController {
   uint32_t* mem_;
   std::unique_ptr<VideoDisplay> display_;
   std::unique_ptr<InputController> input_controller_;
-  bool shutdown_;
+  volatile bool shutdown_;
 
 };
 

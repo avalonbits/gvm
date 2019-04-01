@@ -22,13 +22,11 @@ static int ReadInput(void* ptr) {
 }
 
 void VideoController::Run() {
-  auto shutdown = shutdown_;
   auto start = std::chrono::high_resolution_clock::now();
   display_->Render();
   SDL_Thread* input_thread = SDL_CreateThread(
           ReadInput, "ReadInput", reinterpret_cast<void*>(input_controller_.get()));
-  while (!shutdown) {
-    shutdown = shutdown_;
+  while (!shutdown_) {
     signal_->recv();
     if (mem_[mem_reg_] == 0) continue;
 
