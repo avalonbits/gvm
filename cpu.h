@@ -33,7 +33,10 @@ class CPU {
   // Sets signal for input handling.
   void Input();
 
-  void SetVideoSignal(SyncPoint* video_signal) { video_signal_ = video_signal; }
+  void SetVideoSignal(const uint32_t vram_reg, SyncPoint* video_signal) {
+    vram_reg_ = vram_reg;
+    video_signal_ = video_signal;
+  }
 
   const std::string PrintRegisters(bool hex = false);
   const std::string PrintMemory(uint32_t from, uint32_t to);
@@ -57,6 +60,7 @@ class CPU {
   volatile uint32_t interrupt_;
   std::mutex interrupt_mutex_;
   std::condition_variable interrupt_event_;
+  uint32_t vram_reg_;
   SyncPoint* video_signal_;
 };
 
