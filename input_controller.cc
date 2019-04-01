@@ -54,7 +54,7 @@ static bool IsControlKey(uint32_t sym) {
 void InputController::Read() {
   SDL_Event event;
   while (!shutdown_) {
-    if (!SDL_PollEvent(&event)) continue;
+    if (!SDL_WaitEvent(&event)) continue;
 
     // Event available
     switch (event.type) {

@@ -151,6 +151,9 @@ void CPU::Run() {
 #define DISPATCH() interrupt_dispatch(300)
 #endif
 
+#define VSIG(addr) \
+  if (addr == vram_reg_) video_signal_->send()
+
   DISPATCH();
   NOP:
       DISPATCH();
@@ -217,17 +220,21 @@ void CPU::Run() {
       DISPATCH();
   }
   STOR_RR: {
-      mem_[m2w(regv(reg1(word), pc, reg_))] = regv(reg2(word), pc, reg_);
+      const uint32_t addr = regv(reg1(word), pc, reg_);
+      mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
+      VSIG(addr);
       DISPATCH();
   }
   STOR_RI: {
-      const uint32_t addr = m2w((word >> 11) & 0x1FFFFF);
-      mem_[addr] = regv(reg1(word), pc, reg_);
+      const uint32_t addr = (word >> 11) & 0x1FFFFF;
+      mem_[m2w(addr)] = regv(reg1(word), pc, reg_);
+      VSIG(addr);
       DISPATCH();
   }
   STOR_IX: {
-      mem_[m2w(regv(reg1(word), pc, reg_) + ext16bit(word))] =
-          regv(reg2(word), pc, reg_);
+      const uint32_t addr = regv(reg1(word), pc, reg_) + ext16bit(word);
+      mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
+      VSIG(addr);
       DISPATCH();
   }
   STOR_PI: {
@@ -235,6 +242,7 @@ void CPU::Run() {
       const register uint32_t next = regv(idx, pc, reg_) + ext16bit(word);
       mem_[m2w(next)] = regv(reg2(word), pc, reg_);
       reg_[idx] = next;
+      VSIG(next);
       DISPATCH();
   }
   STOR_IP: {
@@ -243,6 +251,7 @@ void CPU::Run() {
       const register uint32_t next = cur + ext16bit(word);
       mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
       reg_[idx] = next;
+      VSIG(cur);
       DISPATCH();
   }
   ADD_RR: {

@@ -29,6 +29,7 @@ void VideoController::Run() {
           ReadInput, "ReadInput", reinterpret_cast<void*>(input_controller_.get()));
   while (!shutdown) {
     shutdown = shutdown_;
+    signal_->recv();
     if (mem_[mem_reg_] == 0) continue;
 
     display_->CopyBuffer(&mem_[mem_addr_]);
@@ -62,6 +63,7 @@ void VideoController::RegisterDMA(
 
 void VideoController::Shutdown() {
   shutdown_ = true;
+  signal_->send();
 }
 
 }  // namespace gvm
