@@ -19,6 +19,7 @@ const uint32_t kUnicodeRomStart = kVramStart + kVramSize;
 const uint32_t kIOStart = kUnicodeRomStart + kUnicodeBitmapFont;
 const uint32_t kVramReg = kIOStart;
 const uint32_t kInputReg = kIOStart + 4;
+const uint32_t kTimerReg = kInputReg + 4;
 
 const int kFrameBufferW = 640;
 const int kFrameBufferH = 360;
@@ -44,6 +45,9 @@ Computer::Computer(CPU* cpu, VideoController* video_controller)
   video_controller_->SetSignal(&video_signal_);
   cpu_->ConnectMemory(mem_.get(), mem_size_bytes_, kVramStart);
   cpu_->SetVideoSignal(kVramReg, &video_signal_);
+
+  timer_service_.reset(new TimerService(&timer_chan_));
+  cpu_->SetTimerSignal(kTimerReg, timer_service_.get());
   RegisterVideoDMA();
 }
 
