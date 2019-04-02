@@ -154,6 +154,13 @@ void CPU::Run() {
 #define VSIG(addr) \
   if (addr == vram_reg_) video_signal_->send()
 
+#define TIMER(addr, v, fallback) \
+  v = fallback; \
+  if (addr == timer_reg_) { \
+    v = timer_signal_->Elapsed();\
+  }\
+
+
   DISPATCH();
   NOP:
       DISPATCH();
@@ -175,20 +182,25 @@ void CPU::Run() {
   }
   LOAD_RR: {
       const register uint32_t idx = reg1(word);
-      const register int32_t v = mem_[m2w(regv(reg2(word), pc, reg_))];
+      const register uint32_t addr = regv(reg2(word), pc, reg_);
+      register int32_t v;
+      TIMER(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
   LOAD_RI: {
       const register uint32_t idx = reg1(word);
-      const register int32_t v = mem_[m2w((word >> 11) & 0x1FFFFF)];
+      const register uint32_t addr = (word >> 11) & 0x1FFFFF;
+      register int32_t v;
+      TIMER(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
   LOAD_IX: {
       const register uint32_t idx = reg1(word);
       const register uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
-      const register int32_t v = mem_[m2w(addr)];
+      register int32_t v;
+      TIMER(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
@@ -196,7 +208,8 @@ void CPU::Run() {
       const register uint32_t idx = reg1(word);
       const register uint32_t addr =
          regv(reg2(word), pc, reg_) + regv(reg3(word), pc, reg_);
-      const register int32_t v = mem_[m2w(addr)];
+      register int32_t v;
+      TIMER(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
@@ -204,7 +217,8 @@ void CPU::Run() {
       const register uint32_t idx = reg1(word);
       const register uint32_t idx2 = reg2(word);
       const register uint32_t next = regv(idx2, pc, reg_) + ext16bit(word);
-      const register int32_t v = mem_[m2w(next)];
+      register int32_t v;
+      TIMER(next, v, mem_[m2w(next)]);
       reg_[idx] = v;
       reg_[idx2] = next;
       DISPATCH();
@@ -214,7 +228,8 @@ void CPU::Run() {
       const register uint32_t idx2 = reg2(word);
       const register uint32_t cur = regv(idx2, pc, reg_);
       const register uint32_t next = cur + ext16bit(word);
-      const register int32_t v = mem_[m2w(cur)];
+      register int32_t v;
+      TIMER(cur, v, mem_[m2w(cur)]);
       reg_[idx] = v;
       reg_[idx2] = next;
       DISPATCH();
