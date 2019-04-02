@@ -88,15 +88,6 @@ uint32_t CPU::Reset() {
   return op_count;
 }
 
-void CPU::Tick() {
-#ifdef DEBUG_DISPATCH
-  if (mask_interrupt_) return;
-#endif
-  std::lock_guard<std::mutex> lg(interrupt_mutex_);
-  //iinterrupt_ |= 0x02;
-  interrupt_event_.notify_all();
-}
-
 void CPU::Input() {
   if (mask_interrupt_) return;
   interrupt_ |= 0x04;
@@ -116,22 +107,7 @@ void CPU::Run() {
   register uint32_t pc = pc_-4;
   register uint32_t word = 0;
 
-  auto start = std::chrono::high_resolution_clock::now();
-  const uint64_t nsecs = 1000000000;
-  uint64_t ticks = 1;
-  const std::chrono::nanoseconds exp_sleep(nsecs/10000);
-  std::chrono::nanoseconds total = exp_sleep*ticks;
-
-
-#define interrupt_dispatch(op_count_interval) \
-  if (op_count_ % op_count_interval  == 0) {\
-    const auto run_total = (std::chrono::high_resolution_clock::now() - start);\
-    if (run_total >= total) {\
-      interrupt_ |= 0x02;\
-      ticks++;\
-      total = exp_sleep*ticks;\
-    }\
-  }\
+#define interrupt_dispatch() \
   if (interrupt_ != 0) {\
     goto INTERRUPT_SERVICE;\
   } else {\
@@ -146,9 +122,9 @@ void CPU::Run() {
     pc_ = pc; \
     std::cerr << PrintInstruction(word) << std::endl; \
     std::cerr << PrintRegisters(true) << std::endl;\
-    interrupt_dispatch(1000000000)
+    interrupt_dispatch()
 #else
-#define DISPATCH() interrupt_dispatch(300)
+#define DISPATCH() interrupt_dispatch()
 #endif
 
 #define VSIG(addr) \

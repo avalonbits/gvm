@@ -679,39 +679,21 @@ backspace_erase:
 
 .section data
 wait_input_value: .int 0xFFFFFFFF
-timer_addr: .int  0x1200008
-
 
 .section text
 ; ===== UI getc. Waits for user input.
-@func USER_INTERFACE_getin:
+USER_INTERFACE_getin:
 	; r1: returns user input value.
-
-	; Start timer.
-	ldr r2, [timer_addr]
-	ldr r2, [r2]
-
-loop:
-	ldr r3, [timer_addr]
-	ldr r3, [r3]
-	sub r3, r3, r2
-	sub r3, r3, 10000
-	jge r3, dummy_value
 
 	; Wait until user input != 0 or 1 second has passed.
 	ldr r1, [user_input_value]
 	add r0, r1, 1
-	jeq r0, loop
+	jeq r0, USER_INTERFACE_getin
 
 	; Now set user input to 0 so we don't keep writing stuff over.
 	ldr r0, [wait_input_value]
 	str [user_input_value], r0
 	ret
-
-dummy_value:
-	mov r1, 0x41
-	ret
-@endf USER_INTERFACE_getin
 
 .section data
 user_input_value: .int 0xFFFFFFFF

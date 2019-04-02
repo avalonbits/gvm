@@ -28,9 +28,6 @@ class CPU {
   uint32_t PowerOn();
   uint32_t Reset();
 
-  // Sets the signal for a timer tick.
-  void Tick();
-
   // Sets signal for input handling.
   void Input();
 
