@@ -65,6 +65,12 @@ void Computer::Run() {
   std::chrono::nanoseconds runtime;
   uint32_t op_count;
 
+  TimerService timer(&timer_chan_);
+  std::thread timer_thread([&timer]() {
+    timer.Start();
+  });
+  timer.Reset();
+
   std::thread cpu_thread([this, &runtime, &op_count]() {
     const auto start = std::chrono::high_resolution_clock::now();
     op_count = cpu_->PowerOn();
@@ -74,6 +80,8 @@ void Computer::Run() {
 
   // This has to run on the main thread or it won't render using OpenGL ES.
   video_controller_->Run();
+  timer.Stop();
+  timer_thread.join();
   cpu_thread.join();
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
