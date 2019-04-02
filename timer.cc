@@ -9,8 +9,8 @@ void TimerService::Start() {
 
     if (cmd == 1) {
       std::chrono::nanoseconds elapsed = timer_.Elapsed();
-      const uint32_t usec = elapsed.count() / 1000;
-      chan_->send(usec);
+      const uint32_t tenth_msec = elapsed.count() / 100000;
+      chan_->send(tenth_msec);
       continue;
     }
 

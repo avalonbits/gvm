@@ -69,11 +69,11 @@ void Computer::Run() {
   std::chrono::nanoseconds runtime;
   uint32_t op_count;
 
-  TimerService timer(&timer_chan_);
-  std::thread timer_thread([&timer]() {
-    timer.Start();
+  auto* timer = timer_service_.get();
+  std::thread timer_thread([timer]() {
+    timer->Start();
   });
-  timer.Reset();
+  timer->Reset();
 
   std::thread cpu_thread([this, &runtime, &op_count]() {
     const auto start = std::chrono::high_resolution_clock::now();
@@ -84,12 +84,12 @@ void Computer::Run() {
 
   // This has to run on the main thread or it won't render using OpenGL ES.
   video_controller_->Run();
-  timer.Stop();
+  auto elapsed = timer->Elapsed();
+  timer->Stop();
   timer_thread.join();
   cpu_thread.join();
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
-  std::cerr << cpu_->PrintMemory(0xA4, 0xA8);
   const auto time = runtime.count();
   const auto per_inst = time / static_cast<double>(op_count);
   const auto average_clock = 1000000000 / per_inst / 1000000;
@@ -97,6 +97,7 @@ void Computer::Run() {
   std::cerr << "CPU Instruction count: " << op_count << std::endl;
   std::cerr << "Average per instruction: " << per_inst << "ns\n";
   std::cerr << "Average clock: " << average_clock << "MHz\n";
+  std::cerr << "Timer elapsed: " << (elapsed /10.0) << "ms\n";
 }
 
 void Computer::RegisterVideoDMA() {
