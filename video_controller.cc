@@ -46,7 +46,7 @@ void VideoController::Run() {
   }
   input_controller_->Shutdown();
   int v;
-  SDL_WaitThread(input_thread, &v);
+ SDL_WaitThread(input_thread, &v);
 }
 
 void VideoController::RegisterDMA(
@@ -61,6 +61,10 @@ void VideoController::RegisterDMA(
 
 void VideoController::Shutdown() {
   shutdown_ = true;
+  SDL_Event ev;
+  ev.type = SDL_QUIT;
+  SDL_PushEvent(&ev);
+  signal_->Close(); 
   signal_->send();
 }
 

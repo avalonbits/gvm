@@ -103,6 +103,8 @@ class SyncPoint {
     chan_.recv();
   }
 
+  void Close() { chan_.Close(); }
+
  private:
   SyncChan<bool> chan_;
 };
