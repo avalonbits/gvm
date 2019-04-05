@@ -686,6 +686,7 @@ USER_INTERFACE_getin:
 	; r1: returns user input value.
 
 	; Wait until user input != 0 or 1 second has passed.
+	wfi
 	ldr r1, [user_input_value]
 	add r0, r1, 1
 	jeq r0, USER_INTERFACE_getin

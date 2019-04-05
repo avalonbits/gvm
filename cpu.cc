@@ -82,7 +82,6 @@ uint32_t CPU::PowerOn() {
 
 uint32_t CPU::Reset() {
   const uint32_t op_count = op_count_;
-  std::lock_guard<std::mutex> lg(interrupt_mutex_);
   interrupt_ = 1;  // Mask out all interrupts and set bit 0 to 1, signaling reset.
   interrupt_event_.notify_one();
   return op_count;
