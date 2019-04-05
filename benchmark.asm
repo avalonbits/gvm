@@ -1,5 +1,5 @@
 ; GVM Benchmark
-; by Igor Cananea (icc@avalonbits.com
+; by Igor Cananea (icc@avalonbits.com)
 
 .org 0x0
 .section text
@@ -30,8 +30,8 @@ loop:
   jmp loop
 
 done:
+  halt
 @endf benchmark
-halt
 
 .section data
 mem: .int 0x0
