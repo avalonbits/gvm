@@ -77,43 +77,16 @@ class SyncChan {
 
 class SyncPoint {
  public:
-  SyncPoint() : sync_(false), receiver_waiting_(false) {}
-
   void send() {
-    {
-      std::unique_lock<std::mutex> lk(mu_);
-      cond_.wait(lk, [this]() { return receiver_waiting_; });
-    }
-    {
-      std::unique_lock<std::mutex> lk(mu_);
-      cond_.wait(lk, [this]() { return !sync_; });
-      sync_ = true;
-    }
-    cond_.notify_all();
+    chan_.send(true);
   }
 
   void recv() {
-    {
-      std::unique_lock<std::mutex> lk(mu_);
-      cond_.wait(lk, [this]() { return !receiver_waiting_; });
-      receiver_waiting_ = true;
-    }
-    cond_.notify_all();
-
-    {
-      std::unique_lock<std::mutex> lk(mu_);
-      cond_.wait(lk, [this]() { return sync_; });
-      sync_ = false;
-      receiver_waiting_ = false;
-    }
-    cond_.notify_all();
+    chan_.recv();
   }
 
  private:
-  bool sync_;
-  bool receiver_waiting_;
-  std::mutex mu_;
-  std::condition_variable cond_;
+  SyncChan<bool> chan_;
 };
 
 
