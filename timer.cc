@@ -25,6 +25,7 @@ void TimerService::Start() {
 
 void TimerService::Stop() {
   chan_->send(0);
+  chan_->Close();
 }
 
 uint32_t TimerService::Elapsed() {
