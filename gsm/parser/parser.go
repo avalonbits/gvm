@@ -140,12 +140,15 @@ const (
 	DATA_SECTION SType = iota
 	TEXT_SECTION
 	EMBED_FILE
+	INCLUDE_FILE
 )
 
 type Section struct {
-	Type      SType
-	Blocks    []Block
-	EmbedFile string
+	Type        SType
+	Blocks      []Block
+	EmbedFile   string
+	IncludeFile string
+	IncludeName string
 }
 
 func (s Section) wordCount() int {
@@ -179,6 +182,7 @@ const (
 	START state = iota
 	SECTION
 	EMBED_STATEMENT
+	INCLUDE_STATEMENT
 	DATA_BLOCK
 	TEXT_BLOCK
 	ERROR
@@ -195,6 +199,8 @@ func (p *Parser) Parse() error {
 			st = p.section()
 		case EMBED_STATEMENT:
 			st = p.embed()
+		case INCLUDE_STATEMENT:
+			st = p.include()
 		case DATA_BLOCK:
 			st = p.data_block(st)
 		case TEXT_BLOCK:
@@ -254,13 +260,17 @@ func (p *Parser) org() state {
 
 func (p *Parser) section() state {
 	tok := p.tokenizer.PeakToken()
-	if tok.Type != lexer.SECTION && tok.Type != lexer.EMBED {
+	if tok.Type != lexer.SECTION && tok.Type != lexer.EMBED && tok.Type != lexer.INCLUDE {
 		p.err = fmt.Errorf("expected .section, got %q", tok.Literal)
 		return ERROR
 	}
 
 	if tok.Type == lexer.EMBED {
 		return EMBED_STATEMENT
+	}
+
+	if tok.Type == lexer.INCLUDE {
+		return INCLUDE_STATEMENT
 	}
 	p.tokenizer.NextToken()
 
@@ -317,6 +327,54 @@ func (p *Parser) embed() state {
 	return SECTION
 }
 
+func (p *Parser) include() state {
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.INCLUDE {
+		p.err = fmt.Errorf("expected .include, got %q", tok.Literal)
+		return ERROR
+	}
+
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.D_QUOTE {
+		p.err = fmt.Errorf("expected a double quote (\"), got %q", tok.Literal)
+		return ERROR
+	}
+
+	var sb strings.Builder
+	for {
+		tok = p.tokenizer.NextToken()
+		if tok.Type == lexer.NEWLINE {
+			p.err = fmt.Errorf("expected a double quote(\"), got a new line")
+			return ERROR
+		}
+		if tok.Type == lexer.D_QUOTE {
+			break
+		}
+		sb.WriteString(tok.Literal)
+	}
+
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.AS {
+		p.err = fmt.Errorf("expected as, got %q", tok.Literal)
+		return ERROR
+	}
+
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.IDENT {
+		p.err = fmt.Errorf("expected an identifier, got %q", tok.Literal)
+		return ERROR
+	}
+
+	s := Section{
+		Type:        INCLUDE_FILE,
+		IncludeFile: sb.String(),
+		IncludeName: tok.Literal,
+	}
+	o := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
+	o.Sections = append(o.Sections, s)
+	return SECTION
+}
+
 func (p *Parser) data_block(cur state) state {
 	tok := p.tokenizer.PeakToken()
 	if tok.Type == lexer.ORG {
@@ -328,6 +386,9 @@ func (p *Parser) data_block(cur state) state {
 
 	if tok.Type == lexer.EMBED {
 		return EMBED_STATEMENT
+	}
+	if tok.Type == lexer.INCLUDE {
+		return INCLUDE_STATEMENT
 	}
 
 	// Get the active block.
@@ -439,14 +500,16 @@ func (p *Parser) text_block(cur state) state {
 
 		return SECTION
 	}
-	if tok.Type == lexer.EMBED {
+	if tok.Type == lexer.EMBED || tok.Type == lexer.INCLUDE {
 		if aBlock.inFunc {
 			p.err = fmt.Errorf(
 				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
 			return ERROR
 		}
-
-		return EMBED_STATEMENT
+		if tok.Type == lexer.EMBED {
+			return EMBED_STATEMENT
+		}
+		return INCLUDE_STATEMENT
 	}
 
 	inFunc := aBlock.inFunc

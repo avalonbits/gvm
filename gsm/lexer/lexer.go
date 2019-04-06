@@ -31,6 +31,8 @@ const (
 	F_SLASH
 	SECTION
 	EMBED
+	INCLUDE
+	AS
 	D_QUOTE
 	S_DATA
 	S_TEXT
@@ -54,6 +56,8 @@ var keywords = map[string]TokenType{
 	"@endf":    FUNC_END,
 	".section": SECTION,
 	".embed":   EMBED,
+	".include": INCLUDE,
+	"as":       AS,
 	"data":     S_DATA,
 	"text":     S_TEXT,
 	".org":     ORG,
