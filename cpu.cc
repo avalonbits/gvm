@@ -107,14 +107,13 @@ void CPU::Run() {
   register uint32_t word = 0;
 
 #define interrupt_dispatch() \
-  if (interrupt_ != 0) {\
-    goto INTERRUPT_SERVICE;\
-  } else {\
+  if (interrupt_ == 0) {\
     pc += 4;\
     word =  mem_[m2w(pc)];\
     ++op_count_;\
     goto *opcodes[word&0x3F];\
-  }
+  }\
+  goto INTERRUPT_SERVICE
 
 #ifdef DEBUG_DISPATCH
 #define DISPATCH() \

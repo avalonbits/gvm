@@ -73,19 +73,20 @@ void Computer::Run() {
   std::thread timer_thread([timer]() {
     timer->Start();
   });
-  timer->Reset();
 
-  std::thread cpu_thread([this, &runtime, &op_count]() {
+  uint32_t elapsed;
+  std::thread cpu_thread([this, timer, &elapsed, &runtime, &op_count]() {
+    timer->Reset();
     const auto start = std::chrono::high_resolution_clock::now();
     op_count = cpu_->PowerOn();
     runtime = std::chrono::high_resolution_clock::now() - start;
+    elapsed = timer->Elapsed();
+    timer->Stop();
     video_controller_->Shutdown();
   });
 
   // This has to run on the main thread or it won't render using OpenGL ES.
   video_controller_->Run();
-  auto elapsed = timer->Elapsed();
-  timer->Stop();
   timer_thread.join();
   cpu_thread.join();
 
