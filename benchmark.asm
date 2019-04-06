@@ -13,7 +13,7 @@ interrupt_table:
 
 
 ; ===== The acutal benchmark function.
-@func benchmark:
+@infunc benchmark:
   ldr r0, [loop_size]
   
 loop:

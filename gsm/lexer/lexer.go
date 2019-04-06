@@ -44,11 +44,13 @@ const (
 	REGISTER
 	INSTRUCTION
 	FUNC_START
+	INFUNC_START
 	FUNC_END
 )
 
 var keywords = map[string]TokenType{
 	"@func":    FUNC_START,
+	"@infunc":  INFUNC_START,
 	"@endf":    FUNC_END,
 	".section": SECTION,
 	".embed":   EMBED,

@@ -451,8 +451,10 @@ func (p *Parser) text_block(cur state) state {
 
 	inFunc := aBlock.inFunc
 	tok = p.tokenizer.NextToken()
-	inFuncScope := tok.Type == lexer.FUNC_START || tok.Type == lexer.FUNC_END
-	if tok.Type == lexer.FUNC_START {
+	inFuncScope :=
+		tok.Type == lexer.FUNC_START || tok.Type == lexer.INFUNC_START ||
+			tok.Type == lexer.FUNC_END
+	if tok.Type == lexer.FUNC_START || tok.Type == lexer.INFUNC_START {
 		tok = p.tokenizer.NextToken()
 		if inFunc {
 			p.err = fmt.Errorf("expected function end for %q, got function start for %q",
