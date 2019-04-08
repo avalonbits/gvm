@@ -17,6 +17,9 @@ func Generate(ast *parser.AST, buf *bufio.Writer) error {
 	if err := embedFile(ast); err != nil {
 		return err
 	}
+	if err := includeFile(ast); err != nil {
+		return err
+	}
 
 	labelMap := map[string]uint32{}
 	if err := assignAddresses(labelMap, ast); err != nil {
@@ -77,6 +80,22 @@ func embedFile(ast *parser.AST) error {
 		}
 	}
 	return nil
+}
+
+func includeFile(ast *parser.Ast) error {
+	for _, org := range ast.Orgs {
+		for i := range org.Sections {
+			section := &org.Sections[i]
+			if section.Type != parser.INCLUDE_FILE {
+				continue
+			}
+
+			// Ok, we need to parse this file and then merge it with the current
+			// section.
+
+		}
+
+	}
 }
 
 func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
