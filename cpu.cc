@@ -82,19 +82,9 @@ uint32_t CPU::PowerOn() {
 
 uint32_t CPU::Reset() {
   const uint32_t op_count = op_count_;
-  std::lock_guard<std::mutex> lg(interrupt_mutex_);
   interrupt_ = 1;  // Mask out all interrupts and set bit 0 to 1, signaling reset.
   interrupt_event_.notify_one();
   return op_count;
-}
-
-void CPU::Tick() {
-#ifdef DEBUG_DISPATCH
-  if (mask_interrupt_) return;
-#endif
-  std::lock_guard<std::mutex> lg(interrupt_mutex_);
-  //iinterrupt_ |= 0x02;
-  interrupt_event_.notify_all();
 }
 
 void CPU::Input() {
@@ -116,40 +106,34 @@ void CPU::Run() {
   register uint32_t pc = pc_-4;
   register uint32_t word = 0;
 
-  auto start = std::chrono::high_resolution_clock::now();
-  const uint64_t nsecs = 1000000000;
-  uint64_t ticks = 1;
-  const std::chrono::nanoseconds exp_sleep(nsecs/10000);
-  std::chrono::nanoseconds total = exp_sleep*ticks;
-
-
-#define interrupt_dispatch(op_count_interval) \
-  if (op_count_ % op_count_interval  == 0) {\
-    const auto run_total = (std::chrono::high_resolution_clock::now() - start);\
-    if (run_total >= total) {\
-      interrupt_ |= 0x02;\
-      ticks++;\
-      total = exp_sleep*ticks;\
-    }\
-  }\
-  if (interrupt_ != 0) {\
-    goto INTERRUPT_SERVICE;\
-  } else {\
+#define interrupt_dispatch() \
+  if (interrupt_ == 0) {\
     pc += 4;\
     word =  mem_[m2w(pc)];\
     ++op_count_;\
     goto *opcodes[word&0x3F];\
-  }
+  }\
+  goto INTERRUPT_SERVICE
 
 #ifdef DEBUG_DISPATCH
 #define DISPATCH() \
     pc_ = pc; \
     std::cerr << PrintInstruction(word) << std::endl; \
     std::cerr << PrintRegisters(true) << std::endl;\
-    interrupt_dispatch(1000000000)
+    interrupt_dispatch()
 #else
-#define DISPATCH() interrupt_dispatch(300)
+#define DISPATCH() interrupt_dispatch()
 #endif
+
+#define VSIG(addr) \
+  if (addr == vram_reg_) video_signal_->send()
+
+#define TIMER(addr, v, fallback) \
+  v = fallback; \
+  if (addr == timer_reg_) { \
+    v = timer_signal_->Elapsed();\
+  }\
+
 
   DISPATCH();
   NOP:
@@ -172,20 +156,25 @@ void CPU::Run() {
   }
   LOAD_RR: {
       const register uint32_t idx = reg1(word);
-      const register int32_t v = mem_[m2w(regv(reg2(word), pc, reg_))];
+      const register uint32_t addr = regv(reg2(word), pc, reg_);
+      register int32_t v;
+      TIMER(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
   LOAD_RI: {
       const register uint32_t idx = reg1(word);
-      const register int32_t v = mem_[m2w((word >> 11) & 0x1FFFFF)];
+      const register uint32_t addr = (word >> 11) & 0x1FFFFF;
+      register int32_t v;
+      TIMER(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
   LOAD_IX: {
       const register uint32_t idx = reg1(word);
       const register uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
-      const register int32_t v = mem_[m2w(addr)];
+      register int32_t v;
+      TIMER(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
@@ -193,7 +182,8 @@ void CPU::Run() {
       const register uint32_t idx = reg1(word);
       const register uint32_t addr =
          regv(reg2(word), pc, reg_) + regv(reg3(word), pc, reg_);
-      const register int32_t v = mem_[m2w(addr)];
+      register int32_t v;
+      TIMER(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
@@ -201,7 +191,8 @@ void CPU::Run() {
       const register uint32_t idx = reg1(word);
       const register uint32_t idx2 = reg2(word);
       const register uint32_t next = regv(idx2, pc, reg_) + ext16bit(word);
-      const register int32_t v = mem_[m2w(next)];
+      register int32_t v;
+      TIMER(next, v, mem_[m2w(next)]);
       reg_[idx] = v;
       reg_[idx2] = next;
       DISPATCH();
@@ -211,23 +202,28 @@ void CPU::Run() {
       const register uint32_t idx2 = reg2(word);
       const register uint32_t cur = regv(idx2, pc, reg_);
       const register uint32_t next = cur + ext16bit(word);
-      const register int32_t v = mem_[m2w(cur)];
+      register int32_t v;
+      TIMER(cur, v, mem_[m2w(cur)]);
       reg_[idx] = v;
       reg_[idx2] = next;
       DISPATCH();
   }
   STOR_RR: {
-      mem_[m2w(regv(reg1(word), pc, reg_))] = regv(reg2(word), pc, reg_);
+      const uint32_t addr = regv(reg1(word), pc, reg_);
+      mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
+      VSIG(addr);
       DISPATCH();
   }
   STOR_RI: {
-      const uint32_t addr = m2w((word >> 11) & 0x1FFFFF);
-      mem_[addr] = regv(reg1(word), pc, reg_);
+      const uint32_t addr = (word >> 11) & 0x1FFFFF;
+      mem_[m2w(addr)] = regv(reg1(word), pc, reg_);
+      VSIG(addr);
       DISPATCH();
   }
   STOR_IX: {
-      mem_[m2w(regv(reg1(word), pc, reg_) + ext16bit(word))] =
-          regv(reg2(word), pc, reg_);
+      const uint32_t addr = regv(reg1(word), pc, reg_) + ext16bit(word);
+      mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
+      VSIG(addr);
       DISPATCH();
   }
   STOR_PI: {
@@ -235,6 +231,7 @@ void CPU::Run() {
       const register uint32_t next = regv(idx, pc, reg_) + ext16bit(word);
       mem_[m2w(next)] = regv(reg2(word), pc, reg_);
       reg_[idx] = next;
+      VSIG(next);
       DISPATCH();
   }
   STOR_IP: {
@@ -243,6 +240,7 @@ void CPU::Run() {
       const register uint32_t next = cur + ext16bit(word);
       mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
       reg_[idx] = next;
+      VSIG(cur);
       DISPATCH();
   }
   ADD_RR: {

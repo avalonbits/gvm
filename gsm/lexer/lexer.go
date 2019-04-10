@@ -89,6 +89,7 @@ var keywords = map[string]TokenType{
 	"mull":     INSTRUCTION,
 	"halt":     INSTRUCTION,
 	"nop":      INSTRUCTION,
+	"wfi":      INSTRUCTION,
 	"r0":       REGISTER,
 	"r1":       REGISTER,
 	"r2":       REGISTER,

@@ -9,7 +9,7 @@
 namespace gvm {
 
 InputController::InputController(std::function<void(uint32_t value)> callback)
-    : callback_(callback), shutdown_(false) {
+    : shutdown_(false), callback_(callback) {
   if (SDL_Init(SDL_INIT_EVENTS | SDL_INIT_JOYSTICK) < 0) {
     std::cerr << SDL_GetError() << std::endl;
     assert(false);
@@ -18,7 +18,7 @@ InputController::InputController(std::function<void(uint32_t value)> callback)
 
 InputController::~InputController() {}
 
-static const bool IsControlKey(uint32_t sym) {
+static bool IsControlKey(uint32_t sym) {
   switch(sym) {
     case SDLK_LCTRL:
     case SDLK_RCTRL:
@@ -52,14 +52,15 @@ static const bool IsControlKey(uint32_t sym) {
 }
 
 void InputController::Read() {
+  SDL_Event event;
   while (!shutdown_) {
-    SDL_Event event;
-    if (!SDL_WaitEvent(&event)) return;
+    if (!SDL_WaitEvent(&event)) continue;
 
     // Event available
     switch (event.type) {
       case SDL_QUIT: {
         callback_(0xFFFFFFFF);
+        shutdown_ = true;
         break;
       }
       case SDL_KEYDOWN: {

@@ -19,6 +19,7 @@ const uint32_t kUnicodeRomStart = kVramStart + kVramSize;
 const uint32_t kIOStart = kUnicodeRomStart + kUnicodeBitmapFont;
 const uint32_t kVramReg = kIOStart;
 const uint32_t kInputReg = kIOStart + 4;
+const uint32_t kTimerReg = kInputReg + 4;
 
 const int kFrameBufferW = 640;
 const int kFrameBufferH = 360;
@@ -41,7 +42,12 @@ Computer::Computer(CPU* cpu, VideoController* video_controller)
     cpu_->Input();
     std::this_thread::yield();
   }));
+  video_controller_->SetSignal(&video_signal_);
   cpu_->ConnectMemory(mem_.get(), mem_size_bytes_, kVramStart);
+  cpu_->SetVideoSignal(kVramReg, &video_signal_);
+
+  timer_service_.reset(new TimerService(&timer_chan_));
+  cpu_->SetTimerSignal(kTimerReg, timer_service_.get());
   RegisterVideoDMA();
 }
 
@@ -63,19 +69,28 @@ void Computer::Run() {
   std::chrono::nanoseconds runtime;
   uint32_t op_count;
 
-  std::thread cpu_thread([this, &runtime, &op_count]() {
+  auto* timer = timer_service_.get();
+  std::thread timer_thread([timer]() {
+    timer->Start();
+  });
+
+  uint32_t elapsed;
+  std::thread cpu_thread([this, timer, &elapsed, &runtime, &op_count]() {
+    timer->Reset();
     const auto start = std::chrono::high_resolution_clock::now();
     op_count = cpu_->PowerOn();
     runtime = std::chrono::high_resolution_clock::now() - start;
+    elapsed = timer->Elapsed();
+    timer->Stop();
     video_controller_->Shutdown();
   });
 
   // This has to run on the main thread or it won't render using OpenGL ES.
   video_controller_->Run();
+  timer_thread.join();
   cpu_thread.join();
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
-  std::cerr << cpu_->PrintMemory(0xA4, 0xA8);
   const auto time = runtime.count();
   const auto per_inst = time / static_cast<double>(op_count);
   const auto average_clock = 1000000000 / per_inst / 1000000;
@@ -83,6 +98,7 @@ void Computer::Run() {
   std::cerr << "CPU Instruction count: " << op_count << std::endl;
   std::cerr << "Average per instruction: " << per_inst << "ns\n";
   std::cerr << "Average clock: " << average_clock << "MHz\n";
+  std::cerr << "Timer elapsed: " << (elapsed /10.0) << "ms\n";
 }
 
 void Computer::RegisterVideoDMA() {

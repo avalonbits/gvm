@@ -8,6 +8,8 @@
 #include "cpu.h"
 #include "input_controller.h"
 #include "rom.h"
+#include "sync_types.h"
+#include "timer.h"
 #include "video_controller.h"
 
 namespace gvm {
@@ -31,6 +33,9 @@ class Computer {
   std::unique_ptr<CPU> cpu_;
   std::unique_ptr<VideoController> video_controller_;
   std::unique_ptr<InputController> input_controller_;
+  SyncPoint video_signal_;
+  SyncChan<uint32_t> timer_chan_;
+  std::unique_ptr<TimerService> timer_service_;
 };
 
 }  // namespace gvm

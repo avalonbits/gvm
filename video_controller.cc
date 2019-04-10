@@ -21,12 +21,12 @@ static int ReadInput(void* ptr) {
 }
 
 void VideoController::Run() {
-  auto thread = SDL_CreateThread(ReadInput, "ReadInput", reinterpret_cast<void*>(input_controller_.get()));
-  auto shutdown = shutdown_;
   auto start = std::chrono::high_resolution_clock::now();
   display_->Render();
-  while (!shutdown) {
-    shutdown = shutdown_;
+  SDL_Thread* input_thread = SDL_CreateThread(
+          ReadInput, "ReadInput", reinterpret_cast<void*>(input_controller_.get()));
+  while (!shutdown_) {
+    signal_->recv();
     if (mem_[mem_reg_] == 0) continue;
 
     display_->CopyBuffer(&mem_[mem_addr_]);
@@ -45,7 +45,7 @@ void VideoController::Run() {
   }
   input_controller_->Shutdown();
   int v;
-  SDL_WaitThread(thread, &v);
+  SDL_WaitThread(input_thread, &v);
 }
 
 void VideoController::RegisterDMA(
@@ -60,6 +60,11 @@ void VideoController::RegisterDMA(
 
 void VideoController::Shutdown() {
   shutdown_ = true;
+  SDL_Event ev;
+  ev.type = SDL_QUIT;
+  SDL_PushEvent(&ev);
+  signal_->Close();
+  signal_->send();
 }
 
 }  // namespace gvm

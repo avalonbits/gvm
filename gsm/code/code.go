@@ -298,6 +298,8 @@ func encode(i parser.Instruction) (parser.Word, error) {
 		return Ret(), nil
 	case "halt":
 		return Halt(), nil
+	case "wfi":
+		return Wfi(), nil
 	case "mov":
 		return encode2op(i, MovRR, MovRI)
 	case "ldr":

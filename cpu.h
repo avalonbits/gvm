@@ -9,6 +9,8 @@
 #include <vector>
 
 #include "isa.h"
+#include "sync_types.h"
+#include "timer.h"
 #include "video_controller.h"
 
 namespace gvm {
@@ -26,11 +28,18 @@ class CPU {
   uint32_t PowerOn();
   uint32_t Reset();
 
-  // Sets the signal for a timer tick.
-  void Tick();
-
   // Sets signal for input handling.
   void Input();
+
+  void SetVideoSignal(const uint32_t vram_reg, SyncPoint* video_signal) {
+    vram_reg_ = vram_reg;
+    video_signal_ = video_signal;
+  }
+
+  void SetTimerSignal(const uint32_t timer_reg, TimerService* timer_signal) {
+    timer_reg_ = timer_reg;
+    timer_signal_ = timer_signal;
+  }
 
   const std::string PrintRegisters(bool hex = false);
   const std::string PrintMemory(uint32_t from, uint32_t to);
@@ -54,6 +63,10 @@ class CPU {
   volatile uint32_t interrupt_;
   std::mutex interrupt_mutex_;
   std::condition_variable interrupt_event_;
+  uint32_t vram_reg_;
+  SyncPoint* video_signal_;
+  uint32_t timer_reg_;
+  TimerService* timer_signal_;
 };
 
 }  // namespace gvm

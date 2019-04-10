@@ -257,3 +257,7 @@ func MulRI(dest, op1, op2 uint32) parser.Word {
 func DivRI(dest, op1, op2 uint32) parser.Word {
 	return div_ri | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }
+
+func Wfi() parser.Word {
+	return wfi
+}

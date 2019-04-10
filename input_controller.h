@@ -13,8 +13,8 @@ class InputController {
   void Shutdown() { shutdown_ = true; }
 
  private:
-  std::function<void(uint32_t value)> callback_;
   volatile bool shutdown_;
+  std::function<void(uint32_t value)> callback_;
 };
 
 }  // namepsace gvm
