@@ -128,7 +128,7 @@ void CPU::Run() {
 #define VSIG(addr) \
   if (addr == vram_reg_) video_signal_->send()
 
-#define TIMER(addr, v, fallback) \
+#define TIMER_READ(addr, v, fallback) \
   v = fallback; \
   if (addr == timer_reg_) { \
     v = timer_signal_->Elapsed();\
@@ -158,7 +158,7 @@ void CPU::Run() {
       const register uint32_t idx = reg1(word);
       const register uint32_t addr = regv(reg2(word), pc, reg_);
       register int32_t v;
-      TIMER(addr, v, mem_[m2w(addr)]);
+      TIMER_READ(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
@@ -166,7 +166,7 @@ void CPU::Run() {
       const register uint32_t idx = reg1(word);
       const register uint32_t addr = (word >> 11) & 0x1FFFFF;
       register int32_t v;
-      TIMER(addr, v, mem_[m2w(addr)]);
+      TIMER_READ(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
@@ -174,7 +174,7 @@ void CPU::Run() {
       const register uint32_t idx = reg1(word);
       const register uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
       register int32_t v;
-      TIMER(addr, v, mem_[m2w(addr)]);
+      TIMER_READ(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
@@ -183,7 +183,7 @@ void CPU::Run() {
       const register uint32_t addr =
          regv(reg2(word), pc, reg_) + regv(reg3(word), pc, reg_);
       register int32_t v;
-      TIMER(addr, v, mem_[m2w(addr)]);
+      TIMER_READ(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
@@ -192,7 +192,7 @@ void CPU::Run() {
       const register uint32_t idx2 = reg2(word);
       const register uint32_t next = regv(idx2, pc, reg_) + ext16bit(word);
       register int32_t v;
-      TIMER(next, v, mem_[m2w(next)]);
+      TIMER_READ(next, v, mem_[m2w(next)]);
       reg_[idx] = v;
       reg_[idx2] = next;
       DISPATCH();
@@ -203,7 +203,7 @@ void CPU::Run() {
       const register uint32_t cur = regv(idx2, pc, reg_);
       const register uint32_t next = cur + ext16bit(word);
       register int32_t v;
-      TIMER(cur, v, mem_[m2w(cur)]);
+      TIMER_READ(cur, v, mem_[m2w(cur)]);
       reg_[idx] = v;
       reg_[idx2] = next;
       DISPATCH();
