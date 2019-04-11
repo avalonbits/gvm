@@ -4,7 +4,8 @@ namespace gvm {
 
 void TimerService::Start() {
   while (true) {
-    auto cmd = chan_->recv();
+    auto value = chan_->recv();
+    const auto cmd = value & 0xF;
     if (cmd <= 0) break;
 
     if (cmd == 1) {
@@ -17,6 +18,10 @@ void TimerService::Start() {
     if (cmd == 2) {
       timer_.Reset();
       continue;
+    }
+
+    if (cmd == 3 && has_one_shot_) {
+      timer_.OneShot(value >> 3, one_shot_);
     }
 
     std::cerr << "Unkown command " << cmd << std::endl;
@@ -35,6 +40,10 @@ uint32_t TimerService::Elapsed() {
 
 void TimerService::Reset() {
   chan_->send(2);
+}
+
+void TimerService::OneShot(uint32_t msec) {
+  chan_->send(3 | msec << 4);
 }
 
 }  // namespace gvm
