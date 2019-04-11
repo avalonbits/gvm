@@ -18,9 +18,11 @@ class SyncChan {
 
     bool write = false;
     {
-      std::lock_guard<std::mutex> lk(mu_);
-      if (closed_) return;
-      if (!sync_ && receiver_waiting_) {
+      std::unique_lock<std::mutex> lk(mu_);
+      if (!sync_) {
+        if (!receiver_waiting_) {
+          cond_.wait(lk, [this]() { return closed_ || receiver_waiting_; });
+        }
         value_ = value;
         sync_ = true;
         write = true;
@@ -34,19 +36,11 @@ class SyncChan {
     {
       std::unique_lock<std::mutex> lk(mu_);
       cond_.wait(lk, [this]() { return closed_ || receiver_waiting_; });
-      if (closed_) {
-        cond_.notify_all();
-        return;
-      }
     }
 
     {
       std::unique_lock<std::mutex> lk(mu_);
       cond_.wait(lk, [this]() { return closed_ || !sync_; });
-      if (closed_) {
-        cond_.notify_all();
-        return;
-      }
       value_ = value;
       sync_ = true;
     }
@@ -54,15 +48,13 @@ class SyncChan {
   }
 
   VALUE recv() {
-    bool closed = false;
+    if (closed_) return value_;
     {
       std::unique_lock<std::mutex> lk(mu_);
-      cond_.wait(lk, [this]() { return !receiver_waiting_; });
-      receiver_waiting_ = !closed_;
-      closed = closed_;
+      cond_.wait(lk, [this]() { return closed_ || !receiver_waiting_; });
+      receiver_waiting_ = true;
     }
     cond_.notify_all();
-    if (closed) return value_;
 
     VALUE value;
     {
