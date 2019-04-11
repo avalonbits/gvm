@@ -8,25 +8,27 @@
 ; interrupts except for reset and timer.
 interrupt_table:
   jmp benchmark  ; Reset interrupt.
-  jmp oneshot    ; Timer interrupt.
+  ret            ; Timer interrupt.
   ret            ; Input intterupt.
+  ret            ; Recurring timer interrupt.
+  jmp oneshot2   ; Timer2 interrupt.
 
 
 .section data
-oneshot_reg: .int 0x120000C
+oneshot2_reg: .int 0x1200014
 
 .section text
 ; ===== The acutal benchmark function.
 @infunc benchmark:
-  ldr r0, [oneshot_reg]
-  mov r1, 10000
+  ldr r0, [oneshot2_reg]
+  mov r1, 9000
   str [r0], r1
   wfi
   halt
 @endf benchmark
 
-@func oneshot:
-  ldr r1, [oneshot_reg]
+@func oneshot2:
+  ldr r1, [oneshot2_reg]
   ldr r1, [r1]
   ret
-@endf oneshot
+@endf oneshot2

@@ -36,6 +36,9 @@ class Computer {
   SyncPoint video_signal_;
   SyncChan<uint32_t> timer_chan_;
   std::unique_ptr<TimerService> timer_service_;
+  SyncChan<uint32_t> timer2_chan_;
+  std::unique_ptr<TimerService> timer2_service_;
+
 };
 
 }  // namespace gvm

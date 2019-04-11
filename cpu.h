@@ -32,6 +32,8 @@ class CPU {
   void Input();
   void Timer();
   void RecurringTimer();
+  void Timer2();
+  void RecurringTimer2();
 
   void SetVideoSignal(const uint32_t vram_reg, SyncPoint* video_signal) {
     vram_reg_ = vram_reg;
@@ -45,6 +47,14 @@ class CPU {
     oneshot_reg_ = oneshot_reg;
     recurring_reg_ = recurring_reg;
     timer_signal_ = timer_signal;
+  }
+
+  void SetTimer2Signal(
+      const uint32_t oneshot_reg, const uint32_t recurring_reg,
+      TimerService* timer_signal) {
+    oneshot2_reg_ = oneshot_reg;
+    recurring2_reg_ = recurring_reg;
+    timer2_signal_ = timer_signal;
   }
 
   const std::string PrintRegisters(bool hex = false);
@@ -75,6 +85,9 @@ class CPU {
   uint32_t oneshot_reg_;
   uint32_t recurring_reg_;
   TimerService* timer_signal_;
+  uint32_t oneshot2_reg_;
+  uint32_t recurring2_reg_;
+  TimerService* timer2_signal_;
 };
 
 }  // namespace gvm

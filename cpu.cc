@@ -87,15 +87,15 @@ uint32_t CPU::Reset() {
   return op_count;
 }
 
-void CPU::Input() {
-  if (mask_interrupt_) return;
-  interrupt_ |= 0x04;
-  interrupt_event_.notify_all();
-}
-
 void CPU::Timer() {
   if (mask_interrupt_) return;
   interrupt_ |= 0x02;
+  interrupt_event_.notify_all();
+}
+
+void CPU::Input() {
+  if (mask_interrupt_) return;
+  interrupt_ |= 0x04;
   interrupt_event_.notify_all();
 }
 
@@ -105,6 +105,17 @@ void CPU::RecurringTimer() {
   interrupt_event_.notify_all();
 }
 
+void CPU::Timer2() {
+  if (mask_interrupt_) return;
+  interrupt_ |= 0x10;
+  interrupt_event_.notify_all();
+}
+
+void CPU::RecurringTimer2() {
+  if (mask_interrupt_) return;
+  interrupt_ |= 0x20;
+  interrupt_event_.notify_all();
+}
 void CPU::Run() {
   static void* opcodes[] = {
     &&NOP, &&HALT, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
@@ -151,6 +162,10 @@ void CPU::Run() {
     timer_signal_->OneShot(v); \
   } else if (addr == recurring_reg_) { \
     timer_signal_->Recurring(v); \
+  } else if (addr == oneshot2_reg_) { \
+    timer2_signal_->OneShot(v); \
+  } else if (addr == recurring2_reg_) { \
+    timer2_signal_->Recurring(v); \
   }
 
   DISPATCH();
@@ -473,15 +488,21 @@ void CPU::Run() {
       // Process signals in bit order. Lower bits have higher priority than higher bits.
       if (interrupt_ & 0x02) {
         // Timer interrupt.
-        pc = 0;  // Set to 0 because it will be incremented to addr 0x04 on DISPATCH.
+        pc = 0x0;  // Set to 0 because it will be incremented to addr 0x04 on DISPATCH.
         interrupt_ &= ~0x02;
       } else if (interrupt_ & 0x04) {
         // Input interrupt.
-        pc = 4;  // Set to 4 because it will be incremented to addr 0x08 on DISPATCH.
+        pc = 0x04;  // Set to 0x04 because it will be incremented to addr 0x08 on DISPATCH.
         interrupt_ &= ~0x04;
       } else if (interrupt_ & 0x08) {
-        pc = 8;  // Set to 8 because it will be increment to addr 0x0c on DISPATCH.
+        pc = 0x08;  // Set to 0x08 because it will be incremented to addr 0x0c on DISPATCH.
         interrupt_ &= ~0x08;
+      } else if (interrupt_ & 0x10) {
+        pc = 0x0c;  // Set to 0x0c because it will be incremented to addr 0x10 on DISPATCH.
+        interrupt_ &= ~0x10;
+      } else if (interrupt_ & 0x20) {
+        pc = 0x10;  // Set to 0x10 because it will be incremented to addr 0x14 on DISPATCH.
+        interrupt_ &= ~0x20;
       }
     }
     DISPATCH();
