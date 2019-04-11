@@ -20,10 +20,29 @@ b_loop: .int 100000
 ; ===== The acutal benchmark function.
 @infunc benchmark:
   ldr r2, [b_loop]
-loop:
   ldr r0, [timer_reg]
+loop:
   ldr r1, [r0]
-  sub r2, r2, 1
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  ldr r1, [r0]
+  sub r2, r2, 20
   jne r2, loop
 @endf benchmark
 halt
