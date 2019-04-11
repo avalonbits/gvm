@@ -21,13 +21,13 @@ recurring_reg: .int 0x1200010
 @infunc benchmark:
   mov r2, 0
   ldr r0, [recurring_reg]
-  mov r1, 60
+  mov r1, 60  ; 60Hz recurring timer.
   str [r0], r1
-  nop
 
-loop:
-  wfi
-  jmp loop
+  ; Nothing more to do in the main thread. Everything will
+  ; be handled in the recurring timer interrupt handler.
+loop: wfi
+      jmp loop
 @endf benchmark
 
 @func recurring:
