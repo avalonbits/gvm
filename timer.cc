@@ -26,8 +26,8 @@ void Timer::Recurring(
 
 
 void TimerService::Start() {
-  std::atomic_bool done_recurring;
-  std::atomic_bool ack_done;
+  std::atomic_bool done_recurring(false);
+  std::atomic_bool ack_done(true);
   while (true) {
     auto value = chan_->recv();
     const auto cmd = value & 0xF;
@@ -56,16 +56,21 @@ void TimerService::Start() {
       if (!done) {
         while (!ack_done.load()) {}
       }
-      ack_done.store(false);
+      done_recurring.store(false);
 
       if (cmd == 4) {
+        ack_done.store(false);
         timer_.Recurring(value >> 4, &done_recurring, &ack_done, recurring_);
       }
+      continue;
     }
-
     std::cerr << "Unkown command " << cmd << std::endl;
   }
-  done_recurring.store(true);
+  const bool done = done_recurring.exchange(true);
+  if (!done) {
+    while (!ack_done.load()) {}
+  }
+
 }
 
 void TimerService::Stop() {

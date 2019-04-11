@@ -32,7 +32,7 @@ loop:
 
 @func recurring:
   add r2, r2, 1
-  sub r3, r2, 60
+  sub r3, r2, 600  ;  10 seconds.
   jeq r3, done
   ret
 done:
