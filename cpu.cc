@@ -158,14 +158,16 @@ void CPU::Run() {
   }\
 
 #define TIMER_WRITE(addr, v) \
-  if (addr == oneshot_reg_) { \
-    timer_signal_->OneShot(v); \
-  } else if (addr == recurring_reg_) { \
-    timer_signal_->Recurring(v); \
-  } else if (addr == oneshot2_reg_) { \
-    timer2_signal_->OneShot(v); \
-  } else if (addr == recurring2_reg_) { \
-    timer2_signal_->Recurring(v); \
+  if (addr >= oneshot_reg_) { \
+    if (addr == oneshot_reg_) { \
+      timer_signal_->OneShot(v); \
+    } else if (addr == recurring_reg_) { \
+      timer_signal_->Recurring(v); \
+    } else if (addr == oneshot2_reg_) { \
+      timer2_signal_->OneShot(v); \
+    } else if (addr == recurring2_reg_) { \
+      timer2_signal_->Recurring(v); \
+    } \
   }
 
   DISPATCH();
