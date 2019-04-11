@@ -93,6 +93,12 @@ void CPU::Input() {
   interrupt_event_.notify_all();
 }
 
+void CPU::Timer() {
+  if (mask_interrupt_) return;
+  interrupt_ |= 0x02;
+  interrupt_event_.notify_all();
+}
+
 void CPU::Run() {
   static void* opcodes[] = {
     &&NOP, &&HALT, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,

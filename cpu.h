@@ -30,6 +30,7 @@ class CPU {
 
   // Sets signal for input handling.
   void Input();
+  void Timer();
 
   void SetVideoSignal(const uint32_t vram_reg, SyncPoint* video_signal) {
     vram_reg_ = vram_reg;
@@ -39,6 +40,11 @@ class CPU {
   void SetTimerSignal(const uint32_t timer_reg, TimerService* timer_signal) {
     timer_reg_ = timer_reg;
     timer_signal_ = timer_signal;
+  }
+
+  void SetOneShotSignal(const uint32_t oneshot_reg, TimerService* oneshot_signal) {
+    oneshot_reg_ = oneshot_reg;
+    oneshot_signal_ = oneshot_signal_;
   }
 
   const std::string PrintRegisters(bool hex = false);
@@ -67,6 +73,9 @@ class CPU {
   SyncPoint* video_signal_;
   uint32_t timer_reg_;
   TimerService* timer_signal_;
+  uint32_t oneshot_reg_;
+  TimerService* oneshot_signal_;
+
 };
 
 }  // namespace gvm
