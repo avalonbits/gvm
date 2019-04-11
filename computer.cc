@@ -20,6 +20,7 @@ const uint32_t kIOStart = kUnicodeRomStart + kUnicodeBitmapFont;
 const uint32_t kVramReg = kIOStart;
 const uint32_t kInputReg = kIOStart + 4;
 const uint32_t kTimerReg = kInputReg + 4;
+const uint32_t kOneShotReg = kTimerReg + 4;
 
 const int kFrameBufferW = 640;
 const int kFrameBufferH = 360;
@@ -47,7 +48,13 @@ Computer::Computer(CPU* cpu, VideoController* video_controller)
   cpu_->SetVideoSignal(kVramReg, &video_signal_);
 
   timer_service_.reset(new TimerService(&timer_chan_));
+  timer_service_->SetOneShot([this](uint32_t elapsed) {
+    mem_.get()[kOneShotReg / kWordSize] = elapsed;
+    cpu_->Timer();
+    std::this_thread::yield();
+  });
   cpu_->SetTimerSignal(kTimerReg, timer_service_.get());
+  cpu_->SetOneShotSignal(kOneShotReg, timer_service_.get());
   RegisterVideoDMA();
 }
 
