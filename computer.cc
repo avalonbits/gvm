@@ -21,7 +21,7 @@ const uint32_t kVramReg = kIOStart;
 const uint32_t kInputReg = kIOStart + 4;
 const uint32_t kTimerReg = kInputReg + 4;
 const uint32_t kOneShotReg = kTimerReg + 4;
-
+const uint32_t kRecurringReg = kOneShotReg + 4;
 const int kFrameBufferW = 640;
 const int kFrameBufferH = 360;
 
@@ -53,7 +53,12 @@ Computer::Computer(CPU* cpu, VideoController* video_controller)
     cpu_->Timer();
     std::this_thread::yield();
   });
-  cpu_->SetTimerSignal(kTimerReg, kOneShotReg, timer_service_.get());
+  timer_service_->SetRecurring([this](uint32_t elapsed) {
+    mem_.get()[kRecurringReg / kWordSize] = elapsed;
+    cpu_->RecurringTimer();
+    std::this_thread::yield();
+  });
+  cpu_->SetTimerSignal(kTimerReg, kOneShotReg, kRecurringReg, timer_service_.get());
   RegisterVideoDMA();
 }
 

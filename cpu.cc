@@ -99,6 +99,12 @@ void CPU::Timer() {
   interrupt_event_.notify_all();
 }
 
+void CPU::RecurringTimer() {
+  if (mask_interrupt_) return;
+  interrupt_ |= 0x08;
+  interrupt_event_.notify_all();
+}
+
 void CPU::Run() {
   static void* opcodes[] = {
     &&NOP, &&HALT, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
@@ -141,7 +147,11 @@ void CPU::Run() {
   }\
 
 #define TIMER_WRITE(addr, v) \
-  if (addr == oneshot_reg_) timer_signal_->OneShot(v)
+  if (addr == oneshot_reg_) { \
+    timer_signal_->OneShot(v); \
+  } else if (addr == recurring_reg_) { \
+    timer_signal_->Recurring(v); \
+  }
 
   DISPATCH();
   NOP:
@@ -469,6 +479,9 @@ void CPU::Run() {
         // Input interrupt.
         pc = 4;  // Set to 4 because it will be incremented to addr 0x08 on DISPATCH.
         interrupt_ &= ~0x04;
+      } else if (interrupt_ & 0x08) {
+        pc = 8;  // Set to 8 because it will be increment to addr 0x0c on DISPATCH.
+        interrupt_ &= ~0x08;
       }
     }
     DISPATCH();

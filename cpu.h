@@ -31,6 +31,7 @@ class CPU {
   // Sets signal for input handling.
   void Input();
   void Timer();
+  void RecurringTimer();
 
   void SetVideoSignal(const uint32_t vram_reg, SyncPoint* video_signal) {
     vram_reg_ = vram_reg;
@@ -38,9 +39,11 @@ class CPU {
   }
 
   void SetTimerSignal(
-      const uint32_t timer_reg, const uint32_t oneshot_reg, TimerService* timer_signal) {
+      const uint32_t timer_reg, const uint32_t oneshot_reg, 
+      const uint32_t recurring_reg, TimerService* timer_signal) {
     timer_reg_ = timer_reg;
     oneshot_reg_ = oneshot_reg;
+    recurring_reg_ = recurring_reg;
     timer_signal_ = timer_signal;
   }
 
@@ -70,6 +73,7 @@ class CPU {
   SyncPoint* video_signal_;
   uint32_t timer_reg_;
   uint32_t oneshot_reg_;
+  uint32_t recurring_reg_;
   TimerService* timer_signal_;
 };
 
