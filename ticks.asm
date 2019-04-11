@@ -14,11 +14,12 @@ interrupt_table:
 
 .section data
 timer_reg: .int 0x1200008
+b_loop: .int 100000
 
 .section text
 ; ===== The acutal benchmark function.
 @infunc benchmark:
-  mov r2, 50000
+  ldr r2, [b_loop]
 loop:
   ldr r0, [timer_reg]
   ldr r1, [r0]
