@@ -1,6 +1,7 @@
 #ifndef _GVM_TIMER_H_
 #define _GVM_TIMER_H_
 
+#include <atomic>
 #include <cassert>
 #include <chrono>
 #include <cstdint>
@@ -25,11 +26,6 @@ class Timer {
   }
 
   void OneShot(uint32_t msec, std::function<void(uint32_t)> one_shot) const {
-    SetupOneShot(msec, one_shot);
-  }
-
- private:
-  void SetupOneShot(uint32_t msec, std::function<void(uint32_t)> one_shot) const {
     std::thread one_shot_thread([this, msec, one_shot]() {
       std::chrono::milliseconds duration(msec);
       std::this_thread::sleep_for(duration);
@@ -38,6 +34,10 @@ class Timer {
     one_shot_thread.detach();
   }
 
+  void Recurring(uint32_t hz, std::atomic_bool* done, std::atomic_bool* ack_done,
+                 std::function<void(uint32_t)> recurring);
+
+ private:
   std::chrono::time_point<std::chrono::high_resolution_clock> start_;
 };
 
@@ -52,12 +52,15 @@ class TimerService {
     has_one_shot_ = true;
   }
 
-  void SetRecurring(std::function<void(void)> recurring) {
+  void SetRecurring(std::function<void(uint32_t)> recurring) {
     recurring_ = recurring;
     has_recurring_ = true;
   } 
 
   void OneShot(uint32_t msec);
+  void Recurring(uint32_t hertz);
+  void CancelRecurring();
+
   void Start();
   void Reset();
   void Stop();
@@ -68,7 +71,7 @@ class TimerService {
   SyncChan<uint32_t>* chan_;
   std::function<void(uint32_t)> one_shot_;
   bool has_one_shot_;
-  std::function<void(void)> recurring_;
+  std::function<void(uint32_t)> recurring_;
   bool has_recurring_;
 };
 
