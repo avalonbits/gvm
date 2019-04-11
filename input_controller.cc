@@ -77,7 +77,7 @@ void InputController::Read() {
         break;
       }
       default:
-      break;
+        break;
     }
   }
 }

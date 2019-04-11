@@ -13,7 +13,7 @@ class InputController {
   void Shutdown() { shutdown_ = true; }
 
  private:
-  bool shutdown_;
+  volatile bool shutdown_;
   std::function<void(uint32_t value)> callback_;
 };
 
