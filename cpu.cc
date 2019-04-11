@@ -140,6 +140,8 @@ void CPU::Run() {
     v = timer_signal_->Elapsed();\
   }\
 
+#define TIMER_WRITE(addr, v) \
+  if (addr == oneshot_reg_) timer_signal_->OneShot(v)
 
   DISPATCH();
   NOP:
@@ -216,37 +218,42 @@ void CPU::Run() {
   }
   STOR_RR: {
       const uint32_t addr = regv(reg1(word), pc, reg_);
-      mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
+      const auto v = mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
       VSIG(addr);
+      TIMER_WRITE(addr, v);
       DISPATCH();
   }
   STOR_RI: {
       const uint32_t addr = (word >> 11) & 0x1FFFFF;
-      mem_[m2w(addr)] = regv(reg1(word), pc, reg_);
+      const auto v = mem_[m2w(addr)] = regv(reg1(word), pc, reg_);
       VSIG(addr);
+      TIMER_WRITE(addr, v);
       DISPATCH();
   }
   STOR_IX: {
       const uint32_t addr = regv(reg1(word), pc, reg_) + ext16bit(word);
-      mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
+      const auto v = mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
       VSIG(addr);
+      TIMER_WRITE(addr, v);
       DISPATCH();
   }
   STOR_PI: {
       const register uint32_t idx = reg1(word);
       const register uint32_t next = regv(idx, pc, reg_) + ext16bit(word);
-      mem_[m2w(next)] = regv(reg2(word), pc, reg_);
+      const auto v = mem_[m2w(next)] = regv(reg2(word), pc, reg_);
       reg_[idx] = next;
       VSIG(next);
+      TIMER_WRITE(next, v);
       DISPATCH();
   }
   STOR_IP: {
       const register uint32_t idx = reg1(word);
       const register uint32_t cur = regv(idx, pc, reg_);
       const register uint32_t next = cur + ext16bit(word);
-      mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
+      const auto v = mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
       reg_[idx] = next;
       VSIG(cur);
+      TIMER_WRITE(cur, v);
       DISPATCH();
   }
   ADD_RR: {

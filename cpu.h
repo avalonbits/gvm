@@ -37,14 +37,11 @@ class CPU {
     video_signal_ = video_signal;
   }
 
-  void SetTimerSignal(const uint32_t timer_reg, TimerService* timer_signal) {
+  void SetTimerSignal(
+      const uint32_t timer_reg, const uint32_t oneshot_reg, TimerService* timer_signal) {
     timer_reg_ = timer_reg;
-    timer_signal_ = timer_signal;
-  }
-
-  void SetOneShotSignal(const uint32_t oneshot_reg, TimerService* oneshot_signal) {
     oneshot_reg_ = oneshot_reg;
-    oneshot_signal_ = oneshot_signal_;
+    timer_signal_ = timer_signal;
   }
 
   const std::string PrintRegisters(bool hex = false);
@@ -72,10 +69,8 @@ class CPU {
   uint32_t vram_reg_;
   SyncPoint* video_signal_;
   uint32_t timer_reg_;
-  TimerService* timer_signal_;
   uint32_t oneshot_reg_;
-  TimerService* oneshot_signal_;
-
+  TimerService* timer_signal_;
 };
 
 }  // namespace gvm

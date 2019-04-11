@@ -1,6 +1,7 @@
 #ifndef _GVM_TIMER_H_
 #define _GVM_TIMER_H_
 
+#include <cassert>
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -42,7 +43,9 @@ class Timer {
 
 class TimerService {
  public:
-  explicit TimerService(SyncChan<uint32_t>* chan) : chan_(chan) {}
+  explicit TimerService(SyncChan<uint32_t>* chan) : chan_(chan) {
+    assert(chan_ != nullptr);
+  }
 
   void SetOneShot(std::function<void(uint32_t)> one_shot) {
     one_shot_ = one_shot;

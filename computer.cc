@@ -53,8 +53,7 @@ Computer::Computer(CPU* cpu, VideoController* video_controller)
     cpu_->Timer();
     std::this_thread::yield();
   });
-  cpu_->SetTimerSignal(kTimerReg, timer_service_.get());
-  cpu_->SetOneShotSignal(kOneShotReg, timer_service_.get());
+  cpu_->SetTimerSignal(kTimerReg, kOneShotReg, timer_service_.get());
   RegisterVideoDMA();
 }
 

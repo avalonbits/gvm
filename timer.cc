@@ -21,7 +21,8 @@ void TimerService::Start() {
     }
 
     if (cmd == 3 && has_one_shot_) {
-      timer_.OneShot(value >> 3, one_shot_);
+      timer_.OneShot(value >> 4, one_shot_);
+      continue;
     }
 
     std::cerr << "Unkown command " << cmd << std::endl;

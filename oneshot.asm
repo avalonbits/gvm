@@ -20,10 +20,14 @@ oneshot_reg: .int 0x120000C
 ; ===== The acutal benchmark function.
 @infunc benchmark:
   ldr r0, [oneshot_reg]
-  str [r0], 10000
+  mov r1, 10000
+  str [r0], r1
   wfi
+  halt
 @endf benchmark
-halt
 
 @func oneshot:
+  ldr r1, [oneshot_reg]
+  ldr r1, [r1]
+  ret
 @endf oneshot
