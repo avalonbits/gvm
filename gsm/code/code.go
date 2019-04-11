@@ -82,7 +82,7 @@ func embedFile(ast *parser.AST) error {
 	return nil
 }
 
-func includeFile(ast *parser.Ast) error {
+func includeFile(ast *parser.AST) error {
 	for _, org := range ast.Orgs {
 		for i := range org.Sections {
 			section := &org.Sections[i]
@@ -94,8 +94,8 @@ func includeFile(ast *parser.Ast) error {
 			// section.
 
 		}
-
 	}
+	return nil
 }
 
 func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {

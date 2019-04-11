@@ -93,11 +93,16 @@ void Computer::Run() {
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
   const auto time = runtime.count();
   const auto per_inst = time / static_cast<double>(op_count);
-  const auto average_clock = 1000000000 / per_inst / 1000000;
+  auto average_clock = 1000000000 / per_inst / 1000000;
+  std::string hz = "MHz";
+  if (average_clock < 1.0) {
+    average_clock *= 1000.0;
+    hz = "KHz";
+  }
   std::cerr << "CPU Runtime: " << (time / static_cast<double>(1000)) << "us\n";
   std::cerr << "CPU Instruction count: " << op_count << std::endl;
   std::cerr << "Average per instruction: " << per_inst << "ns\n";
-  std::cerr << "Average clock: " << average_clock << "MHz\n";
+  std::cerr << "Average clock: " << average_clock << hz << "\n";
   std::cerr << "Timer elapsed: " << (elapsed /10.0) << "ms\n";
 }
 
