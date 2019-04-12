@@ -194,7 +194,7 @@ width:
 
 	; Now add mem start, x-start with y-pos to get the framebuffer start point.
 	add r7, r1, r8
-	ldr r9, [0x84]
+	ldr r9, [vram_start]
 	add r7, r7, r9
 
 line:
@@ -245,7 +245,7 @@ width:
 
 	; Now add mem start, x-pos, y-start with y-end to get the framebuffer start point.
 	add r7, r1, r8
-	ldr r9, [0x84]
+	ldr r9, [vram_start]
 	add r7, r7, r9
 
 line:
@@ -395,8 +395,8 @@ chrom_addr: .int 0x1100000
 	; r5: background color
 
 	; To find the (x,y) position in the frame buffer, we use the formula
-	; pos(x,y) = x-pos*8*4 + 0x84 + y-pos * lineLength * 16.
-	ldr r6, [0x84]
+	; pos(x,y) = x-pos*8*4 + vram_start + y-pos * lineLength * 16.
+	ldr r6, [vram_start]
 	mul r2, r2, 32
 	add r2, r2, r6
 	mul r3, r3, 2560
@@ -489,8 +489,8 @@ next_pixel:
 	; r3: value to set.
 
 	; To find the (x,y) position in the frame buffer, we use the formula
-	; pos(x,y) = x-pos*8*4 + 0x84 + y-pos * lineLength * 16.
-	ldr r6, [0x84]
+	; pos(x,y) = x-pos*8*4 + vram_start + y-pos * lineLength * 16.
+	ldr r6, [vram_start]
 	mul r1, r1, 32
 	add r1, r1, r6
 	mul r2, r2, 2560
