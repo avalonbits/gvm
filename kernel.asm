@@ -70,16 +70,24 @@ quit:
 
 .section data
 display_update: .int 0x0
+should_update: .int 0x1
 
 .section text
 @func recurring_handler:
-	call flush_video
 	strpi [sp, -4], r0
+
+	ldr r0, [should_update]
+	jeq r0, done
+
+	mov r0, 0
+	str [should_update], r0
+
+	call flush_video
 	ldr r0, [display_update]
-	jeq r0, flush
+	jeq r0, done
 	call r0
 
-flush:
+done:
 	ldrip r0, [sp, 4]
 	ret
 @endf recurring_handler
@@ -223,6 +231,8 @@ line:
     ; If still has lines, loop.
 	jne r4, width
 
+	mov r4, 1
+	str [should_update], r4
 	ret
 @endf hline
 
@@ -274,6 +284,8 @@ line:
     ; Loop back if we still need to print line.
 	jne r4, width
 
+	mov r4, 1
+	str [should_update], r4
 	ret
 @endf vline
 
@@ -479,6 +491,8 @@ next_pixel:
 	add r3, r3, 4
 	jne r6, reset_pixel_word_counter
 
+	mov r6, 1
+	str [should_update], r6
 	ret
 @endf putc
 
@@ -517,6 +531,8 @@ loop:
 	jne r2, loop
 
 	; We are done.
+	mov r2, 1
+	str [should_update], r2
 	ret
 @endf fill816
 
@@ -573,8 +589,9 @@ UI_addr: .int USER_INTERFACE
     ldr r0, [UI_addr]
     str [display_update], r0
 
-	; Set the screen to update on 30Hz.
-	mov r0, 30
+	; Set the recurring timer for 120hz. We will call the display_update
+	; handler that many times.
+	mov r0, 120
 	ldr r1, [recurring_reg]
 	str [r1], r0
 
