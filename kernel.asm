@@ -6,9 +6,10 @@
 
 ; Jump table for interrupt handlers. Each address is for a specific interrupt.
 interrupt_table:
-	jmp reset_handler
-	jmp timer_handler
-	jmp input_handler
+	jmp reset_handler	  ; Reset
+	ret					  ; Oneshot timer handler
+	jmp input_handler	  ; Input handler
+	jmp recurring_handler ; Recurring timer handler
 
 .org 0x80
 .section data
@@ -22,10 +23,6 @@ reset_handler:
     ; Reset the jiffy counter and jump to user code.
 	mov r0, 0
 
-    ; 64 bit counter words are 0xE1084 (LSW) and 0xE1088 (MSW)
-	str [timer_low32], r0
-	str [timer_high32], r0
-
 	; Clear input register
 	ldr r1, [input_value_addr]
 	str [r1], r0
@@ -34,37 +31,7 @@ reset_handler:
 	str [input_jump_addr], r0
 
 	; Now jump to main kernel code.
-	jmp USER_INTERFACE
-
-.section data
-timer_low32: .int 0
-timer_high32: .int 0
-
-.section text
-; ==== Timer interrupt handler.
-@func timer_handler:
-	; Implements a 64 bit jiffy counter.
-	; Save the contents of r0 on the stack so we don't disrupt user code.
-	strpi [sp, -4], r0
-
-	; Now increment the LSB of the 64 counter.
-	ldr r0, [timer_low32]  ; Load the LSW to r0.
-    add r0, r0, 1      ; increment it.
-	str [timer_low32], r0  ; write it back.
-
-	; If r0 != 0 that means we did not overflow.
-	jne r0, done
-
-	; Otherwise, we need to increment the MSW.
-	ldr r0, [timer_high32]  ; Loadthe MSW to r0.
-	add r0, r0, 1	   ; increment it.
-    str [timer_high32], r0  ; write it back.
-
-done:
-	; Now lets restore r0 and return.
-	ldrip r0, [sp, 4]
-	ret
-@endf timer_handler
+	jmp MAIN
 
 .section data
 input_value_addr: .int 0x1200004
@@ -100,6 +67,22 @@ quit:
 	; Quit means we want to turn of the cpu.
 	halt
 @endf input_handler
+
+.section data
+display_update: .int 0x0
+
+.section text
+@func recurring_handler:
+	call flush_video
+	strpi [sp, -4], r0
+	ldr r0, [display_update]
+	jeq r0, flush
+	call r0
+
+flush:
+	ldrip r0, [sp, 4]
+	ret
+@endf recurring_handler
 
 ; ==== Memset. Sets a memory region to a specific value.
 memset:
@@ -379,7 +362,6 @@ loop:
     jmp loop
 
 done:
-    call flush_video
     ret
 @endf puts
 
@@ -567,11 +549,12 @@ ui_bcolor: .int 0
 
 ready: .str "READY"
 ready_addr: .int ready
+recurring_reg: .int 0x1200010
+UI_addr: .int USER_INTERFACE
 
 .section text
 
-; We wait for a user input and print the value on screen.
-@func USER_INTERFACE:
+@func MAIN:
     ; Print ready sign.
     ldr r1, [ready_addr]
     mov r2, 0
@@ -586,13 +569,29 @@ ready_addr: .int ready
 	ldr r0, [user_input_handler_addr]
 	str [input_jump_addr], r0
 
-loop:
+	; Install our display updater.
+    ldr r0, [UI_addr]
+    str [display_update], r0
+
+	; Set the screen to update on 30Hz.
+	mov r0, 30
+	ldr r1, [recurring_reg]
+	str [r1], r0
+
+	; Ok, nothing more to do. The recurring timer will take care of updating
+	; everything for us.
+loop: wfi
+	  jmp loop
+@endf MAIN
+
+; We wait for a user input and print the value on screen.
+@func USER_INTERFACE:
 	call USER_INTERFACE_getin
 
 	; check if we have a control char. If we do, update ui accordingly and get next
 	; input.
 	call USER_control_chars
-	jeq r0, loop
+	jeq r0, done
 
 
 	; Set the params for putc.
@@ -601,9 +600,7 @@ loop:
 	ldr r4, [ui_fcolor]
 	ldr r5, [ui_bcolor]
 
-	call wait_video
 	call putc
-	call flush_video
 
 	; Update x position
 	ldr r2, [ui_x]
@@ -611,7 +608,7 @@ loop:
 	sub r4, r2, 80
 	jeq r4, x_end
 	str [ui_x], r2
-	jmp loop
+	jmp done
 
 x_end:
 	; We reached the end of the screen. Wrap back.
@@ -622,11 +619,8 @@ x_end:
 	str [ui_x], r2
 	str [ui_y], r3
 
-	; Ok, character written. Loop back and wait more.
-	jmp loop
-
 done:
-	halt
+	ret
 @endf USER_INTERFACE
 
 ; ==== USER_control_chars: checks for control chars and updates

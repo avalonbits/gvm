@@ -10,7 +10,7 @@
 namespace gvm {
 
 VideoController::VideoController(const bool print_fps, VideoDisplay* display)
-  : print_fps_(print_fps), display_(display), shutdown_(false) {
+  : print_fps_(false), display_(display), shutdown_(false) {
   assert(display != nullptr);
 }
 
