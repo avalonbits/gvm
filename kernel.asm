@@ -523,7 +523,7 @@ loop:
 ; ==== FlushVideo: tells the video controller that it can copy the framebuffer
 ; to its own memory.
 @func flush_video:
-	ldr r0, [0x80]
+	ldr r0, [vram_reg]
 	mov r1, 1
     str [r0], r1
 	ret
@@ -532,7 +532,7 @@ loop:
 ; ==== WaitVideo: waits for the video controller to signal that the framebuffer
 ; available for writing.
 @func wait_video:
-	ldr r0, [0x80]
+	ldr r0, [vram_reg]
 	ldr r0, [r0]
 	jne r0, wait_video
 	ret
