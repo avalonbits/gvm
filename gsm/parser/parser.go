@@ -470,6 +470,26 @@ func (p *Parser) data_block(cur state) state {
 
 		aBlock.Statements = append(aBlock.Statements, Statement{Value: n})
 		return DATA_BLOCK
+	case lexer.EQUATE:
+		tok = p.tokenizer.NextToken()
+		if tok.Type != lexer.IDENT {
+			p.err = fmt.Errorf("expected an identifier, got %q", tok.Literal)
+			return ERROR
+		}
+		constant := tok.Literal
+		if _, ok := p.Ast.Consts[constant]; ok {
+			p.err = fmt.Errorf("constant %q was previously defined.", constant)
+			return ERROR
+		}
+
+		tok = p.tokenizer.NextToken()
+		if tok.Type != lexer.NUMBER {
+			p.err = fmt.Errorf("epxected a number, got %q", tok.Literal)
+			return ERROR
+		}
+		p.Ast.Consts[constant] = tok.Literal
+
+		return DATA_BLOCK
 	default:
 		p.err = fmt.Errorf("expected either a label or a constant definition, got %q", tok.Literal)
 		return ERROR

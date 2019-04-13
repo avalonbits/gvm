@@ -32,6 +32,7 @@ const (
 	SECTION
 	EMBED
 	INCLUDE
+	EQUATE
 	AS
 	D_QUOTE
 	S_DATA
@@ -57,6 +58,7 @@ var keywords = map[string]TokenType{
 	".section": SECTION,
 	".embed":   EMBED,
 	".include": INCLUDE,
+	".equ":     EQUATE,
 	"as":       AS,
 	"data":     S_DATA,
 	"text":     S_TEXT,

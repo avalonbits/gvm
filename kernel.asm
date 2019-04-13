@@ -182,6 +182,11 @@ memcpy16:
 	jgt r3, memcpy16
 	ret
 
+.section data
+  .equ kLineLength 2560
+
+.section text
+
 ; ==== HLine: draws a horizontal line on the screen.
 ; Linelength is 2560 bytes (640 * 32bpp)
 @func hline:
@@ -192,7 +197,7 @@ memcpy16:
 	; r5: color (RGBA)
 
 	; Multiply y-pos by 2560 to get y in the frameuffer.
-	mul r1, r1, 2560
+	mul r1, r1, kLineLength
 
 	; Multiply x-start and x-end by 4 for pixel size.
 	lsl r3, r3, 2
@@ -226,7 +231,7 @@ line:
 	sub r4, r4, 1
 
 	; We increment r1 even if we are done to avoid an extra instruction.
-	add r1, r1, 2560
+	add r1, r1, kLineLength
 
     ; If still has lines, loop.
 	jne r4, width
@@ -248,10 +253,10 @@ line:
 	lsl r1, r1, 2
 
 	; Multiply y-start and y-end by 2560 to get their positions.
-	mul r3, r3, 2560
+	mul r3, r3, kLineLength
 
 width:
-	mul r8, r2, 2560
+	mul r8, r2, kLineLength
 
 	; Now add mem start, x-pos, y-start with y-end to get the framebuffer start point.
 	add r7, r1, r8
@@ -260,10 +265,10 @@ width:
 
 line:
 	; Write the pixel at the location.
-	strip [r7, 2560], r5
+	strip [r7, kLineLength], r5
 
 	; Increment y-start.
-	add r8, r8, 2560
+	add r8, r8, kLineLength
 
 	; Check if we got to y-end
 	sub r6, r3, r8
@@ -273,7 +278,7 @@ line:
 
 	; Line is not done. Need to subtract a line from framebuffer because we
 	; optimistically assume we need to increment.
-	sub r7, r7, 2560
+	sub r7, r7, kLineLength
 
 	; Done with one line.
 	sub r4, r4, 1
@@ -411,7 +416,7 @@ chrom_addr: .int 0x1100000
 	ldr r6, [vram_start]
 	mul r2, r2, 32
 	add r2, r2, r6
-	mul r3, r3, 2560
+	mul r3, r3, kLineLength
 	lsl r3, r3, 4
 	add r2, r2, r3
 
