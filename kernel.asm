@@ -83,7 +83,6 @@ should_update: .int 0x1
 	str [should_update], r0
 
 	call flush_video
-	call wait_video
 	ldr r0, [display_update]
 	jeq r0, done
 	call r0
