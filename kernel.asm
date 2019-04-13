@@ -20,7 +20,6 @@ vram_start: .int 0x101F000
 
 ; ==== Reset interrupt handler.
 reset_handler:
-    ; Reset the jiffy counter and jump to user code.
 	mov r0, 0
 
 	; Clear input register
@@ -195,6 +194,7 @@ memcpy16:
 	; r3: y-start
 	; r4: width
 	; r5: color (RGBA)
+    ; r6: framebuffer start.
 
 	; Multiply y-pos by 2560 to get y in the frameuffer.
 	mul r1, r1, kLineLength
@@ -207,8 +207,7 @@ width:
 
 	; Now add mem start, x-start with y-pos to get the framebuffer start point.
 	add r7, r1, r8
-	ldr r9, [vram_start]
-	add r7, r7, r9
+	add r7, r7, r6
 
 line:
 	; Write pixel to framebuffer location
@@ -236,8 +235,6 @@ line:
     ; If still has lines, loop.
 	jne r4, width
 
-	mov r4, 1
-	str [should_update], r4
 	ret
 @endf hline
 
@@ -248,6 +245,7 @@ line:
 	; r3: y-end
 	; r4: width
 	; r5: color (RGBA)
+	; r6: framebuffer start
 
 	; Multiply x-pos by 4 to get x in the framebuffer.
 	lsl r1, r1, 2
@@ -260,8 +258,7 @@ width:
 
 	; Now add mem start, x-pos, y-start with y-end to get the framebuffer start point.
 	add r7, r1, r8
-	ldr r9, [vram_start]
-	add r7, r7, r9
+	add r7, r7, r6
 
 line:
 	; Write the pixel at the location.
@@ -289,8 +286,6 @@ line:
     ; Loop back if we still need to print line.
 	jne r4, width
 
-	mov r4, 1
-	str [should_update], r4
 	ret
 @endf vline
 
@@ -345,7 +340,9 @@ loop:
     strpi [sp, -4], r3
     strpi [sp, -4], r4
     strpi [sp, -4], r5
-    call putc
+	ldr r6, [vram_start]
+
+	call putc
 
     ; Restore context.
     ldrip r5, [sp, 4]
@@ -365,7 +362,10 @@ loop:
     strpi [sp, -4], r3
     strpi [sp, -4], r4
     strpi [sp, -4], r5
+	ldr r6, [vram_start]
+
     call putc
+
     ldrip r5, [sp, 4]
     ldrip r4, [sp, 4]
     ldrip r3, [sp, 4]
@@ -410,10 +410,10 @@ chrom_addr: .int 0x1100000
 	; r3: y-pos
 	; r4: foreground color
 	; r5: background color
+    ; r6: framebuffer start.
 
 	; To find the (x,y) position in the frame buffer, we use the formula
-	; pos(x,y) = x-pos*8*4 + vram_start + y-pos * lineLength * 16.
-	ldr r6, [vram_start]
+	; pos(x,y) = x-pos*8*4 + fb start + y-pos * lineLength * 16.
 	mul r2, r2, 32
 	add r2, r2, r6
 	mul r3, r3, kLineLength
@@ -496,8 +496,6 @@ next_pixel:
 	add r3, r3, 4
 	jne r6, reset_pixel_word_counter
 
-	mov r6, 1
-	str [should_update], r6
 	ret
 @endf putc
 
@@ -506,12 +504,12 @@ next_pixel:
 	; r1: x-pos
 	; r2: y-pos
 	; r3: value to set.
+	; r4: framebuffer start.
 
 	; To find the (x,y) position in the frame buffer, we use the formula
-	; pos(x,y) = x-pos*8*4 + vram_start + y-pos * lineLength * 16.
-	ldr r6, [vram_start]
+	; pos(x,y) = x-pos*8*4 + fb_start + y-pos * lineLength * 16.
 	mul r1, r1, 32
-	add r1, r1, r6
+	add r1, r1, r4
 	mul r2, r2, 2560
 	lsl r2, r2, 4
 	add r1, r1, r2
@@ -536,8 +534,6 @@ loop:
 	jne r2, loop
 
 	; We are done.
-	mov r2, 1
-	str [should_update], r2
 	ret
 @endf fill816
 
@@ -621,6 +617,7 @@ loop: wfi
 	ldr r3, [ui_y]
 	ldr r4, [ui_fcolor]
 	ldr r5, [ui_bcolor]
+	ldr r6, [vram_start]
 
 	call putc
 
@@ -642,6 +639,8 @@ x_end:
 	str [ui_y], r3
 
 done:
+	mov r0, 1
+	str [should_update], r0
 	ret
 @endf USER_INTERFACE
 
@@ -685,6 +684,7 @@ backspace_erase:
 	ldr r0, [text_colors_addr]
 	lsl r3, r3, 2
 	ldri r3, [r0, r3]
+	ldr r4, [vram_start]
 
 	call fill816
 
