@@ -12,9 +12,10 @@ interrupt_table:
   ret            ; Input intterupt.
 
 .section data
+
 farray:   .array 0x100000  ; 1MiB array
 tarray:   .array 0x100000  ; 1MiB array
-size_words: .int 0x10000   ; 256Ki words.
+size_words: .int 0x40000   ; 256Ki words.
 faddr: .int farray
 taddr: .int tarray
 iter: .int 300
