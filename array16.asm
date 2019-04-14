@@ -17,7 +17,7 @@ tarray:   .array 0x100000  ; 1MiB array
 size_words: .int 0x10000   ; 256Ki words.
 faddr: .int farray
 taddr: .int tarray
-iter: .int 175
+iter: .int 300
 
 .section text
 
@@ -93,12 +93,13 @@ memset16:
 @infunc benchmark:
 	ldr r0, [iter]
 
-loop:
 	ldr r1, [faddr]
 	ldr r2, [size_words]
 	mov r3, 0xF
 
 	call memset16
+
+loop:
 
 	ldr r1, [taddr]
 	ldr r2, [faddr]
