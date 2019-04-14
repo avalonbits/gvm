@@ -70,6 +70,7 @@ quit:
 .section data
 display_update: .int 0x0
 should_update: .int 0x1
+fb_size_words: .int 230400
 
 .section text
 @func recurring_handler:
@@ -81,10 +82,27 @@ should_update: .int 0x1
 	mov r0, 0
 	str [should_update], r0
 
+	strpi [sp, -4], r1
+	strpi [sp, -4], r2
+	strpi [sp, -4], r3
+	strpi [sp, -4], r4
+
+	ldr r1, [vram_start]
+	ldr r2, [fb_addr]
+	ldr r3, [fb_size_words]
+
+	call memcpy16
+
 	call flush_video
 	ldr r0, [display_update]
-	jeq r0, done
+	jeq r0, done_cpy
 	call r0
+
+done_cpy:
+	ldrip r4, [sp, 4]
+	ldrip r3, [sp, 4]
+	ldrip r2, [sp, 4]
+	ldrip r1, [sp, 4]
 
 done:
 	ldrip r0, [sp, 4]
@@ -340,7 +358,7 @@ loop:
     strpi [sp, -4], r3
     strpi [sp, -4], r4
     strpi [sp, -4], r5
-	ldr r6, [vram_start]
+	ldr r6, [fb_addr]
 
 	call putc
 
@@ -362,7 +380,7 @@ loop:
     strpi [sp, -4], r3
     strpi [sp, -4], r4
     strpi [sp, -4], r5
-	ldr r6, [vram_start]
+	ldr r6, [fb_addr]
 
     call putc
 
@@ -568,6 +586,8 @@ ready: .str "READY"
 ready_addr: .int ready
 recurring_reg: .int 0x1200010
 UI_addr: .int USER_INTERFACE
+frame_buffer: .array 921600
+fb_addr: .int frame_buffer
 
 .section text
 
@@ -617,7 +637,7 @@ loop: wfi
 	ldr r3, [ui_y]
 	ldr r4, [ui_fcolor]
 	ldr r5, [ui_bcolor]
-	ldr r6, [vram_start]
+	ldr r6, [fb_addr]
 
 	call putc
 
@@ -684,7 +704,7 @@ backspace_erase:
 	ldr r0, [text_colors_addr]
 	lsl r3, r3, 2
 	ldri r3, [r0, r3]
-	ldr r4, [vram_start]
+	ldr r4, [fb_addr]
 
 	call fill816
 
