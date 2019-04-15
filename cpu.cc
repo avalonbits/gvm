@@ -118,7 +118,7 @@ void CPU::RecurringTimer2() {
 }
 void CPU::Run() {
   static void* opcodes[] = {
-    &&NOP, &&HALT, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
+    &&NOP, &&HALT, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
     &&LOAD_IXR, &&LOAD_PI, &&LOAD_IP, &&STOR_RR, &&STOR_RI, &&STOR_IX,
     &&STOR_PI, &&STOR_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI, &&JMP, &&JNE,
     &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI, &&CALLR, &&RET, &&AND_RR,
@@ -175,12 +175,6 @@ void CPU::Run() {
       DISPATCH();
   HALT: {
     return;
-  }
-  MOV_RR: {
-      const register int32_t idx = reg1(word);
-      const register int32_t v = regv(reg2(word), pc, reg_);
-      reg_[idx] = v;
-      DISPATCH();
   }
   MOV_RI: {
       const register uint32_t idx = reg1(word);
@@ -562,9 +556,6 @@ std::string CPU::PrintInstruction(const Word word) {
       break;
     case ISA::NOP:
       ss << "nop";
-      break;
-    case ISA::MOV_RR:
-      ss << "mov r" << reg1(word) << ", r" << reg2(word);
       break;
     case ISA::MOV_RI: {
       uint32_t v = (word >> 11);

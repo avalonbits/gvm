@@ -15,10 +15,7 @@ Word Halt() {
 }
 
 Word MovRR(uint32_t dest, uint32_t src) {
-  assert(dest < kRegCount);
-  assert(src < kRegCount);
-  assert(dest != src);
-  return Word(ISA::MOV_RR | dest << 6 | src << 11);
+  return AddRR(dest, src, 0);
 }
 
 Word MovRI(uint32_t dest, uint32_t value) {
