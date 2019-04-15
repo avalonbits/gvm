@@ -154,7 +154,7 @@ memcpy:
 	jgt r3, memcpy
 	ret
 
-; ==== Memcopy16. Same as memcpy but assumes size is a multiple of 16 words.
+; ==== Memcopy32. Same as memcpy but assumes size is a multiple of 32 words.
 memcpy32:
 	; r1: start to-address
 	; r2: start from:address
