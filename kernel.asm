@@ -57,7 +57,7 @@ input_jump_addr:  .int 0
 
 done:
 	; Input processing done. Restore restore r1 and r0 and return.
-	ldpip r1, r0, [sp, 8]
+	ldpip r0, r1, [sp, 8]
 	ret
 
 quit:
@@ -95,8 +95,8 @@ fb_size_words: .int 230400
 	call r0
 
 done_cpy:
-	ldpip r4, r3, [sp, 8]
-	ldpip r2, r1, [sp, 8]
+	ldpip r3, r4, [sp, 8]
+	ldpip r1, r2, [sp, 8]
 
 done:
 	ldrip r0, [sp, 4]
@@ -348,17 +348,15 @@ loop:
     jeq r1, done
 
     ; Save context in stack before calling putc.
-    strpi [sp, -4], r2
-    strpi [sp, -4], r3
-    strpi [sp, -4], r4
-    strpi [sp, -4], r5
+    stppi [sp, -8], r2, r3
+    stppi [sp, -8], r4, r5
 	ldr r6, [fb_addr]
 
 	call putc
 
     ; Restore context.
-    ldpip r5, r4, [sp, 8]
-    ldpip r3, r2, [sp, 8]
+    ldpip r4, r5, [sp, 8]
+    ldpip r2, r3, [sp, 8]
 
     ; Update (x,y)
     call incxy
@@ -368,16 +366,14 @@ loop:
     lsr r1, r1, 16
     jeq r1, done
 
-    strpi [sp, -4], r2
-    strpi [sp, -4], r3
-    strpi [sp, -4], r4
-    strpi [sp, -4], r5
+    stppi [sp, -8], r2, r3
+    stppi [sp, -8], r4, r5
 	ldr r6, [fb_addr]
 
     call putc
 
-    ldpip r5, r4, [sp, 8]
-    ldpip r3, r2, [sp, 8]
+    ldpip r4, r5, [sp, 8]
+    ldpip r2, r3, [sp, 8]
 
     ; Update (x,y)
     call incxy
