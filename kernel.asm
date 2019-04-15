@@ -58,8 +58,7 @@ input_jump_addr:  .int 0
 
 done:
 	; Input processing done. Restore restore r1 and r0 and return.
-	ldrip r1, [sp, 4]
-	ldrip r0, [sp, 4]
+	ldpip r1, r0, [sp, 8]
 	ret
 
 quit:
@@ -99,10 +98,8 @@ fb_size_words: .int 230400
 	call r0
 
 done_cpy:
-	ldrip r4, [sp, 4]
-	ldrip r3, [sp, 4]
-	ldrip r2, [sp, 4]
-	ldrip r1, [sp, 4]
+	ldpip r4, r3, [sp, 8]
+	ldpip r2, r1, [sp, 8]
 
 done:
 	ldrip r0, [sp, 4]
@@ -162,39 +159,31 @@ memcpy16:
 	; r1: start to-address
 	; r2: start from:address
 	; r3: size in words.
-	; r4: local variable for copying memory.
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
+	; r24, r25: local variable for copying memory.
+	ldpip r24, r25, [r2, 8]
+	strip [r1, 4], r24
+	strip [r1, 4], r25
+	ldpip r24, r25, [r2, 8]
+	strip [r1, 4], r24
+	strip [r1, 4], r25
+	ldpip r24, r25, [r2, 8]
+	strip [r1, 4], r24
+	strip [r1, 4], r25
+	ldpip r24, r25, [r2, 8]
+	strip [r1, 4], r24
+	strip [r1, 4], r25
+	ldpip r24, r25, [r2, 8]
+	strip [r1, 4], r24
+	strip [r1, 4], r25
+	ldpip r24, r25, [r2, 8]
+	strip [r1, 4], r24
+	strip [r1, 4], r25
+	ldpip r24, r25, [r2, 8]
+	strip [r1, 4], r24
+	strip [r1, 4], r25
+	ldpip r24, r25, [r2, 8]
+	strip [r1, 4], r24
+	strip [r1, 4], r25
 	sub r3, r3, 16
 	jgt r3, memcpy16
 	ret
@@ -363,10 +352,8 @@ loop:
 	call putc
 
     ; Restore context.
-    ldrip r5, [sp, 4]
-    ldrip r4, [sp, 4]
-    ldrip r3, [sp, 4]
-    ldrip r2, [sp, 4]
+    ldpip r5, r4, [sp, 8]
+    ldpip r3, r2, [sp, 8]
 
     ; Update (x,y)
     call incxy
@@ -384,10 +371,8 @@ loop:
 
     call putc
 
-    ldrip r5, [sp, 4]
-    ldrip r4, [sp, 4]
-    ldrip r3, [sp, 4]
-    ldrip r2, [sp, 4]
+    ldpip r5, r4, [sp, 8]
+    ldpip r3, r2, [sp, 8]
 
     ; Update (x,y)
     call incxy
