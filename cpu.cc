@@ -595,8 +595,14 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::LOAD_IP:
       ss << "load post inc r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
       break;
-     case ISA::LOAD_PI:
-      ss << "load pre inc 1r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
+    case ISA::LOAD_PI:
+      ss << "load pre inc r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
+      break;
+    case ISA::LDP_PI:
+      ss << "load pre inc r" << reg1(word) << ", r" << reg2(word) << ", [r" << reg3(word) << ", 0x" << std::hex << ext11bit(word) << "]";
+      break;
+    case ISA::LDP_IP:
+      ss << "load post inc r" << reg1(word) << ", r" << reg2(word) << ", [r" << reg3(word) << ", 0x" << std::hex << ext11bit(word) << "]";
       break;
     case ISA::STOR_RI:
       ss << "stor [0x" << std::hex << ((word >> 11) & 0x1FFFFF) << "], r" << std::dec << reg1(word);
