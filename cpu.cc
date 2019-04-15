@@ -35,9 +35,17 @@ constexpr uint32_t reg4(uint32_t word) {
 constexpr uint32_t v16bit(uint32_t word) {
   return (word >> 16) & 0xFFFF;
 }
+constexpr uint32_t v11bit(uint32_t word) {
+  return (word >> 21) & 0x7FF;
+}
+
 constexpr uint32_t ext16bit(uint32_t word) {
   word = v16bit(word);
   return (0x00008000 & word) ? (0xFFFF0000 | word) : word;
+}
+constexpr uint32_t ext11bit(uint32_t word) {
+  word = v11bit(word);
+  return (0x00000400 & word) ? (0xFFFFF800 | word) : word;
 }
 
 constexpr uint32_t reladdr26(const uint32_t v26bit) {
@@ -119,7 +127,7 @@ void CPU::RecurringTimer2() {
 void CPU::Run() {
   static void* opcodes[] = {
     &&NOP, &&HALT, &&MOV_RI, &&LOAD_RI, &&LOAD_IX,
-    &&LOAD_IXR, &&LOAD_PI, &&LOAD_IP, &&STOR_RI, &&STOR_IX,
+    &&LOAD_IXR, &&LOAD_PI, &&LOAD_IP, &&LDP_PI, &&LDP_IP, &&STOR_RI, &&STOR_IX,
     &&STOR_PI, &&STOR_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI, &&JMP, &&JNE,
     &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI, &&CALLR, &&RET, &&AND_RR,
     &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR, &&XOR_RI, &&LSL_RR, &&LSL_RI,
@@ -227,6 +235,33 @@ void CPU::Run() {
       TIMER_READ(cur, v, mem_[m2w(cur)]);
       reg_[idx] = v;
       reg_[idx2] = next;
+      DISPATCH();
+  }
+  LDP_PI: {
+      const register uint32_t dest1 = reg1(word);
+      const register uint32_t dest2 = reg2(word);
+      const register uint32_t src = reg3(word);
+      const register uint32_t next = regv(src, pc, reg_) + ext11bit(word);
+      register int32_t v;
+      TIMER_READ(next, v, mem_[m2w(next)]);
+      reg_[dest1] = v;
+      TIMER_READ(next+4, v, mem_[m2w(next+4)]);
+      reg_[dest2] = v;
+      reg_[src] = next;
+      DISPATCH();
+  }
+  LDP_IP: {
+      const register uint32_t dest1 = reg1(word);
+      const register uint32_t dest2 = reg2(word);
+      const register uint32_t src = reg3(word);
+      const register uint32_t cur = regv(src, pc, reg_);
+      const register uint32_t next = cur + ext11bit(word);
+      register int32_t v;
+      TIMER_READ(cur, v, mem_[m2w(cur)]);
+      reg_[dest1] = v;
+      TIMER_READ(cur+4, v, mem_[m2w(cur+4)]);
+      reg_[dest2] = v;
+      reg_[src] = next;
       DISPATCH();
   }
   STOR_RI: {
