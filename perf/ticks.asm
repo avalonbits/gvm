@@ -23,24 +23,43 @@ b_loop: .int 100000
   ldr r0, [timer_reg]
 loop:
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
+  nop
   ldr r1, [r0]
   sub r2, r2, 20
   jne r2, loop
