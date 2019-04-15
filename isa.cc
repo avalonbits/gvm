@@ -32,9 +32,7 @@ Word LoadRI(uint32_t dest, uint32_t memaddr) {
 }
 
 Word LoadRR(uint32_t dest, uint32_t src) {
-  assert(dest < kRegCount);
-  assert(src < kRegCount);
-  return Word(ISA::LOAD_RR | dest << 6 | src << 11);
+  return LoadIX(dest, src, 0);
 }
 
 Word LoadIX(uint32_t dest, uint32_t src, uint32_t offset) {

@@ -12,7 +12,6 @@ enum ISA {
     NOP = 0,
     HALT,
     MOV_RI,
-    LOAD_RR,
     LOAD_RI,
     LOAD_IX,
     LOAD_IXR,

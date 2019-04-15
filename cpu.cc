@@ -118,7 +118,7 @@ void CPU::RecurringTimer2() {
 }
 void CPU::Run() {
   static void* opcodes[] = {
-    &&NOP, &&HALT, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
+    &&NOP, &&HALT, &&MOV_RI, &&LOAD_RI, &&LOAD_IX,
     &&LOAD_IXR, &&LOAD_PI, &&LOAD_IP, &&STOR_RR, &&STOR_RI, &&STOR_IX,
     &&STOR_PI, &&STOR_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI, &&JMP, &&JNE,
     &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI, &&CALLR, &&RET, &&AND_RR,
@@ -180,14 +180,6 @@ void CPU::Run() {
       const register uint32_t idx = reg1(word);
       register int32_t v = (word >> 11);
       if (((v >> 20) & 1) == 1) v = 0xFFE00000 | v;
-      reg_[idx] = v;
-      DISPATCH();
-  }
-  LOAD_RR: {
-      const register uint32_t idx = reg1(word);
-      const register uint32_t addr = regv(reg2(word), pc, reg_);
-      register int32_t v;
-      TIMER_READ(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
@@ -563,9 +555,6 @@ std::string CPU::PrintInstruction(const Word word) {
       ss << "mov r" << reg1(word) << ", 0x" << std::hex << v;
       break;
     }
-    case ISA::LOAD_RR:
-      ss << "load r" << reg1(word) << ", [r" << reg2(word) << "]";
-      break;
     case ISA::LOAD_RI:
       ss << "load r" << reg1(word) << ", [0x" << std::hex << ((word >> 11) & 0x1FFFFF) << "]";
       break;

@@ -8,7 +8,6 @@ const (
 	nop parser.Word = iota
 	halt
 	mov_ri
-	load_rr
 	load_ri
 	load_ix
 	load_ixr
@@ -75,7 +74,7 @@ func MovRI(dest, value uint32) parser.Word {
 }
 
 func LoadRR(dest, src uint32) parser.Word {
-	return load_rr | parser.Word(dest)<<6 | parser.Word(src)<<11
+	return LoadIX(dest, src, 0)
 }
 
 func LoadRI(dest, value uint32) parser.Word {
