@@ -307,13 +307,17 @@ void CPU::Run() {
       DISPATCH();
   }
   STP_IP: {
-      const register uint32_t idx = reg1(word);
-      const register uint32_t cur = regv(idx, pc, reg_);
-      const register uint32_t next = cur + ext16bit(word);
-      const register auto v = mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
-      reg_[idx] = next;
-      VSIG(cur);
+      const register uint32_t dest = reg1(word);
+      const register uint32_t cur = regv(dest, pc, reg_);
+      const register uint32_t next = cur + ext11bit(word);
+      register auto v = mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
       TIMER_WRITE(cur, v);
+      VSIG(cur);
+      v = mem_[m2w(cur+4)] = regv(reg3(word), pc, reg_);
+      TIMER_WRITE(cur+4, v);
+      VSIG(cur+4);
+      reg_[dest] = next;
+      VSIG(cur);
       DISPATCH();
   }
   ADD_RR: {

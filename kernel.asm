@@ -522,8 +522,7 @@ next_pixel:
 
 loop:
 	; Each pixel is 4 bytes long, so we need to write 32 bytes per row.
-	strip [r1, 4], r3
-	strip [r1, 4], r3
+	stpip [r1, 8], r3, r3
 	strip [r1, 4], r3
 	strip [r1, 4], r3
 	strip [r1, 4], r3
