@@ -90,7 +90,7 @@ fb_size_words: .int 230400
 	ldr r2, [fb_addr]
 	ldr r3, [fb_size_words]
 
-	call memcpy16
+	call memcpy32
 
 	call flush_video
 	ldr r0, [display_update]
@@ -116,29 +116,29 @@ memset:
 	jgt r2, memset
 	ret
 
-; ==== Memset16. Same as memset but assumes size is a multiple of 16 words.
-memset16:
+; ==== Memset32. Same as memset but assumes size is a multiple of 32 words.
+memset32:
 	; r1: start address
-	; r2: size in words. MUST BE A MULTIPLE OF 16.
+	; r2: size in words. MUST BE A MULTIPLE OF 32.
 	; r3: value to set.
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-    strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-    strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-    strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-    strip [r1, 4], r3
-	sub r2, r2, 16
-	jgt r2, memset16
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	sub r2, r2, 32
+	jgt r2, memset32
 	ret
 
 ; ==== Memcopy. Copies the contents of one region of memory to another.
@@ -155,37 +155,45 @@ memcpy:
 	ret
 
 ; ==== Memcopy16. Same as memcpy but assumes size is a multiple of 16 words.
-memcpy16:
+memcpy32:
 	; r1: start to-address
 	; r2: start from:address
 	; r3: size in words.
 	; r24, r25: local variable for copying memory.
 	ldpip r24, r25, [r2, 8]
-	strip [r1, 4], r24
-	strip [r1, 4], r25
+	stpip [r1, 8], r24, r25
 	ldpip r24, r25, [r2, 8]
-	strip [r1, 4], r24
-	strip [r1, 4], r25
+	stpip [r1, 8], r24, r25
 	ldpip r24, r25, [r2, 8]
-	strip [r1, 4], r24
-	strip [r1, 4], r25
+	stpip [r1, 8], r24, r25
 	ldpip r24, r25, [r2, 8]
-	strip [r1, 4], r24
-	strip [r1, 4], r25
+	stpip [r1, 8], r24, r25
 	ldpip r24, r25, [r2, 8]
-	strip [r1, 4], r24
-	strip [r1, 4], r25
+	stpip [r1, 8], r24, r25
 	ldpip r24, r25, [r2, 8]
-	strip [r1, 4], r24
-	strip [r1, 4], r25
+	stpip [r1, 8], r24, r25
 	ldpip r24, r25, [r2, 8]
-	strip [r1, 4], r24
-	strip [r1, 4], r25
+	stpip [r1, 8], r24, r25
 	ldpip r24, r25, [r2, 8]
-	strip [r1, 4], r24
-	strip [r1, 4], r25
-	sub r3, r3, 16
-	jgt r3, memcpy16
+	stpip [r1, 8], r24, r25
+	ldpip r24, r25, [r2, 8]
+	stpip [r1, 8], r24, r25
+	ldpip r24, r25, [r2, 8]
+	stpip [r1, 8], r24, r25
+	ldpip r24, r25, [r2, 8]
+	stpip [r1, 8], r24, r25
+	ldpip r24, r25, [r2, 8]
+	stpip [r1, 8], r24, r25
+	ldpip r24, r25, [r2, 8]
+	stpip [r1, 8], r24, r25
+	ldpip r24, r25, [r2, 8]
+	stpip [r1, 8], r24, r25
+	ldpip r24, r25, [r2, 8]
+	stpip [r1, 8], r24, r25
+	ldpip r24, r25, [r2, 8]
+	stpip [r1, 8], r24, r25
+	sub r3, r3, 32
+	jgt r3, memcpy32
 	ret
 
 .section data
@@ -523,12 +531,9 @@ next_pixel:
 loop:
 	; Each pixel is 4 bytes long, so we need to write 32 bytes per row.
 	stpip [r1, 8], r3, r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
 	add r1, r1, 2528
 
 	; Check if we are done.
