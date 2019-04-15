@@ -83,6 +83,8 @@ var keywords = map[string]TokenType{
 	"ldri":     INSTRUCTION,
 	"ldrpi":    INSTRUCTION,
 	"ldrip":    INSTRUCTION,
+	"ldppi":    INSTRUCTION,
+	"ldpip":    INSTRUCTION,
 	"str":      INSTRUCTION,
 	"stri":     INSTRUCTION,
 	"strpi":    INSTRUCTION,

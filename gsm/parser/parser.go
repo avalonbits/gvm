@@ -69,6 +69,7 @@ type Instruction struct {
 	Op1  Operand
 	Op2  Operand
 	Op3  Operand
+	Op4  Operand
 }
 
 func (i Instruction) String() string {
@@ -628,6 +629,8 @@ func ParseNumber(lit string) (uint32, error) {
 
 var (
 	operands = map[string]int{
+		"ldppi": 4,
+		"ldpip": 4,
 		"add":   3,
 		"sub":   3,
 		"lsl":   3,
@@ -663,7 +666,7 @@ var (
 )
 
 func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
-	// Instructions either have 0-3 operands. ldr and str have brakets around
+	// Instructions either have 0-4 operands. ldr and str and variations have brakets around
 	// one of the registers so we need to account
 	// for them.
 	instr := &Instruction{Name: tok.Literal}
@@ -703,7 +706,7 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 	} else if instr.Name == "ldri" || instr.Name == "ldrip" || instr.Name == "ldrpi" {
 		instr.Op2, instr.Op3, err = p.parseIndexOperand(false)
 	} else if instr.Name != "stri" && instr.Name != "strip" && instr.Name != "strpi" {
-		instr.Op2, err = p.parseOperand(opCount == 3)
+		instr.Op2, err = p.parseOperand(opCount >= 3)
 	}
 	if err != nil {
 		p.err = err
@@ -714,7 +717,11 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 		return TEXT_BLOCK
 	}
 
-	instr.Op3, err = p.parseOperand(false)
+	if instr.Name == "ldpip" || instr.Name == "ldppi" {
+		instr.Op3, instr.Op4, err = p.parseIndexOperand(false)
+	} else {
+		instr.Op3, err = p.parseOperand(false)
+	}
 	if err != nil {
 		p.err = err
 		return ERROR

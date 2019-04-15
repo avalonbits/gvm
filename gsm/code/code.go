@@ -329,6 +329,10 @@ func encode(i parser.Instruction) (parser.Word, error) {
 		return encodeLoadIP(i)
 	case "ldrpi":
 		return encodeLoadPI(i)
+	case "ldpip":
+		return encodeLoadPairIP(i)
+	case "ldppi":
+		return encodeLoadPairPI(i)
 	case "str":
 		return encodeStor(i)
 	case "strip":
@@ -472,6 +476,45 @@ func encodeLoadPI(i parser.Instruction) (parser.Word, error) {
 	}
 	return LoadPI(rToI(i.Op1.Op), rToI(i.Op2.Op), toNum(i.Op3.Op)), nil
 }
+func encodeLoadPairPI(i parser.Instruction) (parser.Word, error) {
+	if i.Op4.Type != parser.OP_NUMBER {
+		return parser.Word(0), fmt.Errorf("%q: index operand must be a constant.", i)
+	}
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
+	}
+	if i.Op2.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: second operand must be a register.", i)
+	}
+	if i.Op3.Type != parser.OP_REG {
+		return parser.Word(0),
+			fmt.Errorf("%q: third operation must be a register.", i)
+	}
+	if i.Op4.Type != parser.OP_NUMBER {
+		return parser.Word(0), fmt.Errorf("%q: index operand must be a constant.", i)
+	}
+	return LoadPairPI(rToI(i.Op1.Op), rToI(i.Op2.Op), rToI(i.Op3.Op), toNum(i.Op4.Op)), nil
+}
+func encodeLoadPairIP(i parser.Instruction) (parser.Word, error) {
+	if i.Op4.Type != parser.OP_NUMBER {
+		return parser.Word(0), fmt.Errorf("%q: index operand must be a constant.", i)
+	}
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
+	}
+	if i.Op2.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: second operand must be a register.", i)
+	}
+	if i.Op3.Type != parser.OP_REG {
+		return parser.Word(0),
+			fmt.Errorf("%q: third operation must be a register.", i)
+	}
+	if i.Op4.Type != parser.OP_NUMBER {
+		return parser.Word(0), fmt.Errorf("%q: index operand must be a constant.", i)
+	}
+	return LoadPairIP(rToI(i.Op1.Op), rToI(i.Op2.Op), rToI(i.Op3.Op), toNum(i.Op4.Op)), nil
+}
+
 func encodeStor(i parser.Instruction) (parser.Word, error) {
 	if i.Op2.Type != parser.OP_REG {
 		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
