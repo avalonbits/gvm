@@ -71,9 +71,7 @@ Word StorRI(uint32_t memaddr, uint32_t src) {
 }
 
 Word StorRR(uint32_t dest, uint32_t src) {
-  assert(dest < kRegCount);
-  assert(src < kRegCount);
-  return Word(ISA::STOR_RR | dest << 6 | src << 11);
+  return StorIX(dest, src, 0);
 }
 
 Word StorIX(uint32_t dest, uint32_t src, uint32_t offset) {

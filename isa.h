@@ -17,7 +17,6 @@ enum ISA {
     LOAD_IXR,
     LOAD_PI,
     LOAD_IP,
-    STOR_RR,
     STOR_RI,
     STOR_IX,
     STOR_PI,
