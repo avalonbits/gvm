@@ -17,6 +17,9 @@ func Generate(ast *parser.AST, buf *bufio.Writer) error {
 	if err := embedFile(ast); err != nil {
 		return err
 	}
+	if err := includeFile(ast); err != nil {
+		return err
+	}
 
 	labelMap := map[string]uint32{}
 	if err := assignAddresses(labelMap, ast); err != nil {
@@ -74,6 +77,22 @@ func embedFile(ast *parser.AST) error {
 			// 3. Change the type and we are good to go!
 			section.Type = parser.DATA_SECTION
 			section.EmbedFile = ""
+		}
+	}
+	return nil
+}
+
+func includeFile(ast *parser.AST) error {
+	for _, org := range ast.Orgs {
+		for i := range org.Sections {
+			section := &org.Sections[i]
+			if section.Type != parser.INCLUDE_FILE {
+				continue
+			}
+
+			// Ok, we need to parse this file and then merge it with the current
+			// section.
+
 		}
 	}
 	return nil
@@ -310,12 +329,20 @@ func encode(i parser.Instruction) (parser.Word, error) {
 		return encodeLoadIP(i)
 	case "ldrpi":
 		return encodeLoadPI(i)
+	case "ldpip":
+		return encodeLoadPairIP(i)
+	case "ldppi":
+		return encodeLoadPairPI(i)
 	case "str":
 		return encodeStor(i)
 	case "strip":
 		return encodeStorIP(i)
 	case "strpi":
 		return encodeStorPI(i)
+	case "stpip":
+		return encodeStorPairIP(i)
+	case "stppi":
+		return encodeStorPairPI(i)
 	case "add":
 		return encode3op(i, AddRR, AddRI)
 	case "sub":
@@ -453,6 +480,45 @@ func encodeLoadPI(i parser.Instruction) (parser.Word, error) {
 	}
 	return LoadPI(rToI(i.Op1.Op), rToI(i.Op2.Op), toNum(i.Op3.Op)), nil
 }
+func encodeLoadPairPI(i parser.Instruction) (parser.Word, error) {
+	if i.Op4.Type != parser.OP_NUMBER {
+		return parser.Word(0), fmt.Errorf("%q: index operand must be a constant.", i)
+	}
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
+	}
+	if i.Op2.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: second operand must be a register.", i)
+	}
+	if i.Op3.Type != parser.OP_REG {
+		return parser.Word(0),
+			fmt.Errorf("%q: third operation must be a register.", i)
+	}
+	if i.Op4.Type != parser.OP_NUMBER {
+		return parser.Word(0), fmt.Errorf("%q: index operand must be a constant.", i)
+	}
+	return LoadPairPI(rToI(i.Op1.Op), rToI(i.Op2.Op), rToI(i.Op3.Op), toNum(i.Op4.Op)), nil
+}
+func encodeLoadPairIP(i parser.Instruction) (parser.Word, error) {
+	if i.Op4.Type != parser.OP_NUMBER {
+		return parser.Word(0), fmt.Errorf("%q: index operand must be a constant.", i)
+	}
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
+	}
+	if i.Op2.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: second operand must be a register.", i)
+	}
+	if i.Op3.Type != parser.OP_REG {
+		return parser.Word(0),
+			fmt.Errorf("%q: third operation must be a register.", i)
+	}
+	if i.Op4.Type != parser.OP_NUMBER {
+		return parser.Word(0), fmt.Errorf("%q: index operand must be a constant.", i)
+	}
+	return LoadPairIP(rToI(i.Op1.Op), rToI(i.Op2.Op), rToI(i.Op3.Op), toNum(i.Op4.Op)), nil
+}
+
 func encodeStor(i parser.Instruction) (parser.Word, error) {
 	if i.Op2.Type != parser.OP_REG {
 		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
@@ -497,6 +563,41 @@ func encodeStorPI(i parser.Instruction) (parser.Word, error) {
 	}
 	return StorPI(rToI(i.Op1.Op), rToI(i.Op3.Op), toNum(i.Op2.Op)), nil
 }
+
+func encodeStorPairIP(i parser.Instruction) (parser.Word, error) {
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
+	}
+	if i.Op2.Type != parser.OP_NUMBER {
+		return parser.Word(0), fmt.Errorf("%q: second operand must be a constant.", i)
+	}
+	if i.Op3.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: third operand must be a register.", i)
+	}
+	if i.Op4.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: forth operand must be a register.", i)
+	}
+
+	return StorPairIP(rToI(i.Op1.Op), rToI(i.Op3.Op), rToI(i.Op4.Op), toNum(i.Op2.Op)), nil
+}
+
+func encodeStorPairPI(i parser.Instruction) (parser.Word, error) {
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
+	}
+	if i.Op2.Type != parser.OP_NUMBER {
+		return parser.Word(0), fmt.Errorf("%q: second operand must be a constant.", i)
+	}
+	if i.Op3.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: third operand must be a register.", i)
+	}
+	if i.Op4.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: forth operand must be a register.", i)
+	}
+
+	return StorPairPI(rToI(i.Op1.Op), rToI(i.Op3.Op), rToI(i.Op4.Op), toNum(i.Op2.Op)), nil
+}
+
 func encode3op(i parser.Instruction, rr, ri _3op) (parser.Word, error) {
 	if i.Op1.Type != parser.OP_REG {
 		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)

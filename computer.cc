@@ -20,7 +20,10 @@ const uint32_t kIOStart = kUnicodeRomStart + kUnicodeBitmapFont;
 const uint32_t kVramReg = kIOStart;
 const uint32_t kInputReg = kIOStart + 4;
 const uint32_t kTimerReg = kInputReg + 4;
-
+const uint32_t kOneShotReg = kTimerReg + 4;
+const uint32_t kRecurringReg = kOneShotReg + 4;
+const uint32_t kOneShot2Reg = kRecurringReg + 4;
+const uint32_t kRecurring2Reg = kOneShot2Reg + 4;
 const int kFrameBufferW = 640;
 const int kFrameBufferH = 360;
 
@@ -47,7 +50,32 @@ Computer::Computer(CPU* cpu, VideoController* video_controller)
   cpu_->SetVideoSignal(kVramReg, &video_signal_);
 
   timer_service_.reset(new TimerService(&timer_chan_));
-  cpu_->SetTimerSignal(kTimerReg, timer_service_.get());
+  timer_service_->SetOneShot([this](uint32_t elapsed) {
+    mem_.get()[kOneShotReg / kWordSize] = elapsed;
+    cpu_->Timer();
+    std::this_thread::yield();
+  });
+  timer_service_->SetRecurring([this](uint32_t elapsed) {
+    mem_.get()[kRecurringReg / kWordSize] = elapsed;
+    cpu_->RecurringTimer();
+    std::this_thread::yield();
+  });
+
+  timer2_service_.reset(new TimerService(&timer2_chan_));
+  timer2_service_->SetOneShot([this](uint32_t elapsed) {
+    mem_.get()[kOneShot2Reg / kWordSize] = elapsed;
+    cpu_->Timer2();
+    std::this_thread::yield();
+  });
+  timer2_service_->SetRecurring([this](uint32_t elapsed) {
+    mem_.get()[kRecurring2Reg / kWordSize] = elapsed;
+    cpu_->RecurringTimer2();
+    std::this_thread::yield();
+  });
+
+  cpu_->SetTimerSignal(kTimerReg, kOneShotReg, kRecurringReg, timer_service_.get());
+  cpu_->SetTimer2Signal(kOneShot2Reg, kRecurring2Reg, timer2_service_.get());
+
   RegisterVideoDMA();
 }
 
@@ -74,30 +102,44 @@ void Computer::Run() {
     timer->Start();
   });
 
+  auto* timer2 = timer2_service_.get();
+  std::thread timer2_thread([timer2]() {
+    timer2->Start();
+  });
+
+
   uint32_t elapsed;
-  std::thread cpu_thread([this, timer, &elapsed, &runtime, &op_count]() {
+  std::thread cpu_thread([this, timer, timer2, &elapsed, &runtime, &op_count]() {
     timer->Reset();
+    timer2->Reset();
     const auto start = std::chrono::high_resolution_clock::now();
     op_count = cpu_->PowerOn();
     runtime = std::chrono::high_resolution_clock::now() - start;
     elapsed = timer->Elapsed();
     timer->Stop();
+    timer2->Stop();
     video_controller_->Shutdown();
   });
 
   // This has to run on the main thread or it won't render using OpenGL ES.
   video_controller_->Run();
   timer_thread.join();
+  timer2_thread.join();
   cpu_thread.join();
 
   std::cerr << cpu_->PrintRegisters(/*hex=*/true);
   const auto time = runtime.count();
   const auto per_inst = time / static_cast<double>(op_count);
-  const auto average_clock = 1000000000 / per_inst / 1000000;
+  auto average_clock = 1000000000 / per_inst / 1000000;
+  std::string hz = "MHz";
+  if (average_clock < 1.0) {
+    average_clock *= 1000.0;
+    hz = "KHz";
+  }
   std::cerr << "CPU Runtime: " << (time / static_cast<double>(1000)) << "us\n";
   std::cerr << "CPU Instruction count: " << op_count << std::endl;
   std::cerr << "Average per instruction: " << per_inst << "ns\n";
-  std::cerr << "Average clock: " << average_clock << "MHz\n";
+  std::cerr << "Average clock: " << average_clock << hz << "\n";
   std::cerr << "Timer elapsed: " << (elapsed /10.0) << "ms\n";
 }
 

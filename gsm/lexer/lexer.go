@@ -31,6 +31,9 @@ const (
 	F_SLASH
 	SECTION
 	EMBED
+	INCLUDE
+	EQUATE
+	AS
 	D_QUOTE
 	S_DATA
 	S_TEXT
@@ -44,14 +47,19 @@ const (
 	REGISTER
 	INSTRUCTION
 	FUNC_START
+	INFUNC_START
 	FUNC_END
 )
 
 var keywords = map[string]TokenType{
 	"@func":    FUNC_START,
+	"@infunc":  INFUNC_START,
 	"@endf":    FUNC_END,
 	".section": SECTION,
 	".embed":   EMBED,
+	".include": INCLUDE,
+	".equ":     EQUATE,
+	"as":       AS,
 	"data":     S_DATA,
 	"text":     S_TEXT,
 	".org":     ORG,
@@ -75,10 +83,14 @@ var keywords = map[string]TokenType{
 	"ldri":     INSTRUCTION,
 	"ldrpi":    INSTRUCTION,
 	"ldrip":    INSTRUCTION,
+	"ldppi":    INSTRUCTION,
+	"ldpip":    INSTRUCTION,
 	"str":      INSTRUCTION,
 	"stri":     INSTRUCTION,
 	"strpi":    INSTRUCTION,
 	"strip":    INSTRUCTION,
+	"stpip":    INSTRUCTION,
+	"stppi":    INSTRUCTION,
 	"call":     INSTRUCTION,
 	"ret":      INSTRUCTION,
 	"lsl":      INSTRUCTION,

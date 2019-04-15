@@ -7,19 +7,20 @@ import (
 const (
 	nop parser.Word = iota
 	halt
-	mov_rr
 	mov_ri
-	load_rr
 	load_ri
 	load_ix
 	load_ixr
 	load_pi
 	load_ip
-	stor_rr
+	ldp_pi
+	ldp_ip
 	stor_ri
 	stor_ix
 	stor_pi
 	stor_ip
+	stp_pi
+	stp_ip
 	add_rr
 	add_ri
 	sub_rr
@@ -67,7 +68,7 @@ func Halt() parser.Word {
 }
 
 func MovRR(dest, src uint32) parser.Word {
-	return mov_rr | parser.Word(dest)<<6 | parser.Word(src)<<11
+	return AddRI(dest, src, 0)
 }
 
 func MovRI(dest, value uint32) parser.Word {
@@ -76,7 +77,7 @@ func MovRI(dest, value uint32) parser.Word {
 }
 
 func LoadRR(dest, src uint32) parser.Word {
-	return load_rr | parser.Word(dest)<<6 | parser.Word(src)<<11
+	return LoadIX(dest, src, 0)
 }
 
 func LoadRI(dest, value uint32) parser.Word {
@@ -99,12 +100,23 @@ func LoadIP(dest, src, offset uint32) parser.Word {
 	return load_ip | parser.Word(dest)<<6 | parser.Word(src)<<11 | parser.Word(offset)<<16
 }
 
+func LoadPairIP(dest1, dest2, src, offset uint32) parser.Word {
+	offset = offset & 0x7FF
+	return ldp_ip | parser.Word(dest1)<<6 | parser.Word(dest2)<<11 | parser.Word(src)<<16 | parser.Word(offset)<<21
+}
+
 func LoadPI(dest, src, offset uint32) parser.Word {
 	offset = offset & 0xFFFF
 	return load_pi | parser.Word(dest)<<6 | parser.Word(src)<<11 | parser.Word(offset)<<16
 }
+
+func LoadPairPI(dest1, dest2, src, offset uint32) parser.Word {
+	offset = offset & 0x7FF
+	return ldp_pi | parser.Word(dest1)<<6 | parser.Word(dest2)<<11 | parser.Word(src)<<16 | parser.Word(offset)<<21
+}
+
 func StorRR(dest, src uint32) parser.Word {
-	return stor_rr | parser.Word(dest)<<6 | parser.Word(src)<<11
+	return StorIX(dest, src, 0)
 }
 
 func StorRI(dest, src uint32) parser.Word {
@@ -125,6 +137,16 @@ func StorPI(dest, src, offset uint32) parser.Word {
 func StorIP(dest, src, offset uint32) parser.Word {
 	offset = offset & 0xFFFF
 	return stor_ip | parser.Word(dest)<<6 | parser.Word(src)<<11 | parser.Word(offset)<<16
+}
+
+func StorPairPI(dest, src1, src2, offset uint32) parser.Word {
+	offset = offset & 0x7FF
+	return stp_pi | parser.Word(dest)<<6 | parser.Word(src1)<<11 | parser.Word(src2)<<16 | parser.Word(offset)<<21
+}
+
+func StorPairIP(dest, src1, src2, offset uint32) parser.Word {
+	offset = offset & 0x7FF
+	return stp_ip | parser.Word(dest)<<6 | parser.Word(src1)<<11 | parser.Word(src2)<<16 | parser.Word(offset)<<21
 }
 
 func AddRR(dest, op1, op2 uint32) parser.Word {

@@ -35,9 +35,17 @@ constexpr uint32_t reg4(uint32_t word) {
 constexpr uint32_t v16bit(uint32_t word) {
   return (word >> 16) & 0xFFFF;
 }
+constexpr uint32_t v11bit(uint32_t word) {
+  return (word >> 21) & 0x7FF;
+}
+
 constexpr uint32_t ext16bit(uint32_t word) {
   word = v16bit(word);
   return (0x00008000 & word) ? (0xFFFF0000 | word) : word;
+}
+constexpr uint32_t ext11bit(uint32_t word) {
+  word = v11bit(word);
+  return (0x00000400 & word) ? (0xFFFFF800 | word) : word;
 }
 
 constexpr uint32_t reladdr26(const uint32_t v26bit) {
@@ -87,17 +95,40 @@ uint32_t CPU::Reset() {
   return op_count;
 }
 
+void CPU::Timer() {
+  if (mask_interrupt_) return;
+  interrupt_ |= 0x02;
+  interrupt_event_.notify_all();
+}
+
 void CPU::Input() {
   if (mask_interrupt_) return;
   interrupt_ |= 0x04;
   interrupt_event_.notify_all();
 }
 
+void CPU::RecurringTimer() {
+  if (mask_interrupt_) return;
+  interrupt_ |= 0x08;
+  interrupt_event_.notify_all();
+}
+
+void CPU::Timer2() {
+  if (mask_interrupt_) return;
+  interrupt_ |= 0x10;
+  interrupt_event_.notify_all();
+}
+
+void CPU::RecurringTimer2() {
+  if (mask_interrupt_) return;
+  interrupt_ |= 0x20;
+  interrupt_event_.notify_all();
+}
 void CPU::Run() {
   static void* opcodes[] = {
-    &&NOP, &&HALT, &&MOV_RR, &&MOV_RI, &&LOAD_RR, &&LOAD_RI, &&LOAD_IX,
-    &&LOAD_IXR, &&LOAD_PI, &&LOAD_IP, &&STOR_RR, &&STOR_RI, &&STOR_IX,
-    &&STOR_PI, &&STOR_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI, &&JMP, &&JNE,
+    &&NOP, &&HALT, &&MOV_RI, &&LOAD_RI, &&LOAD_IX,
+    &&LOAD_IXR, &&LOAD_PI, &&LOAD_IP, &&LDP_PI, &&LDP_IP, &&STOR_RI, &&STOR_IX,
+    &&STOR_PI, &&STOR_IP, &&STP_PI, &&STP_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI, &&JMP, &&JNE,
     &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI, &&CALLR, &&RET, &&AND_RR,
     &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR, &&XOR_RI, &&LSL_RR, &&LSL_RI,
     &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI, &&MUL_RR, &&MUL_RI, &&DIV_RR,
@@ -128,24 +159,30 @@ void CPU::Run() {
 #define VSIG(addr) \
   if (addr == vram_reg_) video_signal_->send()
 
-#define TIMER(addr, v, fallback) \
+#define TIMER_READ(addr, v, fallback) \
   v = fallback; \
   if (addr == timer_reg_) { \
     v = timer_signal_->Elapsed();\
   }\
 
+#define TIMER_WRITE(addr, v) \
+  if (addr >= oneshot_reg_) { \
+    if (addr == oneshot_reg_) { \
+      timer_signal_->OneShot(v); \
+    } else if (addr == recurring_reg_) { \
+      timer_signal_->Recurring(v); \
+    } else if (addr == oneshot2_reg_) { \
+      timer2_signal_->OneShot(v); \
+    } else if (addr == recurring2_reg_) { \
+      timer2_signal_->Recurring(v); \
+    } \
+  }
 
   DISPATCH();
   NOP:
       DISPATCH();
   HALT: {
     return;
-  }
-  MOV_RR: {
-      const register int32_t idx = reg1(word);
-      const register int32_t v = regv(reg2(word), pc, reg_);
-      reg_[idx] = v;
-      DISPATCH();
   }
   MOV_RI: {
       const register uint32_t idx = reg1(word);
@@ -154,19 +191,11 @@ void CPU::Run() {
       reg_[idx] = v;
       DISPATCH();
   }
-  LOAD_RR: {
-      const register uint32_t idx = reg1(word);
-      const register uint32_t addr = regv(reg2(word), pc, reg_);
-      register int32_t v;
-      TIMER(addr, v, mem_[m2w(addr)]);
-      reg_[idx] = v;
-      DISPATCH();
-  }
   LOAD_RI: {
       const register uint32_t idx = reg1(word);
       const register uint32_t addr = (word >> 11) & 0x1FFFFF;
       register int32_t v;
-      TIMER(addr, v, mem_[m2w(addr)]);
+      TIMER_READ(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
@@ -174,7 +203,7 @@ void CPU::Run() {
       const register uint32_t idx = reg1(word);
       const register uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
       register int32_t v;
-      TIMER(addr, v, mem_[m2w(addr)]);
+      TIMER_READ(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
@@ -183,7 +212,7 @@ void CPU::Run() {
       const register uint32_t addr =
          regv(reg2(word), pc, reg_) + regv(reg3(word), pc, reg_);
       register int32_t v;
-      TIMER(addr, v, mem_[m2w(addr)]);
+      TIMER_READ(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
@@ -192,7 +221,7 @@ void CPU::Run() {
       const register uint32_t idx2 = reg2(word);
       const register uint32_t next = regv(idx2, pc, reg_) + ext16bit(word);
       register int32_t v;
-      TIMER(next, v, mem_[m2w(next)]);
+      TIMER_READ(next, v, mem_[m2w(next)]);
       reg_[idx] = v;
       reg_[idx2] = next;
       DISPATCH();
@@ -203,44 +232,94 @@ void CPU::Run() {
       const register uint32_t cur = regv(idx2, pc, reg_);
       const register uint32_t next = cur + ext16bit(word);
       register int32_t v;
-      TIMER(cur, v, mem_[m2w(cur)]);
+      TIMER_READ(cur, v, mem_[m2w(cur)]);
       reg_[idx] = v;
       reg_[idx2] = next;
       DISPATCH();
   }
-  STOR_RR: {
-      const uint32_t addr = regv(reg1(word), pc, reg_);
-      mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
-      VSIG(addr);
+  LDP_PI: {
+      const register uint32_t dest1 = reg1(word);
+      const register uint32_t dest2 = reg2(word);
+      const register uint32_t src = reg3(word);
+      const register uint32_t next = regv(src, pc, reg_) + ext11bit(word);
+      register int32_t v;
+      TIMER_READ(next, v, mem_[m2w(next)]);
+      reg_[dest1] = v;
+      TIMER_READ(next+4, v, mem_[m2w(next+4)]);
+      reg_[dest2] = v;
+      reg_[src] = next;
+      DISPATCH();
+  }
+  LDP_IP: {
+      const register uint32_t dest1 = reg1(word);
+      const register uint32_t dest2 = reg2(word);
+      const register uint32_t src = reg3(word);
+      const register uint32_t cur = regv(src, pc, reg_);
+      const register uint32_t next = cur + ext11bit(word);
+      register int32_t v;
+      TIMER_READ(cur, v, mem_[m2w(cur)]);
+      reg_[dest1] = v;
+      TIMER_READ(cur+4, v, mem_[m2w(cur+4)]);
+      reg_[dest2] = v;
+      reg_[src] = next;
       DISPATCH();
   }
   STOR_RI: {
-      const uint32_t addr = (word >> 11) & 0x1FFFFF;
-      mem_[m2w(addr)] = regv(reg1(word), pc, reg_);
+      const register uint32_t addr = (word >> 11) & 0x1FFFFF;
+      const register auto v = mem_[m2w(addr)] = regv(reg1(word), pc, reg_);
       VSIG(addr);
+      TIMER_WRITE(addr, v);
       DISPATCH();
   }
   STOR_IX: {
-      const uint32_t addr = regv(reg1(word), pc, reg_) + ext16bit(word);
-      mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
+      const register uint32_t addr = regv(reg1(word), pc, reg_) + ext16bit(word);
+      const register auto v = mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
       VSIG(addr);
+      TIMER_WRITE(addr, v);
       DISPATCH();
   }
   STOR_PI: {
       const register uint32_t idx = reg1(word);
       const register uint32_t next = regv(idx, pc, reg_) + ext16bit(word);
-      mem_[m2w(next)] = regv(reg2(word), pc, reg_);
+      const register auto v = mem_[m2w(next)] = regv(reg2(word), pc, reg_);
       reg_[idx] = next;
       VSIG(next);
+      TIMER_WRITE(next, v);
       DISPATCH();
   }
   STOR_IP: {
       const register uint32_t idx = reg1(word);
       const register uint32_t cur = regv(idx, pc, reg_);
       const register uint32_t next = cur + ext16bit(word);
-      mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
+      const register auto v = mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
       reg_[idx] = next;
       VSIG(cur);
+      TIMER_WRITE(cur, v);
+      DISPATCH();
+  }
+  STP_PI: {
+      const register uint32_t dest = reg1(word);
+      const register uint32_t next = regv(dest, pc, reg_) + ext11bit(word);
+      register auto v = mem_[m2w(next)] = regv(reg2(word), pc, reg_);
+      VSIG(next);
+      TIMER_WRITE(next, v);
+      v = mem_[m2w(next+4)] = regv(reg3(word), pc, reg_);
+      VSIG(next+4);
+      TIMER_WRITE(next+4, v);
+      reg_[dest] = next;
+      DISPATCH();
+  }
+  STP_IP: {
+      const register uint32_t dest = reg1(word);
+      const register uint32_t cur = regv(dest, pc, reg_);
+      const register uint32_t next = cur + ext11bit(word);
+      register auto v = mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
+      TIMER_WRITE(cur, v);
+      VSIG(cur);
+      v = mem_[m2w(cur+4)] = regv(reg3(word), pc, reg_);
+      TIMER_WRITE(cur+4, v);
+      VSIG(cur+4);
+      reg_[dest] = next;
       DISPATCH();
   }
   ADD_RR: {
@@ -450,12 +529,21 @@ void CPU::Run() {
       // Process signals in bit order. Lower bits have higher priority than higher bits.
       if (interrupt_ & 0x02) {
         // Timer interrupt.
-        pc = 0;  // Set to 0 because it will be incremented to addr 0x04 on DISPATCH.
+        pc = 0x0;  // Set to 0 because it will be incremented to addr 0x04 on DISPATCH.
         interrupt_ &= ~0x02;
       } else if (interrupt_ & 0x04) {
         // Input interrupt.
-        pc = 4;  // Set to 4 because it will be incremented to addr 0x08 on DISPATCH.
+        pc = 0x04;  // Set to 0x04 because it will be incremented to addr 0x08 on DISPATCH.
         interrupt_ &= ~0x04;
+      } else if (interrupt_ & 0x08) {
+        pc = 0x08;  // Set to 0x08 because it will be incremented to addr 0x0c on DISPATCH.
+        interrupt_ &= ~0x08;
+      } else if (interrupt_ & 0x10) {
+        pc = 0x0c;  // Set to 0x0c because it will be incremented to addr 0x10 on DISPATCH.
+        interrupt_ &= ~0x10;
+      } else if (interrupt_ & 0x20) {
+        pc = 0x10;  // Set to 0x10 because it will be incremented to addr 0x14 on DISPATCH.
+        interrupt_ &= ~0x20;
       }
     }
     DISPATCH();
@@ -514,18 +602,12 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::NOP:
       ss << "nop";
       break;
-    case ISA::MOV_RR:
-      ss << "mov r" << reg1(word) << ", r" << reg2(word);
-      break;
     case ISA::MOV_RI: {
       uint32_t v = (word >> 11);
       if (((v >> 20) & 1) == 1) v = 0xFFE00000 | v;
       ss << "mov r" << reg1(word) << ", 0x" << std::hex << v;
       break;
     }
-    case ISA::LOAD_RR:
-      ss << "load r" << reg1(word) << ", [r" << reg2(word) << "]";
-      break;
     case ISA::LOAD_RI:
       ss << "load r" << reg1(word) << ", [0x" << std::hex << ((word >> 11) & 0x1FFFFF) << "]";
       break;
@@ -538,11 +620,14 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::LOAD_IP:
       ss << "load post inc r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
       break;
-     case ISA::LOAD_PI:
-      ss << "load pre inc 1r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
+    case ISA::LOAD_PI:
+      ss << "load pre inc r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
       break;
-    case ISA::STOR_RR:
-      ss << "stor [r" << reg1(word) << "], r" << reg2(word);
+    case ISA::LDP_PI:
+      ss << "load pre inc r" << reg1(word) << ", r" << reg2(word) << ", [r" << reg3(word) << ", 0x" << std::hex << ext11bit(word) << "]";
+      break;
+    case ISA::LDP_IP:
+      ss << "load post inc r" << reg1(word) << ", r" << reg2(word) << ", [r" << reg3(word) << ", 0x" << std::hex << ext11bit(word) << "]";
       break;
     case ISA::STOR_RI:
       ss << "stor [0x" << std::hex << ((word >> 11) & 0x1FFFFF) << "], r" << std::dec << reg1(word);

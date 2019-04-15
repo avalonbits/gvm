@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <SFML/Graphics.hpp>
 
 int toInt(const char c) {
   if (c >= 'A') {
