@@ -128,7 +128,7 @@ void CPU::Run() {
   static void* opcodes[] = {
     &&NOP, &&HALT, &&MOV_RI, &&LOAD_RI, &&LOAD_IX,
     &&LOAD_IXR, &&LOAD_PI, &&LOAD_IP, &&LDP_PI, &&LDP_IP, &&STOR_RI, &&STOR_IX,
-    &&STOR_PI, &&STOR_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI, &&JMP, &&JNE,
+    &&STOR_PI, &&STOR_IP, &&STP_PI, &&STP_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI, &&JMP, &&JNE,
     &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI, &&CALLR, &&RET, &&AND_RR,
     &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR, &&XOR_RI, &&LSL_RR, &&LSL_RI,
     &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI, &&MUL_RR, &&MUL_RI, &&DIV_RR,
@@ -288,6 +288,25 @@ void CPU::Run() {
       DISPATCH();
   }
   STOR_IP: {
+      const register uint32_t idx = reg1(word);
+      const register uint32_t cur = regv(idx, pc, reg_);
+      const register uint32_t next = cur + ext16bit(word);
+      const register auto v = mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
+      reg_[idx] = next;
+      VSIG(cur);
+      TIMER_WRITE(cur, v);
+      DISPATCH();
+  }
+  STP_PI: {
+      const register uint32_t idx = reg1(word);
+      const register uint32_t next = regv(idx, pc, reg_) + ext16bit(word);
+      const register auto v = mem_[m2w(next)] = regv(reg2(word), pc, reg_);
+      reg_[idx] = next;
+      VSIG(next);
+      TIMER_WRITE(next, v);
+      DISPATCH();
+  }
+  STP_IP: {
       const register uint32_t idx = reg1(word);
       const register uint32_t cur = regv(idx, pc, reg_);
       const register uint32_t next = cur + ext16bit(word);

@@ -23,6 +23,8 @@ enum ISA {
     STOR_IX,
     STOR_PI,
     STOR_IP,
+    STP_PI,
+    STP_IP,
     ADD_RR,
     ADD_RI,
     SUB_RR,

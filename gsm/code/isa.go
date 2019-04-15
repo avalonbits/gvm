@@ -19,6 +19,8 @@ const (
 	stor_ix
 	stor_pi
 	stor_ip
+	stp_pi
+	stp_ip
 	add_rr
 	add_ri
 	sub_rr
