@@ -298,12 +298,15 @@ void CPU::Run() {
       DISPATCH();
   }
   STP_PI: {
-      const register uint32_t idx = reg1(word);
-      const register uint32_t next = regv(idx, pc, reg_) + ext16bit(word);
-      const register auto v = mem_[m2w(next)] = regv(reg2(word), pc, reg_);
-      reg_[idx] = next;
+      const register uint32_t dest = reg1(word);
+      const register uint32_t next = regv(dest, pc, reg_) + ext11bit(word);
+      register auto v = mem_[m2w(next)] = regv(reg2(word), pc, reg_);
       VSIG(next);
       TIMER_WRITE(next, v);
+      v = mem_[m2w(next+4)] = regv(reg3(word), pc, reg_);
+      VSIG(next+4);
+      TIMER_WRITE(next+4, v);
+      reg_[dest] = next;
       DISPATCH();
   }
   STP_IP: {
@@ -317,7 +320,6 @@ void CPU::Run() {
       TIMER_WRITE(cur+4, v);
       VSIG(cur+4);
       reg_[dest] = next;
-      VSIG(cur);
       DISPATCH();
   }
   ADD_RR: {

@@ -40,8 +40,7 @@ input_jump_addr:  .int 0
 ; ==== Input handler
 @func input_handler:
 	; Save the contents of r0 and r1 on the stack so we don't disrupt user code.
-	strpi [sp, -4], r0
-	strpi [sp, -4], r1
+	stppi [sp, -8], r0, r1
 
 	; Read the value from the input.
 	ldr r0, [input_value_addr]
@@ -81,10 +80,8 @@ fb_size_words: .int 230400
 	mov r0, 0
 	str [should_update], r0
 
-	strpi [sp, -4], r1
-	strpi [sp, -4], r2
-	strpi [sp, -4], r3
-	strpi [sp, -4], r4
+	stppi [sp, -8], r1, r2
+	stppi [sp, -8], r3, r4
 
 	ldr r1, [vram_start]
 	ldr r2, [fb_addr]
