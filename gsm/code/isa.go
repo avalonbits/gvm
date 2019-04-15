@@ -139,6 +139,16 @@ func StorIP(dest, src, offset uint32) parser.Word {
 	return stor_ip | parser.Word(dest)<<6 | parser.Word(src)<<11 | parser.Word(offset)<<16
 }
 
+func StorPairPI(dest, src1, src2, offset uint32) parser.Word {
+	offset = offset & 0xFFFF
+	return stp_pi | parser.Word(dest)<<6 | parser.Word(src1)<<11 | parser.Word(src2)<<16 | parser.Word(offset)<<21
+}
+
+func StorPairIP(dest, src1, src2, offset uint32) parser.Word {
+	offset = offset & 0xFFFF
+	return stp_ip | parser.Word(dest)<<6 | parser.Word(src1)<<11 | parser.Word(src2)<<16 | parser.Word(offset)<<21
+}
+
 func AddRR(dest, op1, op2 uint32) parser.Word {
 	return add_rr | parser.Word(dest)<<6 | parser.Word(op1)<<11 | parser.Word(op2)<<16
 }

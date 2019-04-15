@@ -89,6 +89,8 @@ var keywords = map[string]TokenType{
 	"stri":     INSTRUCTION,
 	"strpi":    INSTRUCTION,
 	"strip":    INSTRUCTION,
+	"stpip":    INSTRUCTION,
+	"stppi":    INSTRUCTION,
 	"call":     INSTRUCTION,
 	"ret":      INSTRUCTION,
 	"lsl":      INSTRUCTION,

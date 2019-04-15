@@ -631,6 +631,8 @@ var (
 	operands = map[string]int{
 		"ldppi": 4,
 		"ldpip": 4,
+		"stppi": 4,
+		"stpip": 4,
 		"add":   3,
 		"sub":   3,
 		"lsl":   3,
@@ -687,7 +689,8 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 	var err error
 	if instr.Name == "str" {
 		instr.Op1, err = p.parseAddressOperand(true)
-	} else if instr.Name == "stri" || instr.Name == "strip" || instr.Name == "strpi" {
+	} else if instr.Name == "stri" || instr.Name == "strip" || instr.Name == "strpi" ||
+		instr.Name == "stppi" || instr.Name == "stpip" {
 		instr.Op1, instr.Op2, err = p.parseIndexOperand(true)
 	} else {
 		instr.Op1, err = p.parseOperand(opCount > 1)
@@ -705,7 +708,8 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 		instr.Op2, err = p.parseAddressOperand(false)
 	} else if instr.Name == "ldri" || instr.Name == "ldrip" || instr.Name == "ldrpi" {
 		instr.Op2, instr.Op3, err = p.parseIndexOperand(false)
-	} else if instr.Name != "stri" && instr.Name != "strip" && instr.Name != "strpi" {
+	} else if instr.Name != "stri" && instr.Name != "strip" && instr.Name != "strpi" &&
+		instr.Name != "stppi" && instr.Name != "stpip" {
 		instr.Op2, err = p.parseOperand(opCount >= 3)
 	}
 	if err != nil {
@@ -720,7 +724,14 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 	if instr.Name == "ldpip" || instr.Name == "ldppi" {
 		instr.Op3, instr.Op4, err = p.parseIndexOperand(false)
 	} else {
-		instr.Op3, err = p.parseOperand(false)
+		instr.Op3, err = p.parseOperand(opCount > 3)
+		if err != nil {
+			p.err = err
+			return ERROR
+		}
+		if opCount > 3 {
+			instr.Op4, err = p.parseOperand(false)
+		}
 	}
 	if err != nil {
 		p.err = err
