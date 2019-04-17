@@ -454,6 +454,14 @@ next_pixel:
 	ldri r4, [r0, r4]
 	lsl r5, r5, 2
 	ldri r5, [r0, r5]
+
+	; Each character is 8x16 pixels encoded in 16 bytes with each byte being an
+	; 8 pixel row. In order to find the start of the char we multiply the char
+	; by 16 and sum it with the start of the character rom.
+	ldr r0, [chrom_addr]
+	lsl r1, r1, 4
+	add r1, r0, r1
+
 	ret
 @endf transformXYColor
 
@@ -467,13 +475,6 @@ next_pixel:
     ; r6: framebuffer start.
 
 	call transformXYColor
-
-	; Each character is 8x16 pixels encoded in 16 bytes with each byte being an
-	; 8 pixel row. In order to find the start of the char we multiply the char
-	; by 16 and sum it with the start of the character rom.
-	ldr r0, [chrom_addr]
-	lsl r1, r1, 4
-	add r1, r0, r1
 
 	; Copy of character start.
 	mov r3, r1
