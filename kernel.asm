@@ -344,8 +344,8 @@ text_colors_addr: .int text_colors
 
 loop:
     ; Chars in string are 16-bit wide. So we need to AND and shift.
-    ldr r1, [r20]
-    and r1, r1, 0xFFFF
+    ldr r22, [r20]
+    and r1, r22, 0xFFFF
     jeq r1, done
 
     ; Save context in stack before calling putc.
@@ -363,8 +363,7 @@ loop:
     call incxy
 
     ; Next char in same word
-    ldr r1, [r20]
-    lsr r1, r1, 16
+    lsr r1, r22, 16
     jeq r1, done
 
     stppi [sp, -8], r2, r3
