@@ -135,8 +135,8 @@ void CPU::Run() {
     &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI, &&MUL_RR, &&MUL_RI, &&DIV_RR,
     &&DIV_RI, &&MULL_RR, &&WFI
   };
-  register uint32_t pc = pc_-4;
-  register uint32_t word = 0;
+  uint32_t pc = pc_-4;
+  uint32_t word = 0;
 
 #define interrupt_dispatch() \
   if (interrupt_ == 0) {\
@@ -186,57 +186,57 @@ void CPU::Run() {
     return;
   }
   LOAD_RI: {
-      const register uint32_t idx = reg1(word);
-      const register uint32_t addr = (word >> 11) & 0x1FFFFF;
-      register int32_t v;
+      const uint32_t idx = reg1(word);
+      const uint32_t addr = (word >> 11) & 0x1FFFFF;
+      int32_t v;
       TIMER_READ(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
   LOAD_IX: {
-      const register uint32_t idx = reg1(word);
-      const register uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
-      register int32_t v;
+      const uint32_t idx = reg1(word);
+      const uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
+      int32_t v;
       TIMER_READ(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
   LOAD_IXR: {
-      const register uint32_t idx = reg1(word);
-      const register uint32_t addr =
+      const uint32_t idx = reg1(word);
+      const uint32_t addr =
          regv(reg2(word), pc, reg_) + regv(reg3(word), pc, reg_);
-      register int32_t v;
+      int32_t v;
       TIMER_READ(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
       DISPATCH();
   }
   LOAD_PI: {
-      const register uint32_t idx = reg1(word);
-      const register uint32_t idx2 = reg2(word);
-      const register uint32_t next = regv(idx2, pc, reg_) + ext16bit(word);
-      register int32_t v;
+      const uint32_t idx = reg1(word);
+      const uint32_t idx2 = reg2(word);
+      const uint32_t next = regv(idx2, pc, reg_) + ext16bit(word);
+      int32_t v;
       TIMER_READ(next, v, mem_[m2w(next)]);
       reg_[idx] = v;
       reg_[idx2] = next;
       DISPATCH();
   }
   LOAD_IP: {
-      const register uint32_t idx = reg1(word);
-      const register uint32_t idx2 = reg2(word);
-      const register uint32_t cur = regv(idx2, pc, reg_);
-      const register uint32_t next = cur + ext16bit(word);
-      register int32_t v;
+      const uint32_t idx = reg1(word);
+      const uint32_t idx2 = reg2(word);
+      const uint32_t cur = regv(idx2, pc, reg_);
+      const uint32_t next = cur + ext16bit(word);
+      int32_t v;
       TIMER_READ(cur, v, mem_[m2w(cur)]);
       reg_[idx] = v;
       reg_[idx2] = next;
       DISPATCH();
   }
   LDP_PI: {
-      const register uint32_t src = reg3(word);
-      const register uint32_t dest1 = reg1(word);
-      const register uint32_t dest2 = reg2(word);
-      const register uint32_t next = regv(src, pc, reg_) + ext11bit(word);
-      register int32_t v;
+      const uint32_t src = reg3(word);
+      const uint32_t dest1 = reg1(word);
+      const uint32_t dest2 = reg2(word);
+      const uint32_t next = regv(src, pc, reg_) + ext11bit(word);
+      int32_t v;
       TIMER_READ(next, v, mem_[m2w(next)]);
       reg_[dest1] = v;
       TIMER_READ(next+4, v, mem_[m2w(next+4)]);
@@ -245,12 +245,12 @@ void CPU::Run() {
       DISPATCH();
   }
   LDP_IP: {
-      const register uint32_t src = reg3(word);
-      const register uint32_t dest1 = reg1(word);
-      const register uint32_t dest2 = reg2(word);
-      const register uint32_t cur = regv(src, pc, reg_);
-      const register uint32_t next = cur + ext11bit(word);
-      register int32_t v;
+      const uint32_t src = reg3(word);
+      const uint32_t dest1 = reg1(word);
+      const uint32_t dest2 = reg2(word);
+      const uint32_t cur = regv(src, pc, reg_);
+      const uint32_t next = cur + ext11bit(word);
+      int32_t v;
       TIMER_READ(cur, v, mem_[m2w(cur)]);
       reg_[dest1] = v;
       TIMER_READ(cur+4, v, mem_[m2w(cur+4)]);
@@ -259,42 +259,42 @@ void CPU::Run() {
       DISPATCH();
   }
   STOR_RI: {
-      const register uint32_t addr = (word >> 11) & 0x1FFFFF;
-      const register auto v = mem_[m2w(addr)] = regv(reg1(word), pc, reg_);
+      const uint32_t addr = (word >> 11) & 0x1FFFFF;
+      const auto v = mem_[m2w(addr)] = regv(reg1(word), pc, reg_);
       VSIG(addr);
       TIMER_WRITE(addr, v);
       DISPATCH();
   }
   STOR_IX: {
-      const register uint32_t addr = regv(reg1(word), pc, reg_) + ext16bit(word);
-      const register auto v = mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
+      const uint32_t addr = regv(reg1(word), pc, reg_) + ext16bit(word);
+      const auto v = mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
       VSIG(addr);
       TIMER_WRITE(addr, v);
       DISPATCH();
   }
   STOR_PI: {
-      const register uint32_t idx = reg1(word);
-      const register uint32_t next = regv(idx, pc, reg_) + ext16bit(word);
-      const register auto v = mem_[m2w(next)] = regv(reg2(word), pc, reg_);
+      const uint32_t idx = reg1(word);
+      const uint32_t next = regv(idx, pc, reg_) + ext16bit(word);
+      const auto v = mem_[m2w(next)] = regv(reg2(word), pc, reg_);
       reg_[idx] = next;
       VSIG(next);
       TIMER_WRITE(next, v);
       DISPATCH();
   }
   STOR_IP: {
-      const register uint32_t idx = reg1(word);
-      const register uint32_t cur = regv(idx, pc, reg_);
-      const register uint32_t next = cur + ext16bit(word);
-      const register auto v = mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
+      const uint32_t idx = reg1(word);
+      const uint32_t cur = regv(idx, pc, reg_);
+      const uint32_t next = cur + ext16bit(word);
+      const auto v = mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
       reg_[idx] = next;
       VSIG(cur);
       TIMER_WRITE(cur, v);
       DISPATCH();
   }
   STP_PI: {
-      const register uint32_t dest = reg1(word);
-      const register uint32_t next = regv(dest, pc, reg_) + ext11bit(word);
-      register auto v = mem_[m2w(next)] = regv(reg2(word), pc, reg_);
+      const uint32_t dest = reg1(word);
+      const uint32_t next = regv(dest, pc, reg_) + ext11bit(word);
+      auto v = mem_[m2w(next)] = regv(reg2(word), pc, reg_);
       VSIG(next);
       TIMER_WRITE(next, v);
       v = mem_[m2w(next+4)] = regv(reg3(word), pc, reg_);
@@ -304,10 +304,10 @@ void CPU::Run() {
       DISPATCH();
   }
   STP_IP: {
-      const register uint32_t dest = reg1(word);
-      const register uint32_t cur = regv(dest, pc, reg_);
-      const register uint32_t next = cur + ext11bit(word);
-      register auto v = mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
+      const uint32_t dest = reg1(word);
+      const uint32_t cur = regv(dest, pc, reg_);
+      const uint32_t next = cur + ext11bit(word);
+      auto v = mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
       TIMER_WRITE(cur, v);
       VSIG(cur);
       v = mem_[m2w(cur+4)] = regv(reg3(word), pc, reg_);
@@ -317,27 +317,27 @@ void CPU::Run() {
       DISPATCH();
   }
   ADD_RR: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = regv(reg2(word), pc ,reg_) + regv(reg3(word), pc, reg_);
+      const uint32_t idx = reg1(word);
+      const int32_t v = regv(reg2(word), pc ,reg_) + regv(reg3(word), pc, reg_);
       reg_[idx] = v;
       DISPATCH();
   }
   ADD_RI: {
-      const register uint32_t idx = reg1(word);
+      const uint32_t idx = reg1(word);
       reg_[idx] = static_cast<int32_t>(regv(reg2(word), pc, reg_) + ext16bit(word));
       DISPATCH();
   }
   SUB_RR: {
-      const register uint32_t idx = reg1(word);
-      const register uint32_t op2 = (~regv(reg3(word), pc, reg_) + 1);
-      const register int32_t v = regv(reg2(word), pc, reg_) + op2;
+      const uint32_t idx = reg1(word);
+      const uint32_t op2 = (~regv(reg3(word), pc, reg_) + 1);
+      const int32_t v = regv(reg2(word), pc, reg_) + op2;
       reg_[idx] = v;
       DISPATCH();
   }
   SUB_RI: {
-      const register uint32_t op2 = (~ext16bit(word) + 1);
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = regv(reg2(word), pc, reg_) + op2;
+      const uint32_t op2 = (~ext16bit(word) + 1);
+      const uint32_t idx = reg1(word);
+      const int32_t v = regv(reg2(word), pc, reg_) + op2;
       reg_[idx] = v;
       DISPATCH();
   }
@@ -387,111 +387,111 @@ void CPU::Run() {
       mask_interrupt_ = false;
       DISPATCH();
   AND_RR: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = regv(reg2(word), pc, reg_) & regv(reg3(word), pc, reg_);
+      const uint32_t idx = reg1(word);
+      const int32_t v = regv(reg2(word), pc, reg_) & regv(reg3(word), pc, reg_);
       reg_[idx] = v;
       DISPATCH();
   }
   AND_RI: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = (regv(reg2(word), pc, reg_) & v16bit(word));
+      const uint32_t idx = reg1(word);
+      const int32_t v = (regv(reg2(word), pc, reg_) & v16bit(word));
       reg_[idx] = v;
       DISPATCH();
   }
   ORR_RR: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = regv(reg2(word), pc, reg_) | regv(reg3(word), pc, reg_);
+      const uint32_t idx = reg1(word);
+      const int32_t v = regv(reg2(word), pc, reg_) | regv(reg3(word), pc, reg_);
       reg_[idx] = v;
       DISPATCH();
   }
   ORR_RI: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = (regv(reg2(word), pc, reg_) | v16bit(word));
+      const uint32_t idx = reg1(word);
+      const int32_t v = (regv(reg2(word), pc, reg_) | v16bit(word));
       reg_[idx] = v;
       DISPATCH();
   }
   XOR_RR: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = regv(reg2(word), pc, reg_) ^ regv(reg3(word), pc, reg_);
+      const uint32_t idx = reg1(word);
+      const int32_t v = regv(reg2(word), pc, reg_) ^ regv(reg3(word), pc, reg_);
       reg_[idx] = v;
       DISPATCH();
   }
   XOR_RI: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = (regv(reg2(word), pc, reg_) ^ v16bit(word));
+      const uint32_t idx = reg1(word);
+      const int32_t v = (regv(reg2(word), pc, reg_) ^ v16bit(word));
       reg_[idx] = v;
       DISPATCH();
   }
   LSL_RR: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = regv(reg2(word), pc, reg_) << regv(reg3(word), pc, reg_);
+      const uint32_t idx = reg1(word);
+      const int32_t v = regv(reg2(word), pc, reg_) << regv(reg3(word), pc, reg_);
       reg_[idx] = v;
       DISPATCH();
   }
   LSL_RI: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = (regv(reg2(word), pc, reg_) << v16bit(word));
+      const uint32_t idx = reg1(word);
+      const int32_t v = (regv(reg2(word), pc, reg_) << v16bit(word));
       reg_[idx] = v;
       DISPATCH();
   }
   LSR_RR: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v =
+      const uint32_t idx = reg1(word);
+      const int32_t v =
           (regv(reg2(word), pc, reg_) >> regv(reg3(word), pc, reg_));
       reg_[idx] = v;
       DISPATCH();
   }
   LSR_RI: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = (regv(reg2(word), pc, reg_) >> v16bit(word));
+      const uint32_t idx = reg1(word);
+      const int32_t v = (regv(reg2(word), pc, reg_) >> v16bit(word));
       reg_[idx] = v;
       DISPATCH();
   }
   ASR_RR: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v =
+      const uint32_t idx = reg1(word);
+      const int32_t v =
           static_cast<int32_t>((regv(reg2(word), pc, reg_)) >>
               regv(reg3(word), pc, reg_));
       reg_[idx] = v;
       DISPATCH();
   }
   ASR_RI: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v =
+      const uint32_t idx = reg1(word);
+      const int32_t v =
           (static_cast<int32_t>(regv(reg2(word), pc, reg_)) >> v16bit(word));
       reg_[idx] = v;
       DISPATCH();
   }
   MUL_RR: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = regv(reg2(word), pc, reg_) * regv(reg3(word), pc, reg_);
+      const uint32_t idx = reg1(word);
+      const int32_t v = regv(reg2(word), pc, reg_) * regv(reg3(word), pc, reg_);
       reg_[idx] = v;
       DISPATCH();
   }
   MUL_RI: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = (regv(reg2(word), pc, reg_) * v16bit(word));
+      const uint32_t idx = reg1(word);
+      const int32_t v = (regv(reg2(word), pc, reg_) * v16bit(word));
       reg_[idx] = v;
       DISPATCH();
   }
   DIV_RR: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = regv(reg2(word), pc, reg_) / regv(reg3(word), pc, reg_);
+      const uint32_t idx = reg1(word);
+      const int32_t v = regv(reg2(word), pc, reg_) / regv(reg3(word), pc, reg_);
       reg_[idx] = v;
       DISPATCH();
   }
   DIV_RI: {
-      const register uint32_t idx = reg1(word);
-      const register int32_t v = (regv(reg2(word), pc, reg_) / v16bit(word));
+      const uint32_t idx = reg1(word);
+      const int32_t v = (regv(reg2(word), pc, reg_) / v16bit(word));
       reg_[idx] = v;
       DISPATCH();
   }
   MULL_RR: {
-      const register uint32_t idxH = reg1(word);
-      const register uint32_t idxL = reg2(word);
-      const register int64_t v = regv(reg3(word), pc, reg_) * regv(reg4(word), pc, reg_);
+      const uint32_t idxH = reg1(word);
+      const uint32_t idxL = reg2(word);
+      const int64_t v = regv(reg3(word), pc, reg_) * regv(reg4(word), pc, reg_);
       reg_[idxL] = (v & 0xFFFFFFFF);
-      const register int32_t vH = (v >> 32);
+      const int32_t vH = (v >> 32);
       reg_[idxH] = vH;
       DISPATCH();
   }
