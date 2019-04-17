@@ -17,8 +17,9 @@ constexpr uint32_t m2w(uint32_t idx) {
   return idx / kWordSize;
 }
 constexpr uint32_t regv(const uint32_t idx, const uint32_t pc, uint32_t* regs) {
-  if (idx != 29) return regs[idx];
-  return pc;
+  if (idx != 29 && idx != 28) return regs[idx];
+  if (idx == 29) return pc;
+  return 0;
 }
 constexpr uint32_t reg1(uint32_t word) {
   return (word >> 6) & 0x1F;
