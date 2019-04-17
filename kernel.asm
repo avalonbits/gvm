@@ -425,7 +425,8 @@ background_color:
 	ret
 @endf wpixel
 
-@infunc transformXYColor:
+; ==== PutC: Prints a character on the screen.
+@func putc:
 	; r1: Character unicode value
 	; r2: x-pos
 	; r3: y-pos
@@ -461,24 +462,10 @@ background_color:
 	lsl r1, r1, 4
 	add r1, r0, r1
 
-	ret
-@endf transformXYColor
-
-; ==== PutC: Prints a character on the screen.
-@func putc:
-	; r1: Character unicode value
-	; r2: x-pos
-	; r3: y-pos
-	; r4: foreground color
-	; r5: background color
-    ; r6: framebuffer start.
-
-	call transformXYColor
-
 	; Copy of character start.
 	mov r3, r1
 
-	; Number of rows per character.
+	; Number of rows per word of char.
 	mov r6, 4
 
 main_loop:
