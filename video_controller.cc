@@ -64,7 +64,6 @@ void VideoController::Shutdown() {
   ev.type = SDL_QUIT;
   SDL_PushEvent(&ev);
   signal_->Close();
-  signal_->send();
 }
 
 }  // namespace gvm

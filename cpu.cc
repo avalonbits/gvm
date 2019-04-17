@@ -232,9 +232,9 @@ void CPU::Run() {
       DISPATCH();
   }
   LDP_PI: {
+      const register uint32_t src = reg3(word);
       const register uint32_t dest1 = reg1(word);
       const register uint32_t dest2 = reg2(word);
-      const register uint32_t src = reg3(word);
       const register uint32_t next = regv(src, pc, reg_) + ext11bit(word);
       register int32_t v;
       TIMER_READ(next, v, mem_[m2w(next)]);
@@ -245,9 +245,9 @@ void CPU::Run() {
       DISPATCH();
   }
   LDP_IP: {
+      const register uint32_t src = reg3(word);
       const register uint32_t dest1 = reg1(word);
       const register uint32_t dest2 = reg2(word);
-      const register uint32_t src = reg3(word);
       const register uint32_t cur = regv(src, pc, reg_);
       const register uint32_t next = cur + ext11bit(word);
       register int32_t v;

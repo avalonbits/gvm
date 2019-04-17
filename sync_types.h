@@ -52,6 +52,7 @@ class SyncChan {
 
   void Close() {
     closed_.store(true);
+    sync_.unlock();
   }
 
  private:
