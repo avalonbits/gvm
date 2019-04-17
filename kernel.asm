@@ -426,8 +426,7 @@ next_pixel:
 	ret
 @endf wpixel
 
-; ==== PutC: Prints a character on the screen.
-@func putc:
+@infunc transformXYColor:
 	; r1: Character unicode value
 	; r2: x-pos
 	; r3: y-pos
@@ -455,6 +454,19 @@ next_pixel:
 	ldri r4, [r0, r4]
 	lsl r5, r5, 2
 	ldri r5, [r0, r5]
+	ret
+@endf transformXYColor
+
+; ==== PutC: Prints a character on the screen.
+@func putc:
+	; r1: Character unicode value
+	; r2: x-pos
+	; r3: y-pos
+	; r4: foreground color
+	; r5: background color
+    ; r6: framebuffer start.
+
+	call transformXYColor
 
 	; Each character is 8x16 pixels encoded in 16 bytes with each byte being an
 	; 8 pixel row. In order to find the start of the char we multiply the char
@@ -556,8 +568,26 @@ loop:
 	stpip [r1, 8], r3, r3
 	add r1, r1, 2528
 
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	add r1, r1, 2528
+
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	add r1, r1, 2528
+
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	stpip [r1, 8], r3, r3
+	add r1, r1, 2528
+
 	; Check if we are done.
-	sub r2, r2, 1
+	sub r2, r2, 4
 	jne r2, loop
 
 	; We are done.
