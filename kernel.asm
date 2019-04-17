@@ -414,12 +414,12 @@ chrom_addr: .int 0x1100000
 
 	; Foreground.
 	strip [r2, -4], r4
-	jmp next_pixel
+	; Shift the pixel row.
+	lsr r1, r1, 1
+	ret
 
 background_color:
 	strip [r2, -4], r5
-
-next_pixel:
 	; Shift the pixel row.
 	lsr r1, r1, 1
 	ret
