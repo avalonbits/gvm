@@ -470,7 +470,7 @@ void CPU::Run() {
   }
   MUL_RI: {
       const uint32_t idx = reg1(word);
-      const int32_t v = (regv(reg2(word), pc, reg_) * v16bit(word));
+      const int32_t v = (regv(reg2(word), pc, reg_) * ext16bit(word));
       reg_[idx] = v;
       DISPATCH();
   }
@@ -482,7 +482,7 @@ void CPU::Run() {
   }
   DIV_RI: {
       const uint32_t idx = reg1(word);
-      const int32_t v = (regv(reg2(word), pc, reg_) / v16bit(word));
+      const int32_t v = (regv(reg2(word), pc, reg_) / ext16bit(word));
       reg_[idx] = v;
       DISPATCH();
   }
@@ -498,7 +498,7 @@ void CPU::Run() {
   WFI: {
     // Wait on mutex.
     std::unique_lock<std::mutex> ul(interrupt_mutex_);
-    interrupt_event_.wait(ul, [this]{return interrupt_ > 0;});
+    interrupt_event_.wait(ul, [this]{return interrupt_ != 0;});
     DISPATCH();
     return;
   }
