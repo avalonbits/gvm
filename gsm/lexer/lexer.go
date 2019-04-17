@@ -130,7 +130,7 @@ var keywords = map[string]TokenType{
 	"r25":      REGISTER,
 	"r26":      REGISTER,
 	"r27":      REGISTER,
-	"r28":      REGISTER,
+	"rZ":       REGISTER,
 	"pc":       REGISTER,
 	"sp":       REGISTER,
 	"fp":       REGISTER,

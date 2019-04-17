@@ -293,6 +293,9 @@ func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
 }
 
 func rToI(reg string) uint32 {
+	if reg == "rZ" {
+		return 28
+	}
 	if reg == "pc" {
 		return 29
 	}
