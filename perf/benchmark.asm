@@ -29,8 +29,10 @@ loop:
 @endf benchmark
 
 @func update:
+  stppi [sp, -8], r0, r1
   add r1, r1, 7
   str [mem], r1
+  ldpip r0, r1, [sp, 8]
   sub r0, r0, 1
   ret
 @endf update
