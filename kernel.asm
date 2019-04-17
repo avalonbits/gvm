@@ -72,33 +72,34 @@ fb_size_words: .int 230400
 
 .section text
 @func recurring_handler:
+	; Save context.
 	strpi [sp, -4], r0
+	stppi [sp, -8], r1, r2
+	stppi [sp, -8], r3, r4
 
+	; Call display update if set.
+	ldr r0, [display_update]
+	jeq r0, done
+	call r0
+
+	; If !should_update, we are done.
 	ldr r0, [should_update]
 	jeq r0, done
 
+	; Ok, need to update. But first, update should_update.
 	mov r0, 0
 	str [should_update], r0
-
-	stppi [sp, -8], r1, r2
-	stppi [sp, -8], r3, r4
 
 	ldr r1, [vram_start]
 	ldr r2, [fb_addr]
 	ldr r3, [fb_size_words]
 
 	call memcpy32
-
 	call flush_video
-	ldr r0, [display_update]
-	jeq r0, done_cpy
-	call r0
-
-done_cpy:
-	ldpip r3, r4, [sp, 8]
-	ldpip r1, r2, [sp, 8]
 
 done:
+	ldpip r3, r4, [sp, 8]
+	ldpip r1, r2, [sp, 8]
 	ldrip r0, [sp, 4]
 	ret
 @endf recurring_handler
@@ -633,7 +634,11 @@ loop: wfi
 ; We wait for a user input and print the value on screen.
 @func USER_INTERFACE:
 	call USER_INTERFACE_getin
+	add r0, r1, 1
+	jne r0, process_input
+	ret
 
+process_input:
 	; check if we have a control char. If we do, update ui accordingly and get next
 	; input.
 	call USER_control_chars
@@ -724,20 +729,21 @@ backspace_erase:
 wait_input_value: .int 0xFFFFFFFF
 
 .section text
-; ===== UI getc. Waits for user input.
-USER_INTERFACE_getin:
+; ===== UI getc. Pools user input.
+@func USER_INTERFACE_getin:
 	; r1: returns user input value.
 
-	; Wait until user input != 0 or 1 second has passed.
-	wfi
+	; Pool input and return wait_input value if input is not ready.
 	ldr r1, [user_input_value]
 	add r0, r1, 1
-	jeq r0, USER_INTERFACE_getin
+	jeq r0, done
 
 	; Now set user input to 0 so we don't keep writing stuff over.
 	ldr r0, [wait_input_value]
 	str [user_input_value], r0
+done:
 	ret
+@endf USER_INTERFACE_getin
 
 .section data
 user_input_value: .int 0xFFFFFFFF
