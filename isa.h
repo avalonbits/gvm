@@ -11,7 +11,6 @@ constexpr uint32_t kRegCount = 32;
 enum ISA {
     NOP = 0,
     HALT,
-    MOV_RI,
     LOAD_RI,
     LOAD_IX,
     LOAD_IXR,

@@ -19,9 +19,7 @@ Word MovRR(uint32_t dest, uint32_t src) {
 }
 
 Word MovRI(uint32_t dest, uint32_t value) {
-  assert(dest < kRegCount);
-  value = value & 0x1FFFFF;
-  return Word(ISA::MOV_RI| dest << 6 | value << 11);
+  return AddRI(dest, 28, value);
 }
 
 Word LoadRI(uint32_t dest, uint32_t memaddr) {
