@@ -20,14 +20,12 @@ vram_start: .int 0x101F000
 
 ; ==== Reset interrupt handler.
 reset_handler:
-	mov r0, 0
-
 	; Clear input register
 	ldr r1, [input_value_addr]
-	str [r1], r0
+	str [r1], rZ
 
 	; Clear user input vector address.
-	str [input_jump_addr], r0
+	str [input_jump_addr], rZ
 
 	; Now jump to main kernel code.
 	jmp MAIN
@@ -87,8 +85,7 @@ fb_size_words: .int 230400
 	jeq r0, done
 
 	; Ok, need to update. But first, update should_update.
-	mov r0, 0
-	str [should_update], r0
+	str [should_update], rZ
 
 	ldr r1, [vram_start]
 	ldr r2, [fb_addr]

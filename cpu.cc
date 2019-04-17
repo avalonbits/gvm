@@ -127,9 +127,9 @@ void CPU::RecurringTimer2() {
 }
 void CPU::Run() {
   static void* opcodes[] = {
-    &&NOP, &&HALT, &&LOAD_RI, &&LOAD_IX,
-    &&LOAD_IXR, &&LOAD_PI, &&LOAD_IP, &&LDP_PI, &&LDP_IP, &&STOR_RI, &&STOR_IX,
-    &&STOR_PI, &&STOR_IP, &&STP_PI, &&STP_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI, &&JMP, &&JNE,
+    &&NOP, &&HALT, &&LOAD_RI, &&LOAD_IX, &&LOAD_IXR, &&LOAD_PI, &&LOAD_IP,
+    &&LDP_PI, &&LDP_IP, &&STOR_RI, &&STOR_IX, &&STOR_PI, &&STOR_IP, &&STP_PI,
+    &&STP_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI, &&JMP, &&JNE,
     &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI, &&CALLR, &&RET, &&AND_RR,
     &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR, &&XOR_RI, &&LSL_RR, &&LSL_RI,
     &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI, &&MUL_RR, &&MUL_RI, &&DIV_RR,
