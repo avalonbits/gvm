@@ -324,8 +324,7 @@ void CPU::Run() {
   }
   ADD_RI: {
       const register uint32_t idx = reg1(word);
-      const register int32_t v = regv(reg2(word), pc, reg_) + v16bit(word);
-      reg_[idx] = v;
+      reg_[idx] = static_cast<int32_t>(regv(reg2(word), pc, reg_) + v16bit(word));
       DISPATCH();
   }
   SUB_RR: {
