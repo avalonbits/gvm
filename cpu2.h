@@ -1,5 +1,5 @@
-#ifndef _GVM_CPU_H_
-#define _GVM_CPU_H_
+#ifndef _GVM_CPU2_H_
+#define _GVM_CPU2_H_
 
 #include <condition_variable>
 #include <cstring>
@@ -14,13 +14,13 @@
 #include "video_controller.h"
 
 namespace gvm {
-class CPU {
+class CPU2 {
  public:
-  CPU();
+  CPU2();
 
   // Don't allow copy construction
-  CPU(const CPU&) = delete;
-  CPU& operator=(const CPU&) = delete;
+  CPU2(const CPU2&) = delete;
+  CPU2& operator=(const CPU2&) = delete;
 
   void ConnectMemory(
       uint32_t* mem, uint32_t mem_size_bytes, uint32_t user_ram_limit);
@@ -41,7 +41,7 @@ class CPU {
   }
 
   void SetTimerSignal(
-      const uint32_t timer_reg, const uint32_t oneshot_reg, 
+      const uint32_t timer_reg, const uint32_t oneshot_reg,
       const uint32_t recurring_reg, TimerService* timer_signal) {
     timer_reg_ = timer_reg;
     oneshot_reg_ = oneshot_reg;
@@ -62,6 +62,8 @@ class CPU {
   const std::string PrintStatusFlags();
 
  private:
+  void Nop(uint32_t Word) {}
+  void Halt(uint32_t word) { halt_ = true; }
   void Run();
   void SetPC(uint32_t pc);
 
@@ -88,8 +90,11 @@ class CPU {
   uint32_t oneshot2_reg_;
   uint32_t recurring2_reg_;
   TimerService* timer2_signal_;
+  bool halt_;
+  // Table of instruction handlers.
+  std::function<void(uint32_t)> handlers_[64];
 };
 
 }  // namespace gvm
 
-#endif  // _GVM_CPU_H_
+#endif  // _GVM_CPU2_H_

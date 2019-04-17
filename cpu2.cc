@@ -1,4 +1,4 @@
-#include "cpu.h"
+#include "cpu2.h"
 
 #include <cassert>
 #include <cstdio>
@@ -62,13 +62,13 @@ constexpr uint32_t reladdr21(const uint32_t v) {
 
 }  // namespace
 
-CPU::CPU()
+CPU2::CPU2()
     : pc_(reg_[kRegCount-3]), sp_(reg_[kRegCount-2]), fp_(reg_[kRegCount-1]),
       op_count_(0), mask_interrupt_(false), interrupt_(0) {
   std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
 }
 
-void CPU::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes, uint32_t user_ram_limit) {
+void CPU2::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes, uint32_t user_ram_limit) {
   assert(mem != nullptr);
   mem_ = mem;
   mem_size_ = mem_size_bytes;
@@ -77,55 +77,55 @@ void CPU::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes, uint32_t user_ra
   fp_ = sp_ = user_ram_limit_;
 }
 
-void CPU::SetPC(uint32_t pc) {
+void CPU2::SetPC(uint32_t pc) {
   assert(pc % kWordSize == 0);
   pc_ = pc;
   assert(pc_ < mem_size_);
 }
 
-uint32_t CPU::PowerOn() {
+uint32_t CPU2::PowerOn() {
   Reset();
   Run();
   return op_count_;
 }
 
-uint32_t CPU::Reset() {
+uint32_t CPU2::Reset() {
   const uint32_t op_count = op_count_;
   interrupt_ = 1;  // Mask out all interrupts and set bit 0 to 1, signaling reset.
   interrupt_event_.notify_one();
   return op_count;
 }
 
-void CPU::Timer() {
+void CPU2::Timer() {
   if (mask_interrupt_) return;
   interrupt_ |= 0x02;
   interrupt_event_.notify_all();
 }
 
-void CPU::Input() {
+void CPU2::Input() {
   if (mask_interrupt_) return;
   interrupt_ |= 0x04;
   interrupt_event_.notify_all();
 }
 
-void CPU::RecurringTimer() {
+void CPU2::RecurringTimer() {
   if (mask_interrupt_) return;
   interrupt_ |= 0x08;
   interrupt_event_.notify_all();
 }
 
-void CPU::Timer2() {
+void CPU2::Timer2() {
   if (mask_interrupt_) return;
   interrupt_ |= 0x10;
   interrupt_event_.notify_all();
 }
 
-void CPU::RecurringTimer2() {
+void CPU2::RecurringTimer2() {
   if (mask_interrupt_) return;
   interrupt_ |= 0x20;
   interrupt_event_.notify_all();
 }
-void CPU::Run() {
+void CPU2::Run() {
   static void* opcodes[] = {
     &&NOP, &&HALT, &&LOAD_RI, &&LOAD_IX, &&LOAD_IXR, &&LOAD_PI, &&LOAD_IP,
     &&LDP_PI, &&LDP_IP, &&STOR_RI, &&STOR_IX, &&STOR_PI, &&STOR_IP, &&STP_PI,
@@ -543,7 +543,7 @@ void CPU::Run() {
   }
 }
 
-const std::string CPU::PrintRegisters(bool hex) {
+const std::string CPU2::PrintRegisters(bool hex) {
   std::stringstream ss;
 
   ss << "[";
@@ -562,7 +562,7 @@ const std::string CPU::PrintRegisters(bool hex) {
   return ss.str();
 }
 
-const std::string CPU::PrintMemory(uint32_t from, uint32_t to) {
+const std::string CPU2::PrintMemory(uint32_t from, uint32_t to) {
   assert(from <= to);
   assert(from % 4 == 0);
   assert(to % 4 == 0);
@@ -579,7 +579,7 @@ const std::string CPU::PrintMemory(uint32_t from, uint32_t to) {
   return ss.str();
 }
 
-std::string CPU::PrintInstruction(const Word word) {
+std::string CPU2::PrintInstruction(const Word word) {
   std::ostringstream ss;
   const auto opcode = word & 0x3F;
   auto pc = pc_;

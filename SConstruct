@@ -15,7 +15,7 @@ libs = ['SDL2', 'pthread']
 
 env = Environment(CCFLAGS=' '.join(ccflags), LIBS=libs)
 srcs = [
-  'computer.cc', 'cpu.cc', 'input_controller.cc', 'isa.cc',
+  'computer.cc', 'cpu.cc', 'cpu2.cc', 'input_controller.cc', 'isa.cc',
   'main.cc', 'rom.cc', 'sdl2_video_display.cc', 'timer.cc',
   'video_controller.cc'
 ]
