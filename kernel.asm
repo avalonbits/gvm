@@ -407,6 +407,24 @@ done:
 chrom_addr: .int 0x1100000
 
 .section text
+
+@infunc wpixel:
+	and r0, r1, 1
+	jeq r0, background_color
+
+	; Foreground.
+	strip [r2, -4], r4
+	jmp next_pixel
+
+background_color:
+	strip [r2, -4], r5
+
+next_pixel:
+	; Shift the pixel row.
+	lsr r1, r1, 1
+	ret
+@endf wpixel
+
 ; ==== PutC: Prints a character on the screen.
 @func putc:
 	; r1: Character unicode value
@@ -418,7 +436,7 @@ chrom_addr: .int 0x1100000
 
 	; To find the (x,y) position in the frame buffer, we use the formula
 	; pos(x,y) = x-pos*8*4 + fb start + y-pos * lineLength * 16.
-	mul r2, r2, 32
+	lsl r2, r2, 5
 	add r2, r2, r6
 	mul r3, r3, kLineLength
 	lsl r3, r3, 4
@@ -450,55 +468,63 @@ chrom_addr: .int 0x1100000
 	; Number of rows per character.
 	mov r6, 4
 
-reset_pixel_word_counter:
+main_loop:
 	; Load the character word
 	ldr r1, [r3]
 
-	; Number of pixels per word.
-	mov r8, 32
-
-reset_pixel_row_counter:
-	; Number of pixels per row.
-	mov r7, 8
-
-main_loop:
-	; For each 8 pixel row, check if we need to write the fore or background
-	; color.
-	and r0, r1, 1
-	jeq r0, background_color
-
-	; Foreground.
-	strip [r2, -4], r4
-	jmp next_pixel
-
-background_color:
-	strip [r2, -4], r5
-
-next_pixel:
-	; Shift the pixel row.
-	lsr r1, r1, 1
-
-	; Check if row is done.
-	sub r7, r7, 1
-
-    ; If not then loop back.
-	jne r7, main_loop
+	; Write 8 pixel per row.
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
 
 	; Reposition the frame buffer on the next row.
 	add r2, r2, 2592  ; 32 + 2560.
 
-	; Now check if all pixels in word are done.
-	sub r8, r8, 8
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
 
-	; If all pixels from row are not done, loop back.
-	jne r8, reset_pixel_row_counter
+	; Reposition the frame buffer on the next row.
+	add r2, r2, 2592  ; 32 + 2560.
 
-	; All pixels in word are done. Check if we are done.
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+
+	; Reposition the frame buffer on the next row.
+	add r2, r2, 2592  ; 32 + 2560.
+
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+	call wpixel
+
+	; Reposition the frame buffer on the next row.
+	add r2, r2, 2592  ; 32 + 2560.
+
 	sub r6, r6, 1
-
 	; Get the next word row and loop.
 	add r3, r3, 4
-	jne r6, reset_pixel_word_counter
+	jne r6, main_loop
 
 	ret
 @endf putc
