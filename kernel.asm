@@ -66,6 +66,7 @@ quit:
 .section data
 display_update: .int 0x0
 should_update: .int 0x1
+console_addr: .int 0
 fb_size_words: .int 230400
 
 .section text
@@ -607,6 +608,14 @@ loop:
 	.equ sbuf_x_pos 16
 	.equ sbuf_size 20
 
+	; struct console
+	.equ console_sbuf 0
+	.equ console_fcolor 20
+	.equ console_bcolor 24
+	.equ console_cursor_x 28
+	.equ console_cursor_y 32
+	.equ console_size 36
+
 .section text
 
 @func sbuf_init:
@@ -616,9 +625,29 @@ loop:
 	stri [r1, sbuf_min_line], r2
 	stri [r1, sbuf_sline], r2
 	stri [r1, sbuf_eline], r3
+	stri [r1, sbuf_max_line], r3
 	stri [r1, sbuf_x_pos], rZ
 	ret
 @endf sbuf_init
+
+@func console_init:
+	; r1: ptr to start of console
+	; r2: ptr to start of frame buffe
+	; r3: ptr to last line of frame buffer
+	; r4: fcolor
+	; r5: bcolor
+
+	; Init screen buffer.
+	call sbuf_init
+
+	; Init console.	
+	stri [r1, console_fcolor], r4
+	stri [r1, console_bcolor], r5
+	stri [r1, console_cursor_x], rZ
+	stri [r1, console_cursor_y], rZ
+
+	ret
+@endf console_init
 
 .section data
 ui_x: .int 0
@@ -636,25 +665,37 @@ fb_addr: .int frame_buffer
 .section text
 
 @func MAIN:
+	; Allocate space for console
+	sub sp, sp, console_size
+	str [console_addr], sp
+
+	; Initialize console.
+	mov r1, sp
+	ldr r2,  [fb_addr]
+	add r3, rZ, 2560 ; 640 x 4 (size of line in bytes.)
+	mul r3, r3, 336  ; 16 (char height) x 21 (num rows-1)
+	mov r4, 15
+	mov r5, 0
+	call console_init
+
     ; Print ready sign.
     ldr r1, [ready_addr]
     mov r2, 0
     mov r3, 0
-    ldr r4, [ui_fcolor]
-    ldr r5, [ui_bcolor]
     call puts
 
+	; Print cursor
 	mov r1, 0x2588
     mov r3, 1
     str [ui_y], r3
+	stri [sp, console_cursor_y], r3
 	mov r2, 0
-    ldr r4, [ui_fcolor]
-    ldr r5, [ui_bcolor]
+	ldr r0, [console_addr]
+    ldri r4, [sp, console_fcolor]
+    ldri r5, [sp, console_bcolor]
 	ldr r6, [fb_addr]
 	call putc
-	; Print cursor
 	
-
 	; Install our input handler.
 	ldr r0, [user_input_handler_addr]
 	str [input_jump_addr], r0
