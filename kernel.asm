@@ -599,7 +599,28 @@ loop:
 ; ======================== User interface code =======================
 
 .section data
+	; struct sbuf
+	.equ sbuf_min_line 0
+	.equ sbuf_sline 4
+	.equ sbuf_eline 8
+	.equ sbuf_max_line 12
+	.equ sbuf_x_pos 16
+	.equ sbuf_size 20
 
+.section text
+
+@func sbuf_init:
+	; r1: ptr to start of sbuf
+	; r2: ptr to start of frame buffer.
+	; r3: ptr to last line of frame buffer.
+	stri [r1, sbuf_min_line], r2
+	stri [r1, sbuf_sline], r2
+	stri [r1, sbuf_eline], r3
+	stri [r1, sbuf_x_pos], rZ
+	ret
+@endf sbuf_init
+
+.section data
 ui_x: .int 0
 ui_y: .int 0
 ui_fcolor: .int 15

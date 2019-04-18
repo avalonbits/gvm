@@ -338,6 +338,8 @@ func encode(i parser.Instruction) (parser.Word, error) {
 		return encodeLoadPairPI(i)
 	case "str":
 		return encodeStor(i)
+	case "stri":
+		return encodeStorIX(i)
 	case "strip":
 		return encodeStorIP(i)
 	case "strpi":
@@ -539,6 +541,19 @@ func encodeStor(i parser.Instruction) (parser.Word, error) {
 	}
 }
 
+func encodeStorIX(i parser.Instruction) (parser.Word, error) {
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
+	}
+	if i.Op2.Type != parser.OP_NUMBER {
+		return parser.Word(0),
+			fmt.Errorf("%q: second operand must be a number.", i)
+	}
+	if i.Op3.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: third operand must be a register", i)
+	}
+	return StorIX(rToI(i.Op1.Op), rToI(i.Op3.Op), toNum(i.Op2.Op)), nil
+}
 func encodeStorIP(i parser.Instruction) (parser.Word, error) {
 	if i.Op3.Type != parser.OP_REG {
 		return parser.Word(0), fmt.Errorf("%q: register operand must be a register.", i)
