@@ -561,7 +561,7 @@ void CPU::InterruptService(uint32_t& pc) {
   } else {
     mask_interrupt_ = true;
     sp_ -= 4;
-    mem_[m2w(sp_)] = pc;
+    mem_[m2w(sp_)] = pc-4;
     sp_ -= 4;
     mem_[m2w(sp_)] = fp_;
     fp_ = sp_;
@@ -594,6 +594,11 @@ void CPU::RunHandlers() {
   bool halt = false;
   uint32_t word = 0;
   do {
+#ifdef DEBUG_DISPATCH
+    pc_ = pc-4;
+    std::cerr << PrintInstruction(word) << std::endl;
+    std::cerr << PrintRegisters(true) << std::endl;
+#endif 
     if (interrupt_ != 0) { InterruptService(pc); }
     word =  mem_[m2w(pc)];
     ++op_count_;
@@ -1072,6 +1077,10 @@ std::string CPU::PrintInstruction(const Word word) {
       break;
      case ISA::STOR_PI:
       ss << "stor pre inc [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word);
+     case ISA::STP_PI:
+      ss << "stor pre inc [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word) << ", r" << reg3(word);
+     case ISA::STP_IP:
+      ss << "stor post inc [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word) << ", r" << reg3(word);
       break;
     case ISA::ADD_RR:
       ss << "add r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
