@@ -63,6 +63,9 @@ class CPU {
 
  private:
   void Run();
+  void SetupHandlers();
+  void RunHandlers();
+  void InterruptService(uint32_t& pc);
   void SetPC(uint32_t pc);
 
   std::string PrintInstruction(const Word word);
@@ -88,6 +91,8 @@ class CPU {
   uint32_t oneshot2_reg_;
   uint32_t recurring2_reg_;
   TimerService* timer2_signal_;
+
+  std::function<void(uint32_t, uint32_t&, bool&)> handlers_[64];
 };
 
 }  // namespace gvm
