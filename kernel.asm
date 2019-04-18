@@ -668,20 +668,11 @@ process_input:
 
 	call putc
 
+	
 	; Update x position
 	ldr r2, [ui_x]
-	add r2, r2, 1
-	sub r4, r2, 80
-	jeq r4, x_end
-	str [ui_x], r2
-	jmp done
-
-x_end:
-	; We reached the end of the screen. Wrap back.
-	mov r2, 0
-
 	ldr r3, [ui_y]
-	add r3, r3, 1
+	call incxy
 	str [ui_x], r2
 	str [ui_y], r3
 
