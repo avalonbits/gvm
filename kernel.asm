@@ -623,7 +623,7 @@ fb_addr: .int frame_buffer
     ldr r5, [ui_bcolor]
     call puts
 
-	mov r1, 0x2581
+	mov r1, 0x2588
     mov r3, 1
     str [ui_y], r3
 	mov r2, 0
@@ -684,7 +684,7 @@ process_input:
 	str [ui_x], r2
 	str [ui_y], r3
   	
-	mov r1, 0x2581
+	mov r1, 0x2588
 	ldr r4, [ui_fcolor]
 	ldr r5, [ui_bcolor]
 	ldr r6, [fb_addr]
