@@ -41,7 +41,7 @@ class CPU {
   }
 
   void SetTimerSignal(
-      const uint32_t timer_reg, const uint32_t oneshot_reg, 
+      const uint32_t timer_reg, const uint32_t oneshot_reg,
       const uint32_t recurring_reg, TimerService* timer_signal) {
     timer_reg_ = timer_reg;
     oneshot_reg_ = oneshot_reg;
@@ -92,7 +92,8 @@ class CPU {
   uint32_t recurring2_reg_;
   TimerService* timer2_signal_;
 
-  std::function<void(uint32_t, uint32_t&, bool&)> handlers_[64];
+  typedef std::function<void(uint32_t, uint32_t&, bool&)> Handler;
+  Handler handlers_[64];
 };
 
 }  // namespace gvm
