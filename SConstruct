@@ -4,6 +4,10 @@ dstep = ARGUMENTS.get('dstep', 0)
 if int(dstep):
   ccflags.append('-DDEBUG_DISPATCH')
 
+handlers = ARGUMENTS.get('handlers', 0)
+if int(handlers):
+  ccflags.append('-DCPU_HANDLERS')
+
 debug = ARGUMENTS.get('debug', 0)
 if int(debug):
   ccflags.remove('-O3')
