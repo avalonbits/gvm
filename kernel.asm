@@ -622,8 +622,17 @@ fb_addr: .int frame_buffer
     ldr r4, [ui_fcolor]
     ldr r5, [ui_bcolor]
     call puts
-    mov r0, 1
-    str [ui_y], r0
+
+	mov r1, 0x2581
+    mov r3, 1
+    str [ui_y], r3
+	mov r2, 0
+    ldr r4, [ui_fcolor]
+    ldr r5, [ui_bcolor]
+	ldr r6, [fb_addr]
+	call putc
+	; Print cursor
+	
 
 	; Install our input handler.
 	ldr r0, [user_input_handler_addr]
@@ -667,7 +676,6 @@ process_input:
 	ldr r6, [fb_addr]
 
 	call putc
-
 	
 	; Update x position
 	ldr r2, [ui_x]
@@ -675,6 +683,12 @@ process_input:
 	call incxy
 	str [ui_x], r2
 	str [ui_y], r3
+  	
+	mov r1, 0x2581
+	ldr r4, [ui_fcolor]
+	ldr r5, [ui_bcolor]
+	ldr r6, [fb_addr]
+	call putc
 
 done:
 	mov r0, 1
