@@ -747,12 +747,8 @@ process_input:
 	call incxy
 	stri [r0, console_cursor_x], r2
 	stri [r0, console_cursor_y], r3
-  	
-	mov r1, 0x2588
-	ldri r4, [r0, console_fcolor]
-	ldri r5, [r0, console_bcolor]
-	ldr r6, [fb_addr]
-	call putc
+
+	call console_print_cursor
 
 done:
 	mov r0, 1
