@@ -660,6 +660,58 @@ loop:
 	ret
 @endf console_print_cursor
 
+@func console_erase_cursor:
+	ldri r1, [r0, console_cursor_x]
+	ldri r2, [r0, console_cursor_y]
+    ldri r3, [r0, console_bcolor]
+
+	; Convert color number to color value.
+	ldr r4, [text_colors_addr]
+	lsl r3, r3, 2
+	ldri r3, [r4, r3]
+
+	ldr r4, [fb_addr]
+	call fill816
+	ret
+@endf console_erase_cursor
+
+@func console_next_cursor:
+	ldri r1, [r0, console_cursor_x]
+	add r1, r1, 1
+	sub r2, r1, 80
+	jne r2, done
+
+	mov r1, rZ
+	ldri r2, [r0, console_cursor_y]
+	add r2, r2, 1
+	stri [r0, console_cursor_y], r2
+
+done:
+	stri [r0, console_cursor_x], r1
+	ret
+@endf console_next_cursor
+
+@func console_prev_cursor:
+	ldri r1, [r0, console_cursor_x]
+	sub r1, r1, 1
+	jge r1, done
+	mov r1, 79
+
+	ldri r2, [r0, console_cursor_y]
+	sub r2, r2, 1
+	jlt r2, x_zero
+	stri [r0, console_cursor_y], r2
+	jmp done
+
+x_zero:
+	mov r1, rZ
+
+done:
+	stri [r0, console_cursor_x], r1
+	ret
+
+@endf console_prev_cursor
+
 .section data
 ready: .str "READY"
 ready_addr: .int ready
@@ -729,7 +781,6 @@ process_input:
 	call USER_control_chars
 	jeq r0, done
 
-
 	; Set the params for putc.
 	ldr r0, [console_addr]
 	ldri r2, [r0, console_cursor_x]
@@ -739,16 +790,10 @@ process_input:
 	ldr r6, [fb_addr]
 
 	call putc
-	
-	; Update x position
-	ldr r0, [console_addr]
-	ldri r2, [r0, console_cursor_x]
-	ldri r3, [r0, console_cursor_y]
-	call incxy
-	stri [r0, console_cursor_x], r2
-	stri [r0, console_cursor_y], r3
 
-	call console_print_cursor
+	ldr r0, [console_addr]
+	call console_next_cursor
+	call console_print_cursor	
 
 done:
 	mov r0, 1
@@ -765,42 +810,11 @@ done:
 	ret
 
 backspace:
-	; Load the x pos and decrease it.
+	; Erase cursor at current position.
 	ldr r0, [console_addr]
-	ldri r1, [r0, console_cursor_x]
-	sub r1, r1, 1
-
-	; if it's >= 0, we can erase the block.
-	jge r1, backspace_erase
-
-	; if < 0 then we need to load update ui_y
-	ldri r2, [r0, console_cursor_y]
-	sub r2, r2, 1
-
-	; if >= 0 then set ui_x and ui_y to 0.
-	jge r2, backspace_move_x_to_end
-	mov r1, 0
-	mov r2, 0
-	stri [r0, console_cursor_y], r2
-	jmp backspace_erase
-
-backspace_move_x_to_end:
-	; if >= 0 then move ui_x to 79.
-	mov r1, 79
-	stri [r0, console_cursor_y], r2
-
-backspace_erase:
-	stri [r0, console_cursor_x], r1
-	ldri r2, [r0, console_cursor_y]
-	ldri r3, [r0, console_bcolor]
-
-	ldr r0, [text_colors_addr]
-	lsl r3, r3, 2
-	ldri r3, [r0, r3]
-	ldr r4, [fb_addr]
-
-	call fill816
-
+	call console_erase_cursor
+	call console_prev_cursor
+	call console_print_cursor
 	mov r0, 0
 	ret
 @endf USER_control_chars
