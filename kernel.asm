@@ -649,6 +649,16 @@ loop:
 	ret
 @endf console_init
 
+@func console_putc:
+	ldri r2, [r0, console_cursor_x]
+	ldri r3, [r0, console_cursor_y]
+	ldri r4, [r0, console_fcolor]
+	ldri r5, [r0, console_bcolor]
+	ldr r6, [fb_addr]
+	call putc
+	ret
+@endf console_putc
+
 @func console_print_cursor:
 	mov r1, 0x2588
 	ldri r2, [r0, console_cursor_x]
@@ -709,8 +719,17 @@ x_zero:
 done:
 	stri [r0, console_cursor_x], r1
 	ret
-
 @endf console_prev_cursor
+
+@func console_up_cursor:
+	ldri r2, [r0, console_cursor_y]
+	sub r2, r2, 1
+	jlt r2, done
+	stri [r0, console_cursor_y], r2
+done:
+	ret
+@endf console_up_cursor
+
 
 .section data
 ready: .str "READY"
@@ -781,16 +800,11 @@ process_input:
 	call USER_control_chars
 	jeq r0, done
 
-	; Set the params for putc.
+	; Normal char, print.
 	ldr r0, [console_addr]
-	ldri r2, [r0, console_cursor_x]
-	ldri r3, [r0, console_cursor_y]
-	ldri r4, [r0, console_fcolor]
-	ldri r5, [r0, console_bcolor]
-	ldr r6, [fb_addr]
+	call console_putc
 
-	call putc
-
+	; Advance cursor.
 	ldr r0, [console_addr]
 	call console_next_cursor
 	call console_print_cursor	
