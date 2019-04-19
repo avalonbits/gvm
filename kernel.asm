@@ -85,7 +85,7 @@ fb_size_words: .int 230400
 	ldr r0, [should_update]
 	jeq r0, done
 
-	; Ok, need to update. But first, update should_update.
+	; Ok, need to update. But first, set should_update == false.
 	str [should_update], rZ
 
 	ldr r1, [vram_start]
@@ -650,11 +650,6 @@ loop:
 @endf console_init
 
 .section data
-ui_x: .int 0
-ui_y: .int 0
-ui_fcolor: .int 15
-ui_bcolor: .int 0
-
 ready: .str "READY"
 ready_addr: .int ready
 recurring_reg: .int 0x1200010
@@ -687,7 +682,6 @@ fb_addr: .int frame_buffer
 	; Print cursor
 	mov r1, 0x2588
     mov r3, 1
-    str [ui_y], r3
 	stri [sp, console_cursor_y], r3
 	mov r2, 0
 	ldr r0, [console_addr]
@@ -731,24 +725,26 @@ process_input:
 
 
 	; Set the params for putc.
-	ldr r2, [ui_x]
-	ldr r3, [ui_y]
-	ldr r4, [ui_fcolor]
-	ldr r5, [ui_bcolor]
+	ldr r0, [console_addr]
+	ldri r2, [r0, console_cursor_x]
+	ldri r3, [r0, console_cursor_y]
+	ldri r4, [r0, console_fcolor]
+	ldri r5, [r0, console_bcolor]
 	ldr r6, [fb_addr]
 
 	call putc
 	
 	; Update x position
-	ldr r2, [ui_x]
-	ldr r3, [ui_y]
+	ldr r0, [console_addr]
+	ldri r2, [r0, console_cursor_x]
+	ldri r3, [r0, console_cursor_y]
 	call incxy
-	str [ui_x], r2
-	str [ui_y], r3
+	stri [r0, console_cursor_x], r2
+	stri [r0, console_cursor_y], r3
   	
 	mov r1, 0x2588
-	ldr r4, [ui_fcolor]
-	ldr r5, [ui_bcolor]
+	ldri r4, [r0, console_fcolor]
+	ldri r5, [r0, console_bcolor]
 	ldr r6, [fb_addr]
 	call putc
 
@@ -768,32 +764,33 @@ done:
 
 backspace:
 	; Load the x pos and decrease it.
-	ldr r1, [ui_x]
+	ldr r0, [console_addr]
+	ldri r1, [r0, console_cursor_x]
 	sub r1, r1, 1
 
 	; if it's >= 0, we can erase the block.
 	jge r1, backspace_erase
 
 	; if < 0 then we need to load update ui_y
-	ldr r2, [ui_y]
+	ldri r2, [r0, console_cursor_y]
 	sub r2, r2, 1
 
 	; if >= 0 then set ui_x and ui_y to 0.
 	jge r2, backspace_move_x_to_end
 	mov r1, 0
 	mov r2, 0
-	str [ui_y], r2
+	stri [r0, console_cursor_y], r2
 	jmp backspace_erase
 
 backspace_move_x_to_end:
 	; if >= 0 then move ui_x to 79.
 	mov r1, 79
-	str [ui_y], r2
+	stri [r0, console_cursor_y], r2
 
 backspace_erase:
-	str [ui_x], r1
-	ldr r2, [ui_y]
-	ldr r3, [ui_bcolor]
+	stri [r0, console_cursor_x], r1
+	ldri r2, [r0, console_cursor_y]
+	ldri r3, [r0, console_bcolor]
 
 	ldr r0, [text_colors_addr]
 	lsl r3, r3, 2
