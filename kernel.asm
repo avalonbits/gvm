@@ -649,6 +649,17 @@ loop:
 	ret
 @endf console_init
 
+@func console_print_cursor:
+	mov r1, 0x2588
+	ldri r2, [r0, console_cursor_x]
+	ldri r3, [r0, console_cursor_y]
+    ldri r4, [r0, console_fcolor]
+    ldri r5, [r0, console_bcolor]
+	ldr r6, [fb_addr]
+	call putc
+	ret
+@endf console_print_cursor
+
 .section data
 ready: .str "READY"
 ready_addr: .int ready
@@ -680,15 +691,10 @@ fb_addr: .int frame_buffer
     call puts
 
 	; Print cursor
-	mov r1, 0x2588
+	mov r0, sp
     mov r3, 1
 	stri [sp, console_cursor_y], r3
-	mov r2, 0
-	ldr r0, [console_addr]
-    ldri r4, [sp, console_fcolor]
-    ldri r5, [sp, console_bcolor]
-	ldr r6, [fb_addr]
-	call putc
+	call console_print_cursor
 	
 	; Install our input handler.
 	ldr r0, [user_input_handler_addr]
