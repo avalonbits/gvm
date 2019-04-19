@@ -335,6 +335,7 @@ text_colors_addr: .int text_colors
     ; r3: y-pos start.
     ; r4: foreground color.
     ; r5: background color.
+	; r6: frame buffer address.
 
     ; We copy the start addres to r1 because we will use r1 as the actual
     ; char value to print with putc.
@@ -349,11 +350,11 @@ loop:
     ; Save context in stack before calling putc.
     stppi [sp, -8], r2, r3
     stppi [sp, -8], r4, r5
-	ldr r6, [fb_addr]
-
+	strpi [sp, -4], r6
 	call putc
 
     ; Restore context.
+	ldrip r6, [sp, 4]
     ldpip r4, r5, [sp, 8]
     ldpip r2, r3, [sp, 8]
 
@@ -366,10 +367,11 @@ loop:
 
     stppi [sp, -8], r2, r3
     stppi [sp, -8], r4, r5
-	ldr r6, [fb_addr]
+	strpi [sp, -4], r6
 
     call putc
 
+	ldrip r6, [sp, 4]
     ldpip r4, r5, [sp, 8]
     ldpip r2, r3, [sp, 8]
 
@@ -656,9 +658,9 @@ loop:
 
 x_79:
 	; if x >= 80, set it to 79
-	sub r2, r1, 80
-	jlt r2, y
-	mov r2, 79
+	sub r3, r1, 80
+	jlt r3, y
+	mov r3, 79
 
 y:
 	; if y < 0, set it to 0
@@ -686,6 +688,16 @@ done:
 	call putc
 	ret
 @endf console_putc
+
+@func console_puts:
+	ldri r2, [r0, console_cursor_x]
+    ldri r3, [r0, console_cursor_y]
+    ldri r4, [r0, console_fcolor]
+	ldri r5, [r0, console_bcolor]
+	ldr r6, [fb_addr]
+	call puts
+	ret
+@endf console_puts
 
 @func console_print_cursor:
 	mov r1, 0x2588
@@ -784,15 +796,16 @@ fb_addr: .int frame_buffer
 	call console_init
 
     ; Print ready sign.
+	mov r0, sp
     ldr r1, [ready_addr]
-    mov r2, 0
-    mov r3, 0
-    call puts
+	call console_puts
 
 	; Print cursor
+	
 	mov r0, sp
-    mov r3, 1
-	stri [sp, console_cursor_y], r3
+	mov r1, 0
+	mov r2, 1
+	call console_set_cursor
 	call console_print_cursor
 	
 	; Install our input handler.
