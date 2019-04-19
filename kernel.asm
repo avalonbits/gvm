@@ -649,6 +649,34 @@ loop:
 	ret
 @endf console_init
 
+@func console_set_cursor:
+	; if x < 0, set it to 0.
+	jge r1, x_79
+	mov r1, rZ
+
+x_79:
+	; if x >= 80, set it to 79
+	sub r2, r1, 80
+	jlt r2, y
+	mov r2, 79
+
+y:
+	; if y < 0, set it to 0
+	jge r2, y_21
+	mov r2, rZ
+
+y_21:
+	; if y >= 22, set it to 21
+	sub r3, r2, 22
+	jlt r3, done
+	mov r2, 21
+
+done:
+	stri [r0, console_cursor_x], r1
+	stri [r0, console_cursor_y], r2
+	ret
+@endf console_set_cursor
+
 @func console_putc:
 	ldri r2, [r0, console_cursor_x]
 	ldri r3, [r0, console_cursor_y]
