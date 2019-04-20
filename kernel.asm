@@ -772,7 +772,9 @@ done:
 
 
 .section data
-ready: .str "READY"
+gvm: .str "GVM Virtual Machine Version 0.01"
+gvm_addr: .int gvm
+ready: .str "READY."
 ready_addr: .int ready
 recurring_reg: .int 0x1200010
 UI_addr: .int USER_INTERFACE
@@ -795,8 +797,20 @@ fb_addr: .int frame_buffer
 	mov r5, 0
 	call console_init
 
+	; Print machine name
+	mov r0, sp
+	mov r1, 24
+	mov r2, 0
+	call console_set_cursor
+
+	ldr r1, [gvm_addr]
+	call console_puts
+
     ; Print ready sign.
 	mov r0, sp
+	mov r1, 0
+	mov r2, 2
+	call console_set_cursor
     ldr r1, [ready_addr]
 	call console_puts
 
@@ -804,7 +818,7 @@ fb_addr: .int frame_buffer
 	
 	mov r0, sp
 	mov r1, 0
-	mov r2, 1
+	mov r2, 3
 	call console_set_cursor
 	call console_print_cursor
 	
