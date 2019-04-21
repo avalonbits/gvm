@@ -830,9 +830,9 @@ fb_addr: .int frame_buffer
     ldr r0, [UI_addr]
     str [display_update], r0
 
-	; Set the recurring timer for 120hz. We will call the display_update
+	; Set the recurring timer for 60hz. We will call the display_update
 	; handler that many times.
-	mov r0, 120
+	mov r0, 60
 	ldr r1, [recurring_reg]
 	str [r1], r0
 
