@@ -648,9 +648,17 @@ loop:
 @endf console_init
 
 @func console_flush:
+	; Algorithm to update display:
+	; 1) if sbuf_sline < sbuf_eline then we just copy everything between them.
+	ldri r1, [r0, sbuf_sline]
+	ldri r2, [r0, sbuf_eline]
+	sub r3, r2, r1
+	jge r3, copy_top_bottom
+	
+copy_top_bottom:
+	lsr r3, r3, 2
 	ldr r1, [vram_start]
-	ldr r2, [fb_addr]
-	ldr r3, [fb_size_words]
+	ldri r2, [r0, sbuf_sline]
 	call memcpy32
 	call flush_video
 	ret
@@ -820,8 +828,8 @@ fb_addr: .int frame_buffer
 	; Initialize console.
 	mov r1, sp
 	ldr r2,  [fb_addr]
-	add r3, rZ, 2560 ; 640 x 4 (size of line in bytes.)
-	mul r3, r3, 336  ; 16 (char height) x 21 (num rows-1)
+	add r3, r2, 2560 ; 640 x 4 (size of line in bytes.)
+	mul r3, r3, 352  ; 16 (char height) x 22
 	mov r4, 11
 	mov r5, 0
 	call console_init
