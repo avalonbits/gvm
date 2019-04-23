@@ -442,6 +442,9 @@ func (p *Parser) data_block(cur state) state {
 			return ERROR
 		}
 
+		// For strings we cannot ignore white spaces.
+		p.tokenizer.IgnoreWhiteSpace(false)
+		defer p.tokenizer.IgnoreWhiteSpace(true)
 		var sb strings.Builder
 		for {
 			tok = p.tokenizer.NextToken()
