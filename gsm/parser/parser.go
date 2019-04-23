@@ -163,6 +163,7 @@ func (s Section) wordCount() int {
 type Tokenizer interface {
 	NextToken() lexer.Token
 	PeakToken() lexer.Token
+	IgnoreWhiteSpace(ignore bool)
 }
 
 type Parser struct {
@@ -172,6 +173,7 @@ type Parser struct {
 }
 
 func New(t Tokenizer) *Parser {
+	t.IgnoreWhiteSpace(true)
 	return &Parser{tokenizer: t, Ast: &AST{
 		Consts: make(map[string]string),
 	}}

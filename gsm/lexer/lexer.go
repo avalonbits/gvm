@@ -26,6 +26,7 @@ const (
 	SEMICOLON
 	NEWLINE
 	COLON
+	WHITE_SPACE
 	L_BRACKET
 	R_BRACKET
 	F_SLASH
@@ -144,13 +145,18 @@ func lookupIdent(ident string) TokenType {
 }
 
 type Lexer struct {
-	buf *bufio.Reader
-	r   rune
-	tok *Token
+	buf      *bufio.Reader
+	r        rune
+	tok      *Token
+	ignoreWS bool
 }
 
 func New(r io.Reader) *Lexer {
-	return &Lexer{buf: bufio.NewReader(r)}
+	return &Lexer{buf: bufio.NewReader(r), ignoreWS: true}
+}
+
+func (l *Lexer) IgnoreWhiteSpace(ignore bool) {
+	l.ignoreWS = ignore
 }
 
 func (l *Lexer) readRune() {
@@ -159,12 +165,6 @@ func (l *Lexer) readRune() {
 		l.r = 0
 	} else {
 		l.r = r
-	}
-}
-
-func (l *Lexer) skipWhitespace() {
-	for unicode.IsSpace(l.r) && l.r != '\n' {
-		l.readRune()
 	}
 }
 
@@ -188,7 +188,6 @@ func (l *Lexer) NextToken() Token {
 
 func (l *Lexer) nextToken() *Token {
 	l.readRune()
-	l.skipWhitespace()
 	ch := string(l.r)
 	switch l.r {
 	case ',':
@@ -210,6 +209,14 @@ func (l *Lexer) nextToken() *Token {
 	case 0:
 		return newTok(EOF, "")
 	default:
+		if unicode.IsSpace(l.r) && l.r != '\n' {
+			if l.ignoreWS {
+				l.readWhiteSpace()
+				return l.nextToken()
+			} else {
+				return newTok(WHITE_SPACE, l.readWhiteSpace())
+			}
+		}
 		if l.r == '.' || l.r == '@' || unicode.IsLetter(l.r) {
 			ident := l.readIdent()
 			return newTok(lookupIdent(ident), ident)
@@ -236,6 +243,15 @@ func (l *Lexer) readIdent() string {
 	return sb.String()
 }
 
+func (l *Lexer) readWhiteSpace() string {
+	var sb strings.Builder
+	for unicode.IsSpace(l.r) && l.r != '\n' {
+		sb.WriteRune(l.r)
+		l.readRune()
+	}
+	l.buf.UnreadRune()
+	return sb.String()
+}
 func (l *Lexer) readNum() string {
 	var sb strings.Builder
 	for unicode.IsDigit(l.r) || l.r == 'x' || l.r == '-' || (l.r >= 'A' && l.r <= 'F') || (l.r >= 'a' && l.r <= 'f') {
