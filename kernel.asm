@@ -679,6 +679,30 @@ done:
 	ret
 @endf console_set_cursor
 
+@func console_set_color:
+	; if fcolor < 0 || > 15, set it to 15.
+	jlt r1, set_15
+	sub r21, r1, 15
+	jle r21, bcolor
+
+set_15:
+	mov r1,15
+
+bcolor:
+	; if bcolor < 0 || bcolor > 15, set it to 0
+	jlt r2, set_z
+	sub r21, r2, 15
+	jle r21, done
+
+set_z:
+	mov r2, rZ
+
+done:
+	stri [r0, console_fcolor], r1
+	stri [r0, console_bcolor], r2
+	ret
+@endf console_set_color
+
 @func console_putc:
 	ldri r2, [r0, console_cursor_x]
 	ldri r3, [r0, console_cursor_y]
@@ -793,7 +817,7 @@ fb_addr: .int frame_buffer
 	ldr r2,  [fb_addr]
 	add r3, rZ, 2560 ; 640 x 4 (size of line in bytes.)
 	mul r3, r3, 336  ; 16 (char height) x 21 (num rows-1)
-	mov r4, 15
+	mov r4, 11
 	mov r5, 0
 	call console_init
 
@@ -806,8 +830,13 @@ fb_addr: .int frame_buffer
 	ldr r1, [gvm_addr]
 	call console_puts
 
-    ; Print ready sign.
+	; Change text color to white.
 	mov r0, sp
+	mov r1, 15
+	mov r2, 0
+	call console_set_color
+
+    ; Print ready sign.
 	mov r1, 0
 	mov r2, 2
 	call console_set_cursor
