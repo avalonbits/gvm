@@ -88,12 +88,8 @@ fb_size_words: .int 230400
 	; Ok, need to update. But first, set should_update == false.
 	str [should_update], rZ
 
-	ldr r1, [vram_start]
-	ldr r2, [fb_addr]
-	ldr r3, [fb_size_words]
-
-	call memcpy32
-	call flush_video
+	ldr r0, [console_addr]
+	call console_flush
 
 done:
 	ldpip r3, r4, [sp, 8]
@@ -650,6 +646,15 @@ loop:
 
 	ret
 @endf console_init
+
+@func console_flush:
+	ldr r1, [vram_start]
+	ldr r2, [fb_addr]
+	ldr r3, [fb_size_words]
+	call memcpy32
+	call flush_video
+	ret
+@endf console_flush
 
 @func console_set_cursor:
 	; if x < 0, set it to 0.
