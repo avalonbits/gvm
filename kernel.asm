@@ -638,7 +638,7 @@ loop:
 	; Init screen buffer.
 	call sbuf_init
 
-	; Init console.	
+	; Init console.
 	stri [r1, console_fcolor], r4
 	stri [r1, console_bcolor], r5
 	stri [r1, console_cursor_x], rZ
@@ -654,7 +654,7 @@ loop:
 	ldri r2, [r0, sbuf_eline]
 	sub r3, r2, r1
 	jge r3, copy_top_bottom
-	
+
 copy_top_bottom:
 	lsr r3, r3, 2
 	ldr r1, [vram_start]
@@ -828,8 +828,9 @@ fb_addr: .int frame_buffer
 	; Initialize console.
 	mov r1, sp
 	ldr r2,  [fb_addr]
-	add r3, r2, 2560 ; 640 x 4 (size of line in bytes.)
+	mov r3, 2560     ; 640 x 4 (size of line in bytes.)
 	mul r3, r3, 352  ; 16 (char height) x 22
+	add r3, r3, r2
 	mov r4, 11
 	mov r5, 0
 	call console_init
@@ -857,13 +858,13 @@ fb_addr: .int frame_buffer
 	call console_puts
 
 	; Print cursor
-	
+
 	mov r0, sp
 	mov r1, 0
 	mov r2, 3
 	call console_set_cursor
 	call console_print_cursor
-	
+
 	; Install our input handler.
 	ldr r0, [user_input_handler_addr]
 	str [input_jump_addr], r0
@@ -904,7 +905,7 @@ process_input:
 	; Advance cursor.
 	ldr r0, [console_addr]
 	call console_next_cursor
-	call console_print_cursor	
+	call console_print_cursor
 
 done:
 	mov r0, 1
