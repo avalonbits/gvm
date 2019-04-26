@@ -617,32 +617,32 @@ loop:
 .section text
 
 @func sbuf_init:
-	; r1: ptr to start of sbuf
-	; r2: ptr to start of frame buffer.
-	; r3: ptr to last line of frame buffer.
-	stri [r1, sbuf_min_line], r2
-	stri [r1, sbuf_sline], r2
-	stri [r1, sbuf_eline], r3
-	stri [r1, sbuf_max_line], r3
-	stri [r1, sbuf_x_pos], rZ
+	; r0: ptr to start of sbuf
+	; r1: ptr to start of frame buffer.
+	; r2: ptr to last line of frame buffer.
+	stri [r0, sbuf_min_line], r1
+	stri [r0, sbuf_sline], r1
+	stri [r0, sbuf_eline], r2
+	stri [r0, sbuf_max_line], r2
+	stri [r0, sbuf_x_pos], rZ
 	ret
 @endf sbuf_init
 
 @func console_init:
-	; r1: ptr to start of console
-	; r2: ptr to start of frame buffe
-	; r3: ptr to last line of frame buffer
-	; r4: fcolor
-	; r5: bcolor
+	; r0: ptr to start of console
+	; r1: ptr to start of frame buffe
+	; r2: ptr to last line of frame buffer
+	; r3: fcolor
+	; r4: bcolor
 
 	; Init screen buffer.
 	call sbuf_init
 
 	; Init console.
-	stri [r1, console_fcolor], r4
-	stri [r1, console_bcolor], r5
-	stri [r1, console_cursor_x], rZ
-	stri [r1, console_cursor_y], rZ
+	stri [r0, console_fcolor], r3
+	stri [r0, console_bcolor], r4
+	stri [r0, console_cursor_x], rZ
+	stri [r0, console_cursor_y], rZ
 
 	ret
 @endf console_init
@@ -826,13 +826,13 @@ fb_addr: .int frame_buffer
 	str [console_addr], sp
 
 	; Initialize console.
-	mov r1, sp
-	ldr r2,  [fb_addr]
-	mov r3, 2560     ; 640 x 4 (size of line in bytes.)
-	mul r3, r3, 352  ; 16 (char height) x 22
-	add r3, r3, r2
-	mov r4, 11
-	mov r5, 0
+	mov r0, sp
+	ldr r1,  [fb_addr]
+	mov r2, 2560     ; 640 x 4 (size of line in bytes.)
+	mul r2, r2, 352  ; 16 (char height) x 22
+	add r2, r2, r1
+	mov r3, 11
+	mov r4, 0
 	call console_init
 
 	; Print machine name
