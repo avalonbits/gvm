@@ -787,6 +787,26 @@ done:
 	ret
 @endf console_next_cursor
 
+@func console_nextline_cursor:
+	mov r1, rZ
+	ldri r2, [r0, console_cursor_y]
+	sub r3, r2, 21
+	jne r3, done_all
+
+	strpi [sp, -4], r1
+	call console_scroll_up
+	ldrip r1, [sp, 4]
+	jmp done
+
+done_all:
+	add r2, r2, 1
+	stri [r0, console_cursor_y], r2
+
+done:
+	stri [r0, console_cursor_x], r1
+	ret
+@endf console_nextline_cursor
+
 @func console_scroll_up:
 	ldri r1, [r0, sbuf_sline]
 	mov r2, 2560
@@ -940,6 +960,10 @@ done:
 	; Check for backspace.
 	sub r0, r1, 8
 	jeq r0, backspace
+
+	; Check for carriage return.
+	sub r0, r1, 13
+	jeq r0, enter
 	ret
 
 backspace:
@@ -950,6 +974,16 @@ backspace:
 	call console_print_cursor
 	mov r0, 0
 	ret
+
+enter:
+	; Erase cursor at current position
+	ldr r0, [console_addr]
+	call console_erase_cursor
+	call console_nextline_cursor
+	call console_print_cursor
+	mov r0, 0
+	ret
+
 @endf USER_control_chars
 
 .section data
