@@ -770,6 +770,15 @@ done:
 
 	mov r1, rZ
 	ldri r2, [r0, console_cursor_y]
+	sub r3, r2, 21
+	jne r3, done_all
+
+	strpi [sp, -4], r1
+	call console_scroll_up
+	ldrip r1, [sp, 4]
+	jmp done
+
+done_all:
 	add r2, r2, 1
 	stri [r0, console_cursor_y], r2
 
@@ -777,6 +786,18 @@ done:
 	stri [r0, console_cursor_x], r1
 	ret
 @endf console_next_cursor
+
+@func console_scroll_up:
+	ldri r1, [r0, sbuf_sline]
+	mov r2, 2560
+	lsl r2, r2, 4
+	add r2, r2, r1
+	ldri r3, [r0, sbuf_eline]
+	sub r3, r3, r2
+	lsr r3, r3, 2
+	call memcpy32
+	ret
+@endf console_scroll_up
 
 @func console_prev_cursor:
 	ldri r1, [r0, console_cursor_x]
