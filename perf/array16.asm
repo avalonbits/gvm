@@ -24,91 +24,91 @@ iter: .int 300
 
 ; ==== Memcopy16. Same as memcpy but assumes size is a multiple of 16 words.
 memcpy16:
-	; r1: start to-address
-	; r2: start from:address
-	; r3: size in words.
-	; r4: local variable for copying memory.
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	sub r3, r3, 16
-	jgt r3, memcpy16
-	ret
+    ; r1: start to-address
+    ; r2: start from:address
+    ; r3: size in words.
+    ; r4: local variable for copying memory.
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    sub r3, r3, 16
+    jgt r3, memcpy16
+    ret
 
 ; ==== Memset16. Same as memset but assumes size is a multiple of 16 words.
 memset16:
-	; r1: start address
-	; r2: size in words. MUST BE A MULTIPLE OF 16.
-	; r3: value to set.
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
+    ; r1: start address
+    ; r2: size in words. MUST BE A MULTIPLE OF 16.
+    ; r3: value to set.
     strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
     strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
     strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
-	strip [r1, 4], r3
     strip [r1, 4], r3
-	sub r2, r2, 16
-	jgt r2, memset16
-	ret
+    strip [r1, 4], r3
+    strip [r1, 4], r3
+    strip [r1, 4], r3
+    strip [r1, 4], r3
+    strip [r1, 4], r3
+    strip [r1, 4], r3
+    strip [r1, 4], r3
+    strip [r1, 4], r3
+    strip [r1, 4], r3
+    strip [r1, 4], r3
+    strip [r1, 4], r3
+    strip [r1, 4], r3
+    sub r2, r2, 16
+    jgt r2, memset16
+    ret
 
 
 ; ===== The acutal benchmark function.
 @infunc benchmark:
-	ldr r0, [iter]
+    ldr r0, [iter]
 
-	ldr r1, [faddr]
-	ldr r2, [size_words]
-	mov r3, 0xF
+    ldr r1, [faddr]
+    ldr r2, [size_words]
+    mov r3, 0xF
 
-	call memset16
+    call memset16
 
 loop:
 
-	ldr r1, [taddr]
-	ldr r2, [faddr]
-	ldr r3, [size_words]
+    ldr r1, [taddr]
+    ldr r2, [faddr]
+    ldr r3, [size_words]
 
-	call memcpy16
-	sub r0, r0, 1
-	jne r0, loop
+    call memcpy16
+    sub r0, r0, 1
+    jne r0, loop
 
-	halt
+    halt
 @endf benchmark

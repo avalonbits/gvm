@@ -6,10 +6,10 @@
 
 ; Jump table for interrupt handlers. Each address is for a specific interrupt.
 interrupt_table:
-	jmp reset_handler	  ; Reset
-	ret					  ; Oneshot timer handler
-	jmp input_handler	  ; Input handler
-	jmp recurring_handler ; Recurring timer handler
+    jmp reset_handler     ; Reset
+    ret                   ; Oneshot timer handler
+    jmp input_handler     ; Input handler
+    jmp recurring_handler ; Recurring timer handler
 
 .org 0x80
 .section data
@@ -20,15 +20,15 @@ vram_start: .int 0x101F000
 
 ; ==== Reset interrupt handler.
 reset_handler:
-	; Clear input register
-	ldr r1, [input_value_addr]
-	str [r1], rZ
+    ; Clear input register
+    ldr r1, [input_value_addr]
+    str [r1], rZ
 
-	; Clear user input vector address.
-	str [input_jump_addr], rZ
+    ; Clear user input vector address.
+    str [input_jump_addr], rZ
 
-	; Now jump to main kernel code.
-	jmp MAIN
+    ; Now jump to main kernel code.
+    jmp MAIN
 
 .section data
 input_value_addr: .int 0x1200004
@@ -37,30 +37,30 @@ input_jump_addr:  .int 0
 .section text
 ; ==== Input handler
 @func input_handler:
-	; Save the contents of r0 and r1 on the stack so we don't disrupt user code.
-	stppi [sp, -8], r0, r1
+    ; Save the contents of r0 and r1 on the stack so we don't disrupt user code.
+    stppi [sp, -8], r0, r1
 
-	; Read the value from the input.
-	ldr r0, [input_value_addr]
-	ldr r0, [r0]
+    ; Read the value from the input.
+    ldr r0, [input_value_addr]
+    ldr r0, [r0]
 
-	; Quit is the value 0xFFFFFFFF so adding 1 should result in 0.
-	add r1, r0, 1
-	jeq r1, quit
+    ; Quit is the value 0xFFFFFFFF so adding 1 should result in 0.
+    add r1, r0, 1
+    jeq r1, quit
 
-	; Load the user jump address. If it's != 0, call it.
-	ldr r1, [input_jump_addr]
-	jeq r1, done
-	call r1
+    ; Load the user jump address. If it's != 0, call it.
+    ldr r1, [input_jump_addr]
+    jeq r1, done
+    call r1
 
 done:
-	; Input processing done. Restore restore r1 and r0 and return.
-	ldpip r0, r1, [sp, 8]
-	ret
+    ; Input processing done. Restore restore r1 and r0 and return.
+    ldpip r0, r1, [sp, 8]
+    ret
 
 quit:
-	; Quit means we want to turn of the cpu.
-	halt
+    ; Quit means we want to turn of the cpu.
+    halt
 @endf input_handler
 
 .section data
@@ -71,122 +71,122 @@ fb_size_words: .int 230400
 
 .section text
 @func recurring_handler:
-	; Save context.
-	strpi [sp, -4], r0
-	stppi [sp, -8], r1, r2
-	stppi [sp, -8], r3, r4
+    ; Save context.
+    strpi [sp, -4], r0
+    stppi [sp, -8], r1, r2
+    stppi [sp, -8], r3, r4
 
-	; Call display update if set.
-	ldr r0, [display_update]
-	jeq r0, done
-	call r0
+    ; Call display update if set.
+    ldr r0, [display_update]
+    jeq r0, done
+    call r0
 
-	; If !should_update, we are done.
-	ldr r0, [should_update]
-	jeq r0, done
+    ; If !should_update, we are done.
+    ldr r0, [should_update]
+    jeq r0, done
 
-	; Ok, need to update. But first, set should_update == false.
-	str [should_update], rZ
+    ; Ok, need to update. But first, set should_update == false.
+    str [should_update], rZ
 
-	ldr r0, [console_addr]
-	call console_flush
+    ldr r0, [console_addr]
+    call console_flush
 
 done:
-	ldpip r3, r4, [sp, 8]
-	ldpip r1, r2, [sp, 8]
-	ldrip r0, [sp, 4]
-	ret
+    ldpip r3, r4, [sp, 8]
+    ldpip r1, r2, [sp, 8]
+    ldrip r0, [sp, 4]
+    ret
 @endf recurring_handler
 
 ; ==== Memset. Sets a memory region to a specific value.
 memset:
-	; r1: start address
-	; r2: size in words
-	; r3: value to set.
-	strip [r1, 4], r3
-	sub r2, r2, 1
-	jgt r2, memset
-	ret
+    ; r1: start address
+    ; r2: size in words
+    ; r3: value to set.
+    strip [r1, 4], r3
+    sub r2, r2, 1
+    jgt r2, memset
+    ret
 
 ; ==== Memset32. Same as memset but assumes size is a multiple of 32 words.
 memset32:
-	; r1: start address
-	; r2: size in words. MUST BE A MULTIPLE OF 32.
-	; r3: value to set.
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	sub r2, r2, 32
-	jgt r2, memset32
-	ret
+    ; r1: start address
+    ; r2: size in words. MUST BE A MULTIPLE OF 32.
+    ; r3: value to set.
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    sub r2, r2, 32
+    jgt r2, memset32
+    ret
 
 ; ==== Memcopy. Copies the contents of one region of memory to another.
 ; Does not handle overlap.
 memcpy:
-	; r1: start to-address
-	; r2: start from:address
-	; r3: size in words.
-	; r4: local variable for copying memory.
-	ldrip r4, [r2, 4]
-	strip [r1, 4], r4
-	sub r3, r3, 1
-	jgt r3, memcpy
-	ret
+    ; r1: start to-address
+    ; r2: start from:address
+    ; r3: size in words.
+    ; r4: local variable for copying memory.
+    ldrip r4, [r2, 4]
+    strip [r1, 4], r4
+    sub r3, r3, 1
+    jgt r3, memcpy
+    ret
 
 ; ==== Memcopy32. Same as memcpy but assumes size is a multiple of 32 words.
 memcpy32:
-	; r1: start to-address
-	; r2: start from:address
-	; r3: size in words.
-	; r24, r25: local variable for copying memory.
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	sub r3, r3, 32
-	jgt r3, memcpy32
-	ret
+    ; r1: start to-address
+    ; r2: start from:address
+    ; r3: size in words.
+    ; r24, r25: local variable for copying memory.
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    sub r3, r3, 32
+    jgt r3, memcpy32
+    ret
 
 .section data
   .equ kLineLength 2560
@@ -196,104 +196,104 @@ memcpy32:
 ; ==== HLine: draws a horizontal line on the screen.
 ; Linelength is 2560 bytes (640 * 32bpp)
 @func hline:
-	; r1: y-pos
-	; r2: x-start
-	; r3: y-start
-	; r4: width
-	; r5: color (RGBA)
+    ; r1: y-pos
+    ; r2: x-start
+    ; r3: y-start
+    ; r4: width
+    ; r5: color (RGBA)
     ; r6: framebuffer start.
 
-	; Multiply y-pos by 2560 to get y in the frameuffer.
-	mul r1, r1, kLineLength
+    ; Multiply y-pos by 2560 to get y in the frameuffer.
+    mul r1, r1, kLineLength
 
-	; Multiply x-start and x-end by 4 for pixel size.
-	lsl r3, r3, 2
+    ; Multiply x-start and x-end by 4 for pixel size.
+    lsl r3, r3, 2
 
 width:
-	lsl r8, r2, 2
+    lsl r8, r2, 2
 
-	; Now add mem start, x-start with y-pos to get the framebuffer start point.
-	add r7, r1, r8
-	add r7, r7, r6
+    ; Now add mem start, x-start with y-pos to get the framebuffer start point.
+    add r7, r1, r8
+    add r7, r7, r6
 
 line:
-	; Write pixel to framebuffer location
-	strip [r7, 4], r5
+    ; Write pixel to framebuffer location
+    strip [r7, 4], r5
 
-	; Increment x-start by pixel size
-	add r8, r8, 4
+    ; Increment x-start by pixel size
+    add r8, r8, 4
 
-	; Check if we got to x-end.
-	sub r6, r3, r8
+    ; Check if we got to x-end.
+    sub r6, r3, r8
 
-	; If not, loop back and continue.
-	jne r6, line
+    ; If not, loop back and continue.
+    jne r6, line
 
-	; Finished line. Need to subtract one from framebuffer because we
+    ; Finished line. Need to subtract one from framebuffer because we
     ; optimistically assume we need to increment.
-	sub r7, r7, 1
+    sub r7, r7, 1
 
-	; Done with one line.
-	sub r4, r4, 1
+    ; Done with one line.
+    sub r4, r4, 1
 
-	; We increment r1 even if we are done to avoid an extra instruction.
-	add r1, r1, kLineLength
+    ; We increment r1 even if we are done to avoid an extra instruction.
+    add r1, r1, kLineLength
 
     ; If still has lines, loop.
-	jne r4, width
+    jne r4, width
 
-	ret
+    ret
 @endf hline
 
 ; ==== VLine: draws a vertical line on the screen.
 @func vline:
-	; r1: x-pos
-	; r2: y-start
-	; r3: y-end
-	; r4: width
-	; r5: color (RGBA)
-	; r6: framebuffer start
+    ; r1: x-pos
+    ; r2: y-start
+    ; r3: y-end
+    ; r4: width
+    ; r5: color (RGBA)
+    ; r6: framebuffer start
 
-	; Multiply x-pos by 4 to get x in the framebuffer.
-	lsl r1, r1, 2
+    ; Multiply x-pos by 4 to get x in the framebuffer.
+    lsl r1, r1, 2
 
-	; Multiply y-start and y-end by 2560 to get their positions.
-	mul r3, r3, kLineLength
+    ; Multiply y-start and y-end by 2560 to get their positions.
+    mul r3, r3, kLineLength
 
 width:
-	mul r8, r2, kLineLength
+    mul r8, r2, kLineLength
 
-	; Now add mem start, x-pos, y-start with y-end to get the framebuffer start point.
-	add r7, r1, r8
-	add r7, r7, r6
+    ; Now add mem start, x-pos, y-start with y-end to get the framebuffer start point.
+    add r7, r1, r8
+    add r7, r7, r6
 
 line:
-	; Write the pixel at the location.
-	strip [r7, kLineLength], r5
+    ; Write the pixel at the location.
+    strip [r7, kLineLength], r5
 
-	; Increment y-start.
-	add r8, r8, kLineLength
+    ; Increment y-start.
+    add r8, r8, kLineLength
 
-	; Check if we got to y-end
-	sub r6, r3, r8
+    ; Check if we got to y-end
+    sub r6, r3, r8
 
-	; If line is not done, loop.
-	jne r6, line
+    ; If line is not done, loop.
+    jne r6, line
 
-	; Line is not done. Need to subtract a line from framebuffer because we
-	; optimistically assume we need to increment.
-	sub r7, r7, kLineLength
+    ; Line is not done. Need to subtract a line from framebuffer because we
+    ; optimistically assume we need to increment.
+    sub r7, r7, kLineLength
 
-	; Done with one line.
-	sub r4, r4, 1
+    ; Done with one line.
+    sub r4, r4, 1
 
     ; Line is still wide.
-	add r1, r1, 4
+    add r1, r1, 4
 
     ; Loop back if we still need to print line.
-	jne r4, width
+    jne r4, width
 
-	ret
+    ret
 @endf vline
 
 ; ====== Text mode functions and data.
@@ -303,22 +303,22 @@ line:
 ; Text mode supports 16 colors and all functions require a foreground and a
 ; background color.
 text_colors:
-	.int 0xFF000000 ;  0 - Black
-	.int 0xFF000080 ;  1 - Maroon
-	.int 0xFF008000 ;  2 - Green
-	.int 0xFF008080 ;  3 - Olive
-	.int 0xFF800000 ;  4 - Navy
-	.int 0xFF800080 ;  5 - Purple
-	.int 0xFF808000 ;  6 - Teal
-	.int 0xFFC0C0C0 ;  7 - Silver
-	.int 0xFF808080 ;  8 - Grey
-	.int 0xFF0000FF ;  9 - Read
-	.int 0xFF00FF00 ; 10 - Lime
-	.int 0xFF00FFFF ; 11 - Yellow
-	.int 0xFFFF0000 ; 12 - Blue
-	.int 0xFFFF00FF ; 13 - Fuchsia
-	.int 0xFFFFFF00 ; 14 - Aqua
-	.int 0xFFFFFFFF ; 15 - White
+    .int 0xFF000000 ;  0 - Black
+    .int 0xFF000080 ;  1 - Maroon
+    .int 0xFF008000 ;  2 - Green
+    .int 0xFF008080 ;  3 - Olive
+    .int 0xFF800000 ;  4 - Navy
+    .int 0xFF800080 ;  5 - Purple
+    .int 0xFF808000 ;  6 - Teal
+    .int 0xFFC0C0C0 ;  7 - Silver
+    .int 0xFF808080 ;  8 - Grey
+    .int 0xFF0000FF ;  9 - Read
+    .int 0xFF00FF00 ; 10 - Lime
+    .int 0xFF00FFFF ; 11 - Yellow
+    .int 0xFFFF0000 ; 12 - Blue
+    .int 0xFFFF00FF ; 13 - Fuchsia
+    .int 0xFFFFFF00 ; 14 - Aqua
+    .int 0xFFFFFFFF ; 15 - White
 
 text_colors_addr: .int text_colors
 
@@ -331,7 +331,7 @@ text_colors_addr: .int text_colors
     ; r3: y-pos start.
     ; r4: foreground color.
     ; r5: background color.
-	; r6: frame buffer address.
+    ; r6: frame buffer address.
 
     ; We copy the start addres to r1 because we will use r1 as the actual
     ; char value to print with putc.
@@ -346,11 +346,11 @@ loop:
     ; Save context in stack before calling putc.
     stppi [sp, -8], r2, r3
     stppi [sp, -8], r4, r5
-	strpi [sp, -4], r6
-	call putc
+    strpi [sp, -4], r6
+    call putc
 
     ; Restore context.
-	ldrip r6, [sp, 4]
+    ldrip r6, [sp, 4]
     ldpip r4, r5, [sp, 8]
     ldpip r2, r3, [sp, 8]
 
@@ -363,11 +363,11 @@ loop:
 
     stppi [sp, -8], r2, r3
     stppi [sp, -8], r4, r5
-	strpi [sp, -4], r6
+    strpi [sp, -4], r6
 
     call putc
 
-	ldrip r6, [sp, 4]
+    ldrip r6, [sp, 4]
     ldpip r4, r5, [sp, 8]
     ldpip r2, r3, [sp, 8]
 
@@ -405,447 +405,447 @@ chrom_addr: .int 0x1100000
 .section text
 
 @infunc wpixel:
-	and r0, r1, 1
-	jeq r0, background_color
+    and r0, r1, 1
+    jeq r0, background_color
 
-	; Foreground.
-	strip [r2, -4], r4
-	; Shift the pixel row.
-	lsr r1, r1, 1
-	ret
+    ; Foreground.
+    strip [r2, -4], r4
+    ; Shift the pixel row.
+    lsr r1, r1, 1
+    ret
 
 background_color:
-	strip [r2, -4], r5
-	; Shift the pixel row.
-	lsr r1, r1, 1
-	ret
+    strip [r2, -4], r5
+    ; Shift the pixel row.
+    lsr r1, r1, 1
+    ret
 @endf wpixel
 
 ; ==== PutC: Prints a character on the screen.
 @func putc:
-	; r1: Character unicode value
-	; r2: x-pos
-	; r3: y-pos
-	; r4: foreground color
-	; r5: background color
+    ; r1: Character unicode value
+    ; r2: x-pos
+    ; r3: y-pos
+    ; r4: foreground color
+    ; r5: background color
     ; r6: framebuffer start.
 
-	; To find the (x,y) position in the frame buffer, we use the formula
-	; pos(x,y) = x-pos*8*4 + fb start + y-pos * lineLength * 16.
-	lsl r2, r2, 5
-	add r2, r2, r6
-	mul r3, r3, kLineLength
-	lsl r3, r3, 4
-	add r2, r2, r3
+    ; To find the (x,y) position in the frame buffer, we use the formula
+    ; pos(x,y) = x-pos*8*4 + fb start + y-pos * lineLength * 16.
+    lsl r2, r2, 5
+    add r2, r2, r6
+    mul r3, r3, kLineLength
+    lsl r3, r3, 4
+    add r2, r2, r3
 
-	; And because we process the row from right to left, we need to move the
-	; start 8 pixels (32 bytes) to the right. But because this is 0 based, we
-	; need to add 31.
-	add r2, r2, 31
+    ; And because we process the row from right to left, we need to move the
+    ; start 8 pixels (32 bytes) to the right. But because this is 0 based, we
+    ; need to add 31.
+    add r2, r2, 31
 
-	; Translate colors 0-15 to their RGBA values by multiplying the value by 4
-	; and then summing it with the start of the color table.
-	ldr r0, [text_colors_addr]
-	lsl r4, r4, 2
-	ldri r4, [r0, r4]
-	lsl r5, r5, 2
-	ldri r5, [r0, r5]
+    ; Translate colors 0-15 to their RGBA values by multiplying the value by 4
+    ; and then summing it with the start of the color table.
+    ldr r0, [text_colors_addr]
+    lsl r4, r4, 2
+    ldri r4, [r0, r4]
+    lsl r5, r5, 2
+    ldri r5, [r0, r5]
 
-	; Each character is 8x16 pixels encoded in 16 bytes with each byte being an
-	; 8 pixel row. In order to find the start of the char we multiply the char
-	; by 16 and sum it with the start of the character rom.
-	ldr r0, [chrom_addr]
-	lsl r1, r1, 4
-	add r1, r0, r1
+    ; Each character is 8x16 pixels encoded in 16 bytes with each byte being an
+    ; 8 pixel row. In order to find the start of the char we multiply the char
+    ; by 16 and sum it with the start of the character rom.
+    ldr r0, [chrom_addr]
+    lsl r1, r1, 4
+    add r1, r0, r1
 
-	; Copy of character start.
-	mov r3, r1
+    ; Copy of character start.
+    mov r3, r1
 
-	; Number of rows per word of char.
-	mov r6, 4
+    ; Number of rows per word of char.
+    mov r6, 4
 
 main_loop:
-	; Load the character word
-	ldr r1, [r3]
+    ; Load the character word
+    ldr r1, [r3]
 
-	; Write 8 pixel per row.
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
+    ; Write 8 pixel per row.
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
 
-	; Reposition the frame buffer on the next row.
-	add r2, r2, 2592  ; 32 + 2560.
+    ; Reposition the frame buffer on the next row.
+    add r2, r2, 2592  ; 32 + 2560.
 
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
 
-	; Reposition the frame buffer on the next row.
-	add r2, r2, 2592  ; 32 + 2560.
+    ; Reposition the frame buffer on the next row.
+    add r2, r2, 2592  ; 32 + 2560.
 
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
 
-	; Reposition the frame buffer on the next row.
-	add r2, r2, 2592  ; 32 + 2560.
+    ; Reposition the frame buffer on the next row.
+    add r2, r2, 2592  ; 32 + 2560.
 
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
-	call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
+    call wpixel
 
-	; Reposition the frame buffer on the next row.
-	add r2, r2, 2592  ; 32 + 2560.
+    ; Reposition the frame buffer on the next row.
+    add r2, r2, 2592  ; 32 + 2560.
 
-	sub r6, r6, 1
-	; Get the next word row and loop.
-	add r3, r3, 4
-	jne r6, main_loop
+    sub r6, r6, 1
+    ; Get the next word row and loop.
+    add r3, r3, 4
+    jne r6, main_loop
 
-	ret
+    ret
 @endf putc
 
 ; ==== Fill816: Fills an 8x16 pixels block with the same value.
 @func fill816:
-	; r1: x-pos
-	; r2: y-pos
-	; r3: value to set.
-	; r4: framebuffer start.
+    ; r1: x-pos
+    ; r2: y-pos
+    ; r3: value to set.
+    ; r4: framebuffer start.
 
-	; To find the (x,y) position in the frame buffer, we use the formula
-	; pos(x,y) = x-pos*8*4 + fb_start + y-pos * lineLength * 16.
-	mul r1, r1, 32
-	add r1, r1, r4
-	mul r2, r2, 2560
-	lsl r2, r2, 4
-	add r1, r1, r2
+    ; To find the (x,y) position in the frame buffer, we use the formula
+    ; pos(x,y) = x-pos*8*4 + fb_start + y-pos * lineLength * 16.
+    mul r1, r1, 32
+    add r1, r1, r4
+    mul r2, r2, 2560
+    lsl r2, r2, 4
+    add r1, r1, r2
 
-	; Set the row counter to 16.
-	mov r2, 16
+    ; Set the row counter to 16.
+    mov r2, 16
 
 loop:
-	; Each pixel is 4 bytes long, so we need to write 32 bytes per row.
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	add r1, r1, 2528
+    ; Each pixel is 4 bytes long, so we need to write 32 bytes per row.
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    add r1, r1, 2528
 
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	add r1, r1, 2528
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    add r1, r1, 2528
 
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	add r1, r1, 2528
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    add r1, r1, 2528
 
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	stpip [r1, 8], r3, r3
-	add r1, r1, 2528
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    add r1, r1, 2528
 
-	; Check if we are done.
-	sub r2, r2, 4
-	jne r2, loop
+    ; Check if we are done.
+    sub r2, r2, 4
+    jne r2, loop
 
-	; We are done.
-	ret
+    ; We are done.
+    ret
 @endf fill816
 
 ; ==== FlushVideo: tells the video controller that it can copy the framebuffer
 ; to its own memory.
 @func flush_video:
-	ldr r0, [vram_reg]
-	mov r1, 1
+    ldr r0, [vram_reg]
+    mov r1, 1
     str [r0], r1
-	ret
+    ret
 @endf flush_video
 
 ; ==== WaitVideo: waits for the video controller to signal that the framebuffer
 ; available for writing.
 @func wait_video:
-	ldr r0, [vram_reg]
-	ldr r0, [r0]
-	jne r0, wait_video
-	ret
+    ldr r0, [vram_reg]
+    ldr r0, [r0]
+    jne r0, wait_video
+    ret
 @endf wait_video
 
 ; ======================== User interface code =======================
 
 .section data
-	; struct sbuf
-	.equ sbuf_min_line 0
-	.equ sbuf_sline 4
-	.equ sbuf_eline 8
-	.equ sbuf_max_line 12
-	.equ sbuf_x_pos 16
-	.equ sbuf_size 20
+    ; struct sbuf
+    .equ sbuf_min_line 0
+    .equ sbuf_sline 4
+    .equ sbuf_eline 8
+    .equ sbuf_max_line 12
+    .equ sbuf_x_pos 16
+    .equ sbuf_size 20
 
-	; struct console
-	.equ console_sbuf 0
-	.equ console_fcolor 20
-	.equ console_bcolor 24
-	.equ console_cursor_x 28
-	.equ console_cursor_y 32
-	.equ console_size 36
+    ; struct console
+    .equ console_sbuf 0
+    .equ console_fcolor 20
+    .equ console_bcolor 24
+    .equ console_cursor_x 28
+    .equ console_cursor_y 32
+    .equ console_size 36
 
 .section text
 
 @func sbuf_init:
-	; r0: ptr to start of sbuf
-	; r1: ptr to start of frame buffer.
-	; r2: ptr to last line of frame buffer.
-	stri [r0, sbuf_min_line], r1
-	stri [r0, sbuf_sline], r1
-	stri [r0, sbuf_eline], r2
-	stri [r0, sbuf_max_line], r2
-	stri [r0, sbuf_x_pos], rZ
-	ret
+    ; r0: ptr to start of sbuf
+    ; r1: ptr to start of frame buffer.
+    ; r2: ptr to last line of frame buffer.
+    stri [r0, sbuf_min_line], r1
+    stri [r0, sbuf_sline], r1
+    stri [r0, sbuf_eline], r2
+    stri [r0, sbuf_max_line], r2
+    stri [r0, sbuf_x_pos], rZ
+    ret
 @endf sbuf_init
 
 @func console_init:
-	; r0: ptr to start of console
-	; r1: ptr to start of frame buffe
-	; r2: ptr to last line of frame buffer
-	; r3: fcolor
-	; r4: bcolor
+    ; r0: ptr to start of console
+    ; r1: ptr to start of frame buffe
+    ; r2: ptr to last line of frame buffer
+    ; r3: fcolor
+    ; r4: bcolor
 
-	; Init screen buffer.
-	call sbuf_init
+    ; Init screen buffer.
+    call sbuf_init
 
-	; Init console.
-	stri [r0, console_fcolor], r3
-	stri [r0, console_bcolor], r4
-	stri [r0, console_cursor_x], rZ
-	stri [r0, console_cursor_y], rZ
+    ; Init console.
+    stri [r0, console_fcolor], r3
+    stri [r0, console_bcolor], r4
+    stri [r0, console_cursor_x], rZ
+    stri [r0, console_cursor_y], rZ
 
-	ret
+    ret
 @endf console_init
 
 @func console_flush:
-	; Algorithm to update display:
-	; 1) if sbuf_sline < sbuf_eline then we just copy everything between them.
-	ldri r1, [r0, sbuf_sline]
-	ldri r2, [r0, sbuf_eline]
-	sub r3, r2, r1
-	jge r3, copy_top_bottom
+    ; Algorithm to update display:
+    ; 1) if sbuf_sline < sbuf_eline then we just copy everything between them.
+    ldri r1, [r0, sbuf_sline]
+    ldri r2, [r0, sbuf_eline]
+    sub r3, r2, r1
+    jge r3, copy_top_bottom
 
 copy_top_bottom:
-	lsr r3, r3, 2
-	ldr r1, [vram_start]
-	ldri r2, [r0, sbuf_sline]
-	call memcpy32
-	call flush_video
-	ret
+    lsr r3, r3, 2
+    ldr r1, [vram_start]
+    ldri r2, [r0, sbuf_sline]
+    call memcpy32
+    call flush_video
+    ret
 @endf console_flush
 
 @func console_set_cursor:
-	; if x < 0, set it to 0.
-	jge r1, x_79
-	mov r1, rZ
+    ; if x < 0, set it to 0.
+    jge r1, x_79
+    mov r1, rZ
 
 x_79:
-	; if x >= 80, set it to 79
-	sub r3, r1, 80
-	jlt r3, y
-	mov r3, 79
+    ; if x >= 80, set it to 79
+    sub r3, r1, 80
+    jlt r3, y
+    mov r3, 79
 
 y:
-	; if y < 0, set it to 0
-	jge r2, y_21
-	mov r2, rZ
+    ; if y < 0, set it to 0
+    jge r2, y_21
+    mov r2, rZ
 
 y_21:
-	; if y >= 22, set it to 21
-	sub r3, r2, 22
-	jlt r3, done
-	mov r2, 21
+    ; if y >= 22, set it to 21
+    sub r3, r2, 22
+    jlt r3, done
+    mov r2, 21
 
 done:
-	stri [r0, console_cursor_x], r1
-	stri [r0, console_cursor_y], r2
-	ret
+    stri [r0, console_cursor_x], r1
+    stri [r0, console_cursor_y], r2
+    ret
 @endf console_set_cursor
 
 @func console_set_color:
-	; if fcolor < 0 || > 15, set it to 15.
-	jlt r1, set_15
-	sub r21, r1, 15
-	jle r21, bcolor
+    ; if fcolor < 0 || > 15, set it to 15.
+    jlt r1, set_15
+    sub r21, r1, 15
+    jle r21, bcolor
 
 set_15:
-	mov r1,15
+    mov r1,15
 
 bcolor:
-	; if bcolor < 0 || bcolor > 15, set it to 0
-	jlt r2, set_z
-	sub r21, r2, 15
-	jle r21, done
+    ; if bcolor < 0 || bcolor > 15, set it to 0
+    jlt r2, set_z
+    sub r21, r2, 15
+    jle r21, done
 
 set_z:
-	mov r2, rZ
+    mov r2, rZ
 
 done:
-	stri [r0, console_fcolor], r1
-	stri [r0, console_bcolor], r2
-	ret
+    stri [r0, console_fcolor], r1
+    stri [r0, console_bcolor], r2
+    ret
 @endf console_set_color
 
 @func console_putc:
-	ldri r2, [r0, console_cursor_x]
-	ldri r3, [r0, console_cursor_y]
-	ldri r4, [r0, console_fcolor]
-	ldri r5, [r0, console_bcolor]
-	ldr r6, [fb_addr]
-	call putc
-	ret
+    ldri r2, [r0, console_cursor_x]
+    ldri r3, [r0, console_cursor_y]
+    ldri r4, [r0, console_fcolor]
+    ldri r5, [r0, console_bcolor]
+    ldr r6, [fb_addr]
+    call putc
+    ret
 @endf console_putc
 
 @func console_puts:
-	ldri r2, [r0, console_cursor_x]
+    ldri r2, [r0, console_cursor_x]
     ldri r3, [r0, console_cursor_y]
     ldri r4, [r0, console_fcolor]
-	ldri r5, [r0, console_bcolor]
-	ldr r6, [fb_addr]
-	call puts
-	ret
+    ldri r5, [r0, console_bcolor]
+    ldr r6, [fb_addr]
+    call puts
+    ret
 @endf console_puts
 
 @func console_print_cursor:
-	mov r1, 0x2588
-	ldri r2, [r0, console_cursor_x]
-	ldri r3, [r0, console_cursor_y]
+    mov r1, 0x2588
+    ldri r2, [r0, console_cursor_x]
+    ldri r3, [r0, console_cursor_y]
     ldri r4, [r0, console_fcolor]
     ldri r5, [r0, console_bcolor]
-	ldr r6, [fb_addr]
-	call putc
-	ret
+    ldr r6, [fb_addr]
+    call putc
+    ret
 @endf console_print_cursor
 
 @func console_erase_cursor:
-	ldri r1, [r0, console_cursor_x]
-	ldri r2, [r0, console_cursor_y]
+    ldri r1, [r0, console_cursor_x]
+    ldri r2, [r0, console_cursor_y]
     ldri r3, [r0, console_bcolor]
 
-	; Convert color number to color value.
-	ldr r4, [text_colors_addr]
-	lsl r3, r3, 2
-	ldri r3, [r4, r3]
+    ; Convert color number to color value.
+    ldr r4, [text_colors_addr]
+    lsl r3, r3, 2
+    ldri r3, [r4, r3]
 
-	ldr r4, [fb_addr]
-	call fill816
-	ret
+    ldr r4, [fb_addr]
+    call fill816
+    ret
 @endf console_erase_cursor
 
 @func console_next_cursor:
-	ldri r1, [r0, console_cursor_x]
-	add r1, r1, 1
-	sub r2, r1, 80
-	jne r2, done
+    ldri r1, [r0, console_cursor_x]
+    add r1, r1, 1
+    sub r2, r1, 80
+    jne r2, done
 
-	mov r1, rZ
-	ldri r2, [r0, console_cursor_y]
-	sub r3, r2, 21
-	jne r3, done_all
+    mov r1, rZ
+    ldri r2, [r0, console_cursor_y]
+    sub r3, r2, 21
+    jne r3, done_all
 
-	strpi [sp, -4], r1
-	call console_scroll_up
-	ldrip r1, [sp, 4]
-	jmp done
+    strpi [sp, -4], r1
+    call console_scroll_up
+    ldrip r1, [sp, 4]
+    jmp done
 
 done_all:
-	add r2, r2, 1
-	stri [r0, console_cursor_y], r2
+    add r2, r2, 1
+    stri [r0, console_cursor_y], r2
 
 done:
-	stri [r0, console_cursor_x], r1
-	ret
+    stri [r0, console_cursor_x], r1
+    ret
 @endf console_next_cursor
 
 @func console_nextline_cursor:
-	mov r1, rZ
-	ldri r2, [r0, console_cursor_y]
-	sub r3, r2, 21
-	jne r3, done_all
+    mov r1, rZ
+    ldri r2, [r0, console_cursor_y]
+    sub r3, r2, 21
+    jne r3, done_all
 
-	strpi [sp, -4], r1
-	call console_scroll_up
-	ldrip r1, [sp, 4]
-	jmp done
+    strpi [sp, -4], r1
+    call console_scroll_up
+    ldrip r1, [sp, 4]
+    jmp done
 
 done_all:
-	add r2, r2, 1
-	stri [r0, console_cursor_y], r2
+    add r2, r2, 1
+    stri [r0, console_cursor_y], r2
 
 done:
-	stri [r0, console_cursor_x], r1
-	ret
+    stri [r0, console_cursor_x], r1
+    ret
 @endf console_nextline_cursor
 
 @func console_scroll_up:
-	ldri r1, [r0, sbuf_sline]
-	mov r2, 2560
-	lsl r2, r2, 4
-	add r2, r2, r1
-	ldri r3, [r0, sbuf_eline]
-	sub r3, r3, r2
-	lsr r3, r3, 2
-	call memcpy32
-	ret
+    ldri r1, [r0, sbuf_sline]
+    mov r2, 2560
+    lsl r2, r2, 4
+    add r2, r2, r1
+    ldri r3, [r0, sbuf_eline]
+    sub r3, r3, r2
+    lsr r3, r3, 2
+    call memcpy32
+    ret
 @endf console_scroll_up
 
 @func console_prev_cursor:
-	ldri r1, [r0, console_cursor_x]
-	sub r1, r1, 1
-	jge r1, done
-	mov r1, 79
+    ldri r1, [r0, console_cursor_x]
+    sub r1, r1, 1
+    jge r1, done
+    mov r1, 79
 
-	ldri r2, [r0, console_cursor_y]
-	sub r2, r2, 1
-	jlt r2, x_zero
-	stri [r0, console_cursor_y], r2
-	jmp done
+    ldri r2, [r0, console_cursor_y]
+    sub r2, r2, 1
+    jlt r2, x_zero
+    stri [r0, console_cursor_y], r2
+    jmp done
 
 x_zero:
-	mov r1, rZ
+    mov r1, rZ
 
 done:
-	stri [r0, console_cursor_x], r1
-	ret
+    stri [r0, console_cursor_x], r1
+    ret
 @endf console_prev_cursor
 
 @func console_up_cursor:
-	ldri r2, [r0, console_cursor_y]
-	sub r2, r2, 1
-	jlt r2, done
-	stri [r0, console_cursor_y], r2
+    ldri r2, [r0, console_cursor_y]
+    sub r2, r2, 1
+    jlt r2, done
+    stri [r0, console_cursor_y], r2
 done:
-	ret
+    ret
 @endf console_up_cursor
 
 
@@ -862,127 +862,127 @@ fb_addr: .int frame_buffer
 .section text
 
 @func MAIN:
-	; Allocate space for console
-	sub sp, sp, console_size
-	str [console_addr], sp
+    ; Allocate space for console
+    sub sp, sp, console_size
+    str [console_addr], sp
 
-	; Initialize console.
-	mov r0, sp
-	ldr r1,  [fb_addr]
-	mov r2, 2560     ; 640 x 4 (size of line in bytes.)
-	mul r2, r2, 352  ; 16 (char height) x 22
-	add r2, r2, r1
-	mov r3, 11
-	mov r4, 0
-	call console_init
+    ; Initialize console.
+    mov r0, sp
+    ldr r1,  [fb_addr]
+    mov r2, 2560     ; 640 x 4 (size of line in bytes.)
+    mul r2, r2, 352  ; 16 (char height) x 22
+    add r2, r2, r1
+    mov r3, 11
+    mov r4, 0
+    call console_init
 
-	; Print machine name
-	mov r0, sp
-	mov r1, 24
-	mov r2, 0
-	call console_set_cursor
+    ; Print machine name
+    mov r0, sp
+    mov r1, 24
+    mov r2, 0
+    call console_set_cursor
 
-	ldr r1, [gvm_addr]
-	call console_puts
+    ldr r1, [gvm_addr]
+    call console_puts
 
-	; Change text color to white.
-	mov r0, sp
-	mov r1, 15
-	mov r2, 0
-	call console_set_color
+    ; Change text color to white.
+    mov r0, sp
+    mov r1, 15
+    mov r2, 0
+    call console_set_color
 
     ; Print ready sign.
-	mov r1, 0
-	mov r2, 2
-	call console_set_cursor
+    mov r1, 0
+    mov r2, 2
+    call console_set_cursor
     ldr r1, [ready_addr]
-	call console_puts
+    call console_puts
 
-	; Print cursor
+    ; Print cursor
 
-	mov r0, sp
-	mov r1, 0
-	mov r2, 3
-	call console_set_cursor
-	call console_print_cursor
+    mov r0, sp
+    mov r1, 0
+    mov r2, 3
+    call console_set_cursor
+    call console_print_cursor
 
-	; Install our input handler.
-	ldr r0, [user_input_handler_addr]
-	str [input_jump_addr], r0
+    ; Install our input handler.
+    ldr r0, [user_input_handler_addr]
+    str [input_jump_addr], r0
 
-	; Install our display updater.
+    ; Install our display updater.
     ldr r0, [UI_addr]
     str [display_update], r0
 
-	; Set the recurring timer for 60hz. We will call the display_update
-	; handler that many times.
-	mov r0, 60
-	ldr r1, [recurring_reg]
-	str [r1], r0
+    ; Set the recurring timer for 60hz. We will call the display_update
+    ; handler that many times.
+    mov r0, 60
+    ldr r1, [recurring_reg]
+    str [r1], r0
 
-	; Ok, nothing more to do. The recurring timer will take care of updating
-	; everything for us.
+    ; Ok, nothing more to do. The recurring timer will take care of updating
+    ; everything for us.
 loop: wfi
-	  jmp loop
+      jmp loop
 @endf MAIN
 
 ; We wait for a user input and print the value on screen.
 @func USER_INTERFACE:
-	call USER_INTERFACE_getin
-	add r0, r1, 1
-	jne r0, process_input
-	ret
+    call USER_INTERFACE_getin
+    add r0, r1, 1
+    jne r0, process_input
+    ret
 
 process_input:
-	; check if we have a control char. If we do, update ui accordingly and get next
-	; input.
-	call USER_control_chars
-	jeq r0, done
+    ; check if we have a control char. If we do, update ui accordingly and get next
+    ; input.
+    call USER_control_chars
+    jeq r0, done
 
-	; Normal char, print.
-	ldr r0, [console_addr]
-	call console_putc
+    ; Normal char, print.
+    ldr r0, [console_addr]
+    call console_putc
 
-	; Advance cursor.
-	ldr r0, [console_addr]
-	call console_next_cursor
-	call console_print_cursor
+    ; Advance cursor.
+    ldr r0, [console_addr]
+    call console_next_cursor
+    call console_print_cursor
 
 done:
-	mov r0, 1
-	str [should_update], r0
-	ret
+    mov r0, 1
+    str [should_update], r0
+    ret
 @endf USER_INTERFACE
 
 ; ==== USER_control_chars: checks for control chars and updates
 ; UI state accordingling.
 @func USER_control_chars:
-	; Check for backspace.
-	sub r0, r1, 8
-	jeq r0, backspace
+    ; Check for backspace.
+    sub r0, r1, 8
+    jeq r0, backspace
 
-	; Check for carriage return.
-	sub r0, r1, 13
-	jeq r0, enter
-	ret
+    ; Check for carriage return.
+    sub r0, r1, 13
+    jeq r0, enter
+    ret
 
 backspace:
-	; Erase cursor at current position.
-	ldr r0, [console_addr]
-	call console_erase_cursor
-	call console_prev_cursor
-	call console_print_cursor
-	mov r0, 0
-	ret
+    ; Erase cursor at current position.
+    ldr r0, [console_addr]
+    call console_erase_cursor
+    call console_prev_cursor
+    call console_print_cursor
+    mov r0, 0
+    ret
 
 enter:
-	; Erase cursor at current position
-	ldr r0, [console_addr]
-	call console_erase_cursor
-	call console_nextline_cursor
-	call console_print_cursor
-	mov r0, 0
-	ret
+    ; Erase cursor at current position
+    ldr r0, [console_addr]
+    call console_erase_cursor
+    call console_nextline_cursor
+    call console_print_cursor
+    mov r0, 0
+    ret
 
 @endf USER_control_chars
 
@@ -992,18 +992,18 @@ wait_input_value: .int 0xFFFFFFFF
 .section text
 ; ===== UI getc. Pools user input.
 @func USER_INTERFACE_getin:
-	; r1: returns user input value.
+    ; r1: returns user input value.
 
-	; Pool input and return wait_input value if input is not ready.
-	ldr r1, [user_input_value]
-	add r0, r1, 1
-	jeq r0, done
+    ; Pool input and return wait_input value if input is not ready.
+    ldr r1, [user_input_value]
+    add r0, r1, 1
+    jeq r0, done
 
-	; Now set user input to 0 so we don't keep writing stuff over.
-	ldr r0, [wait_input_value]
-	str [user_input_value], r0
+    ; Now set user input to 0 so we don't keep writing stuff over.
+    ldr r0, [wait_input_value]
+    str [user_input_value], r0
 done:
-	ret
+    ret
 @endf USER_INTERFACE_getin
 
 .section data
@@ -1013,10 +1013,10 @@ user_input_handler_addr: .int USER_input_handler
 .section text
 ; This will be called on every input that is not a quit signal.
 USER_input_handler:
-	; The input value will be stored in r0. We just copy it to a user memory
+    ; The input value will be stored in r0. We just copy it to a user memory
     ; location and return. We will deal with the value later.
-	str [user_input_value], r0
-	ret
+    str [user_input_value], r0
+    ret
 
 
 .org 0x1100000
