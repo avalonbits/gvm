@@ -17,6 +17,7 @@ class SDL2VideoDisplay : public VideoDisplay {
 
   void SetFramebufferSize(int fWidth, int fHeight, int bpp) override;
   void CopyBuffer(uint32_t* mem) override;
+  void CopyTextBuffer(uint32_t* mem) override;
   void Render() override;
   bool CheckEvents() override;
 
@@ -24,6 +25,7 @@ class SDL2VideoDisplay : public VideoDisplay {
   SDL_Window* window_;
   SDL_Renderer* renderer_;
   SDL_Texture* texture_;
+  SDL_Texture* text_mode_texture_;
   int maxW_;
   int maxH_;
   int fWidth_;
