@@ -41,5 +41,4 @@ func main() {
 	if err := code.Generate(p.Ast, bufio.NewWriter(out)); err != nil {
 		panic(err)
 	}
-	out.Flush()
 }
