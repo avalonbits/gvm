@@ -36,6 +36,7 @@ class SDL2VideoDisplay : public VideoDisplay {
   int count_;
   uint32_t* text_rom_;
   uint32_t* text_vram_buffer_;
+  uint32_t* text_pixels_;
 };
 
 }  // namespace gvm

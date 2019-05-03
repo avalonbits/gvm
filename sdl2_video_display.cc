@@ -20,6 +20,7 @@ SDL2VideoDisplay::SDL2VideoDisplay(
   // The text buffer is 96x27 chars wide, with each char uisng 4 bytes (2 for
   // char, 1 for fgcolor, 1 for bg color.
   text_vram_buffer_ = new uint32_t[96*27];
+  text_pixels_ = new uint32_t[768*432];
 
   const auto flags = fullscreen
       ? SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_FULLSCREEN
@@ -63,6 +64,7 @@ SDL2VideoDisplay::SDL2VideoDisplay(
 
 SDL2VideoDisplay::~SDL2VideoDisplay() {
   delete [] text_vram_buffer_;
+  delete [] text_pixels_;
   SDL_DestroyTexture(texture_);
   SDL_DestroyRenderer(renderer_);
   SDL_DestroyWindow(window_);
@@ -123,7 +125,18 @@ void SDL2VideoDisplay::GraphicsRender() {
   }
 }
 
+static void renderChar(
+    uint32_t ch, uint32_t fg, uint32_t bg, int vram_pos,
+    uint32_t* vram_pixels) {
+}
+
 void SDL2VideoDisplay::TextRender() {
+  for (int i = 0; i < 96*27; ++i) {
+    const auto ch = text_vram_buffer_[i] & 0xFFFF;
+    const auto fg = (text_vram_buffer_[i] >> 16) & 0xFF;
+    const auto bg = (text_vram_buffer_[i] >> 24) & 0xFF;
+    renderChar(ch, fg, bg, i, text_pixels_);
+  }
 }
 
 bool SDL2VideoDisplay::CheckEvents() {
