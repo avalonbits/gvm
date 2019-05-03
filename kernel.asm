@@ -303,22 +303,262 @@ line:
 ; Text mode supports 16 colors and all functions require a foreground and a
 ; background color.
 text_colors:
-    .int 0xFF000000 ;  0 - Black
-    .int 0xFF000080 ;  1 - Maroon
-    .int 0xFF008000 ;  2 - Green
-    .int 0xFF008080 ;  3 - Olive
-    .int 0xFF800000 ;  4 - Navy
-    .int 0xFF800080 ;  5 - Purple
-    .int 0xFF808000 ;  6 - Teal
-    .int 0xFFC0C0C0 ;  7 - Silver
-    .int 0xFF808080 ;  8 - Grey
-    .int 0xFF0000FF ;  9 - Read
-    .int 0xFF00FF00 ; 10 - Lime
-    .int 0xFF00FFFF ; 11 - Yellow
-    .int 0xFFFF0000 ; 12 - Blue
-    .int 0xFFFF00FF ; 13 - Fuchsia
-    .int 0xFFFFFF00 ; 14 - Aqua
-    .int 0xFFFFFFFF ; 15 - White
+    .int 0xFF000000 ;   0 - Black
+    .int 0xFF000008 ;   1 - Maroon
+    .int 0xFF000800 ;   2 - Green
+    .int 0xFF000808 ;   3 - Olive
+    .int 0xFF080000 ;   4 - Navy
+    .int 0xFF080008 ;   5 - Purple
+    .int 0xFF080800 ;   6 - Teal
+    .int 0xFF0C0C0C ;   7 - Silver
+    .int 0xFF080808 ;   8 - Grey
+    .int 0xFF0000FF ;   9 - Red
+    .int 0xFF00FF00 ;  10 - Lime
+    .int 0xFF00FFFF ;  11 - Yellow
+    .int 0xFFFF0000 ;  12 - Blue
+    .int 0xFFFF00FF ;  13 - Fuchsia
+    .int 0xFFFFFF00 ;  14 - Aqua
+    .int 0xFFFFFFFF ;  15 - White
+    .int 0xFF000000 ;  16 - Grey0
+    .int 0xFFF50000 ;  17 - NavyBlue
+    .int 0xFF780000 ;  18 - DarkBlue
+    .int 0xFFFA0000 ;  19 - Blue3
+    .int 0xFF7D0000 ;  20 - Blue3
+    .int 0xFFFF0000 ;  21 - Blue1
+    .int 0xFF00F500 ;  22 - DarkGreen
+    .int 0xFFF5F500 ;  23 - DeepSkyBlue4
+    .int 0xFF78F500 ;  24 - DeepSkyBlue4
+    .int 0xFFFAF500 ;  25 - DeepSkyBlue4
+    .int 0xFF7DF500 ;  26 - DodgerBlue3
+    .int 0xFFFFF500 ;  27 - DodgerBlue2
+    .int 0xFF007800 ;  28 - Green4
+    .int 0xFFF57800 ;  29 - SpringGreen4
+    .int 0xFF787800 ;  30 - Turquoise4
+    .int 0xFFFA7800 ;  31 - DeepSkyBlue3
+    .int 0xFF7D7800 ;  32 - DeepSkyBlue3
+    .int 0xFFFF7800 ;  33 - DodgerBlue1
+    .int 0xFF00FA00 ;  34 - Green3
+    .int 0xFFF5FA00 ;  35 - SpringGreen3
+    .int 0xFF78FA00 ;  36 - DarkCyan
+    .int 0xFFFAFA00 ;  37 - LightSeaGreen
+    .int 0xFF7DFA00 ;  38 - DeepSkyBlue2
+    .int 0xFFFFFA00 ;  39 - DeepSkyBlue1
+    .int 0xFF007D00 ;  40 - Green3
+    .int 0xFFF57D00 ;  41 - SpringGreen3
+    .int 0xFF787D00 ;  42 - SpringGreen2
+    .int 0xFFFA7D00 ;  43 - Cyan3
+    .int 0xFF7D7D00 ;  44 - DarkTurquoise
+    .int 0xFFFF7D00 ;  45 - Turquoise2
+    .int 0xFF00FF00 ;  46 - Green1
+    .int 0xFFF5FF00 ;  47 - SpringGreen2
+    .int 0xFF78FF00 ;  48 - SpringGreen1
+    .int 0xFFFAFF00 ;  49 - MediumSpringGreen
+    .int 0xFF7DFF00 ;  50 - Cyan2
+    .int 0xFFFFFF00 ;  51 - Cyan1
+    .int 0xFF0000F5 ;  52 - DarkRed
+    .int 0xFFF500F5 ;  53 - DeepPink4
+    .int 0xFF7800F5 ;  54 - Purple4
+    .int 0xFFFA00F5 ;  55 - Purple4
+    .int 0xFF7D00F5 ;  56 - Purple3
+    .int 0xFFFF00F5 ;  57 - BlueViolet
+    .int 0xFF00F5F5 ;  58 - Orange4
+    .int 0xFFF5F5F5 ;  59 - Grey37
+    .int 0xFF78F5F5 ;  60 - MediumPurple4
+    .int 0xFFFAF5F5 ;  61 - SlateBlue3
+    .int 0xFF7DF5F5 ;  62 - SlateBlue3
+    .int 0xFFFFF5F5 ;  63 - RoyalBlue1
+    .int 0xFF0078F5 ;  64 - Chartreuse4
+    .int 0xFFF578F5 ;  65 - DarkSeaGreen4
+    .int 0xFF7878F5 ;  66 - PaleTurquoise4
+    .int 0xFFFA78F5 ;  67 - SteelBlue
+    .int 0xFF7D78F5 ;  68 - SteelBlue3
+    .int 0xFFFF78F5 ;  69 - CornflowerBlue
+    .int 0xFF00FAF5 ;  70 - Chartreuse3
+    .int 0xFFF5FAF5 ;  71 - DarkSeaGreen4
+    .int 0xFF78FAF5 ;  72 - CadetBlue
+    .int 0xFFFAFAF5 ;  73 - CadetBlue
+    .int 0xFF7DFAF5 ;  74 - SkyBlue3
+    .int 0xFFFFFAF5 ;  75 - SteelBlue1
+    .int 0xFF007DF5 ;  76 - Chartreuse3
+    .int 0xFFF57DF5 ;  77 - PaleGreen3
+    .int 0xFF787DF5 ;  78 - SeaGreen3
+    .int 0xFFFA7DF5 ;  79 - Aquamarine3
+    .int 0xFF7D7DF5 ;  80 - MediumTurquoise
+    .int 0xFFFF7DF5 ;  81 - SteelBlue1
+    .int 0xFF00FFF5 ;  82 - Chartreuse2
+    .int 0xFFF5FFF5 ;  83 - SeaGreen2
+    .int 0xFF78FFF5 ;  84 - SeaGreen1
+    .int 0xFFFAFFF5 ;  85 - SeaGreen1
+    .int 0xFF7DFFF5 ;  86 - Aquamarine1
+    .int 0xFFFFFFF5 ;  87 - DarkSlateGray2
+    .int 0xFF000078 ;  88 - DarkRed
+    .int 0xFFF50078 ;  89 - DeepPink4
+    .int 0xFF780078 ;  90 - DarkMagenta
+    .int 0xFFFA0078 ;  91 - DarkMagenta
+    .int 0xFF7D0078 ;  92 - DarkViolet
+    .int 0xFFFF0078 ;  93 - Purple
+    .int 0xFF00F578 ;  94 - Orange4
+    .int 0xFFF5F578 ;  95 - LightPink4
+    .int 0xFF78F578 ;  96 - Plum4
+    .int 0xFFFAF578 ;  97 - MediumPurple3
+    .int 0xFF7DF578 ;  98 - MediumPurple3
+    .int 0xFFFFF578 ;  99 - SlateBlue1
+    .int 0xFF007878 ; 100 - Yellow4
+    .int 0xFFF57878 ; 101 - Wheat4
+    .int 0xFF787878 ; 102 - Grey53
+    .int 0xFFFA7878 ; 103 - LightSlateGrey
+    .int 0xFF7D7878 ; 104 - MediumPurple
+    .int 0xFFFF7878 ; 105 - LightSlateBlue
+    .int 0xFF00FA78 ; 106 - Yellow4
+    .int 0xFFF5FA78 ; 107 - DarkOliveGreen3
+    .int 0xFF78FA78 ; 108 - DarkSeaGreen
+    .int 0xFFFAFA78 ; 109 - LightSkyBlue3
+    .int 0xFF7DFA78 ; 110 - LightSkyBlue3
+    .int 0xFFFFFA78 ; 111 - SkyBlue2
+    .int 0xFF007D78 ; 112 - Chartreuse2
+    .int 0xFFF57D78 ; 113 - DarkOliveGreen3
+    .int 0xFF787D78 ; 114 - PaleGreen3
+    .int 0xFFFA7D78 ; 115 - DarkSeaGreen3
+    .int 0xFF7D7D78 ; 116 - DarkSlateGray3
+    .int 0xFFFF7D78 ; 117 - SkyBlue1
+    .int 0xFF00FF78 ; 118 - Chartreuse1
+    .int 0xFFF5FF78 ; 119 - LightGreen
+    .int 0xFF78FF78 ; 120 - LightGreen
+    .int 0xFFFAFF78 ; 121 - PaleGreen1
+    .int 0xFF7DFF78 ; 122 - Aquamarine1
+    .int 0xFFFFFF78 ; 123 - DarkSlateGray1
+    .int 0xFF0000FA ; 124 - Red3
+    .int 0xFFF500FA ; 125 - DeepPink4
+    .int 0xFF7800FA ; 126 - MediumVioletRed
+    .int 0xFFFA00FA ; 127 - Magenta3
+    .int 0xFF7D00FA ; 128 - DarkViolet
+    .int 0xFFFF00FA ; 129 - Purple
+    .int 0xFF00F5FA ; 130 - DarkOrange3
+    .int 0xFFF5F5FA ; 131 - IndianRed
+    .int 0xFF78F5FA ; 132 - HotPink3
+    .int 0xFFFAF5FA ; 133 - MediumOrchid3
+    .int 0xFF7DF5FA ; 134 - MediumOrchid
+    .int 0xFFFFF5FA ; 135 - MediumPurple2
+    .int 0xFF0078FA ; 136 - DarkGoldenrod
+    .int 0xFFF578FA ; 137 - LightSalmon3
+    .int 0xFF7878FA ; 138 - RosyBrown
+    .int 0xFFFA78FA ; 139 - Grey63
+    .int 0xFF7D78FA ; 140 - MediumPurple2
+    .int 0xFFFF78FA ; 141 - MediumPurple1
+    .int 0xFF00FAFA ; 142 - Gold3
+    .int 0xFFF5FAFA ; 143 - DarkKhaki
+    .int 0xFF78FAFA ; 144 - NavajoWhite3
+    .int 0xFFFAFAFA ; 145 - Grey69
+    .int 0xFF7DFAFA ; 146 - LightSteelBlue3
+    .int 0xFFFFFAFA ; 147 - LightSteelBlue
+    .int 0xFF007DFA ; 148 - Yellow3
+    .int 0xFFF57DFA ; 149 - DarkOliveGreen3
+    .int 0xFF787DFA ; 150 - DarkSeaGreen3
+    .int 0xFFFA7DFA ; 151 - DarkSeaGreen2
+    .int 0xFF7D7DFA ; 152 - LightCyan3
+    .int 0xFFFF7DFA ; 153 - LightSkyBlue1
+    .int 0xFF00FFFA ; 154 - GreenYellow
+    .int 0xFFF5FFFA ; 155 - DarkOliveGreen2
+    .int 0xFF78FFFA ; 156 - PaleGreen1
+    .int 0xFFFAFFFA ; 157 - DarkSeaGreen2
+    .int 0xFF7DFFFA ; 158 - DarkSeaGreen1
+    .int 0xFFFFFFFA ; 159 - PaleTurquoise1
+    .int 0xFF00007D ; 160 - Red3
+    .int 0xFFF5007D ; 161 - DeepPink3
+    .int 0xFF78007D ; 162 - DeepPink3
+    .int 0xFFFA007D ; 163 - Magenta3
+    .int 0xFF7D007D ; 164 - Magenta3
+    .int 0xFFFF007D ; 165 - Magenta2
+    .int 0xFF00F57D ; 166 - DarkOrange3
+    .int 0xFFF5F57D ; 167 - IndianRed
+    .int 0xFF78F57D ; 168 - HotPink3
+    .int 0xFFFAF57D ; 169 - HotPink2
+    .int 0xFF7DF57D ; 170 - Orchid
+    .int 0xFFFFF57D ; 171 - MediumOrchid1
+    .int 0xFF00787D ; 172 - Orange3
+    .int 0xFFF5787D ; 173 - LightSalmon3
+    .int 0xFF78787D ; 174 - LightPink3
+    .int 0xFFFA787D ; 175 - Pink3
+    .int 0xFF7D787D ; 176 - Plum3
+    .int 0xFFFF787D ; 177 - Violet
+    .int 0xFF00FA7D ; 178 - Gold3
+    .int 0xFFF5FA7D ; 179 - LightGoldenrod3
+    .int 0xFF78FA7D ; 180 - Tan
+    .int 0xFFFAFA7D ; 181 - MistyRose3
+    .int 0xFF7DFA7D ; 182 - Thistle3
+    .int 0xFFFFFA7D ; 183 - Plum2
+    .int 0xFF007D7D ; 184 - Yellow3
+    .int 0xFFF57D7D ; 185 - Khaki3
+    .int 0xFF787D7D ; 186 - LightGoldenrod2
+    .int 0xFFFA7D7D ; 187 - LightYellow3
+    .int 0xFF7D7D7D ; 188 - Grey84
+    .int 0xFFFF7D7D ; 189 - LightSteelBlue1
+    .int 0xFF00FF7D ; 190 - Yellow2
+    .int 0xFFF5FF7D ; 191 - DarkOliveGreen1
+    .int 0xFF78FF7D ; 192 - DarkOliveGreen1
+    .int 0xFFFAFF7D ; 193 - DarkSeaGreen1
+    .int 0xFF7DFF7D ; 194 - Honeydew2
+    .int 0xFFFFFF7D ; 195 - LightCyan1
+    .int 0xFF0000FF ; 196 - Red1
+    .int 0xFFF500FF ; 197 - DeepPink2
+    .int 0xFF7800FF ; 198 - DeepPink1
+    .int 0xFFFA00FF ; 199 - DeepPink1
+    .int 0xFF7D00FF ; 200 - Magenta2
+    .int 0xFFFF00FF ; 201 - Magenta1
+    .int 0xFF00F5FF ; 202 - OrangeRed1
+    .int 0xFFF5F5FF ; 203 - IndianRed1
+    .int 0xFF78F5FF ; 204 - IndianRed1
+    .int 0xFFFAF5FF ; 205 - HotPink
+    .int 0xFF7DF5FF ; 206 - HotPink
+    .int 0xFFFFF5FF ; 207 - MediumOrchid1
+    .int 0xFF0078FF ; 208 - DarkOrange
+    .int 0xFFF578FF ; 209 - Salmon1
+    .int 0xFF7878FF ; 210 - LightCoral
+    .int 0xFFFA78FF ; 211 - PaleVioletRed1
+    .int 0xFF7D78FF ; 212 - Orchid2
+    .int 0xFFFF78FF ; 213 - Orchid1
+    .int 0xFF00FAFF ; 214 - Orange1
+    .int 0xFFF5FAFF ; 215 - SandyBrown
+    .int 0xFF78FAFF ; 216 - LightSalmon1
+    .int 0xFFFAFAFF ; 217 - LightPink1
+    .int 0xFF7DFAFF ; 218 - Pink1
+    .int 0xFFFFFAFF ; 219 - Plum1
+    .int 0xFF007DFF ; 220 - Gold1
+    .int 0xFFF57DFF ; 221 - LightGoldenrod2
+    .int 0xFF787DFF ; 222 - LightGoldenrod2
+    .int 0xFFFA7DFF ; 223 - NavajoWhite1
+    .int 0xFF7D7DFF ; 224 - MistyRose1
+    .int 0xFFFF7DFF ; 225 - Thistle1
+    .int 0xFF00FFFF ; 226 - Yellow1
+    .int 0xFFF5FFFF ; 227 - LightGoldenrod1
+    .int 0xFF78FFFF ; 228 - Khaki1
+    .int 0xFFFAFFFF ; 229 - Wheat1
+    .int 0xFF7DFFFF ; 230 - Cornsilk1
+    .int 0xFFFFFFFF ; 231 - Grey100
+    .int 0xFF808080 ; 232 - Grey3
+    .int 0xFF212121 ; 233 - Grey7
+    .int 0xFFC1C1C1 ; 234 - Grey11
+    .int 0xFF626262 ; 235 - Grey15
+    .int 0xFF030303 ; 236 - Grey19
+    .int 0xFFA3A3A3 ; 237 - Grey23
+    .int 0xFF444444 ; 238 - Grey27
+    .int 0xFFE4E4E4 ; 239 - Grey30
+    .int 0xFF858585 ; 240 - Grey35
+    .int 0xFF262626 ; 241 - Grey39
+    .int 0xFFC6C6C6 ; 242 - Grey42
+    .int 0xFF676767 ; 243 - Grey46
+    .int 0xFF080808 ; 244 - Grey50
+    .int 0xFFA8A8A8 ; 245 - Grey54
+    .int 0xFF494949 ; 246 - Grey58
+    .int 0xFFE9E9E9 ; 247 - Grey62
+    .int 0xFF8A8A8A ; 248 - Grey66
+    .int 0xFF2B2B2B ; 249 - Grey70
+    .int 0xFFCBCBCB ; 250 - Grey74
+    .int 0xFF6C6C6C ; 251 - Grey78
+    .int 0xFF0D0D0D ; 252 - Grey82
+    .int 0xFFADADAD ; 253 - Grey85
+    .int 0xFF4E4E4E ; 254 - Grey89
+    .int 0xFFEEEEEE ; 255 - Grey93
 
 text_colors_addr: .int text_colors
 
@@ -693,18 +933,18 @@ done:
 @endf console_set_cursor
 
 @func console_set_color:
-    ; if fcolor < 0 || > 15, set it to 15.
+    ; if fcolor < 0 || > 255 set it to 15
     jlt r1, set_15
-    sub r21, r1, 15
+    sub r21, r1, 255
     jle r21, bcolor
 
 set_15:
     mov r1,15
 
 bcolor:
-    ; if bcolor < 0 || bcolor > 15, set it to 0
+    ; if bcolor < 0 || bcolor > 255, set it to 0
     jlt r2, set_z
-    sub r21, r2, 15
+    sub r21, r2, 255
     jle r21, done
 
 set_z:
@@ -887,7 +1127,7 @@ fb_addr: .int frame_buffer
 
     ; Change text color to white.
     mov r0, sp
-    mov r1, 15
+    mov r1, 36
     mov r2, 0
     call console_set_color
 
