@@ -17,6 +17,10 @@ SDL2VideoDisplay::SDL2VideoDisplay(
     int width, int height, const bool fullscreen, const std::string force_driver)
   : texture_(nullptr) {
 
+  // The text buffer is 96x27 chars wide, with each char uisng 4 bytes (2 for
+  // char, 1 for fgcolor, 1 for bg color.
+  text_vram_buffer_ = new uint32_t[96*27];
+
   const auto flags = fullscreen
       ? SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_FULLSCREEN
       : SDL_WINDOW_ALLOW_HIGHDPI;
@@ -58,6 +62,7 @@ SDL2VideoDisplay::SDL2VideoDisplay(
 }
 
 SDL2VideoDisplay::~SDL2VideoDisplay() {
+  delete [] text_vram_buffer_;
   SDL_DestroyTexture(texture_);
   SDL_DestroyRenderer(renderer_);
   SDL_DestroyWindow(window_);
@@ -74,31 +79,51 @@ void SDL2VideoDisplay::SetFramebufferSize(int fWidth, int fHeight, int bpp) {
   texture_ = SDL_CreateTexture(
       renderer_, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, fWidth, fHeight);
   assert(texture_ != nullptr);
+  text_texture_ = SDL_CreateTexture(
+      renderer_, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, 768, 432);
+  assert(text_texture_ != nullptr);
 }
 
-void SDL2VideoDisplay::CopyBuffer(uint32_t* mem) {
-  int pitch;
-  void* pixels = nullptr;
-  if (SDL_LockTexture(texture_,  nullptr, &pixels, &pitch) != 0) {
-    std::cerr << SDL_GetError() << "\n";
-    assert(false);
+void SDL2VideoDisplay::CopyBuffer(uint32_t* mem, uint32_t mode) {
+  if (mode == 1) {
+    int pitch;
+    void* pixels = nullptr;
+    if (SDL_LockTexture(texture_,  nullptr, &pixels, &pitch) != 0) {
+      std::cerr << SDL_GetError() << "\n";
+      assert(false);
+    }
+    assert(pixels != nullptr);
+    std::memcpy(pixels, mem, pitch * fHeight_);
+    SDL_UnlockTexture(texture_);
+  } else if (mode == 2) {
+    std::memcpy(text_vram_buffer_, mem, sizeof(uint32_t)*96*27);
   }
-  assert(pixels != nullptr);
-  std::memcpy(pixels, mem, pitch * fHeight_);
-  SDL_UnlockTexture(texture_);
 }
 
-void SDL2VideoDisplay::Render() {
+void SDL2VideoDisplay::Render(uint32_t mode) {
   if (SDL_RenderClear(renderer_) != 0) {
     std::cerr << "RendererClear: " << SDL_GetError() << std::endl;
   }
+
+  if (mode == 1) {
+    GraphicsRender();
+  } else if (mode == 2) {
+    TextRender();
+  }
+
+  SDL_RenderPresent(renderer_);
+}
+
+void SDL2VideoDisplay::GraphicsRender() {
   if (SDL_RenderCopy(renderer_, texture_, nullptr, nullptr) != 0) {
     if (count_ % 20000 == 0) {
       std::cerr << "RenderCopy: " << SDL_GetError() << std::endl;
     }
     ++count_;
   }
-  SDL_RenderPresent(renderer_);
+}
+
+void SDL2VideoDisplay::TextRender() {
 }
 
 bool SDL2VideoDisplay::CheckEvents() {
