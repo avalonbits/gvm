@@ -180,6 +180,23 @@ void SDL2VideoDisplay::TextRender() {
       renderChar(ch, fg, bg, x, y, text_pixels_);
     }
   }
+
+  int pitch;
+  void* pixels = nullptr;
+  if (SDL_LockTexture(text_texture_,  nullptr, &pixels, &pitch) != 0) {
+    std::cerr << SDL_GetError() << "\n";
+    assert(false);
+  }
+  assert(pixels != nullptr);
+  std::memcpy(pixels, text_pixels_, pitch * 432);
+  SDL_UnlockTexture(text_texture_);
+
+  if (SDL_RenderCopy(renderer_, text_texture_, nullptr, nullptr) != 0) {
+    if (count_ % 20000 == 0) {
+      std::cerr << "RenderCopy: " << SDL_GetError() << std::endl;
+    }
+    ++count_;
+  }
 }
 
 bool SDL2VideoDisplay::CheckEvents() {
