@@ -5,6 +5,8 @@
 #include <iostream>
 
 namespace {
+
+// XTerm 256 color palette.
 static const uint32_t kColorTable[256] = {
 	0xFF000000, 0xFF000008, 0xFF000800, 0xFF000808, 0xFF080000, 0xFF080008, 0xFF080800, 0xFF0C0C0C, 
 	0xFF080808, 0xFF0000FF, 0xFF00FF00, 0xFF00FFFF, 0xFFFF0000, 0xFFFF00FF, 0xFFFFFF00, 0xFFFFFFFF, 
@@ -163,16 +165,20 @@ void SDL2VideoDisplay::GraphicsRender() {
 }
 
 static void renderChar(
-    uint32_t ch, uint32_t fg, uint32_t bg, int vram_pos,
+    uint32_t ch, uint32_t fg, uint32_t bg, int x, int y,
     uint32_t* vram_pixels) {
+
 }
 
 void SDL2VideoDisplay::TextRender() {
-  for (int i = 0; i < 96*27; ++i) {
-    const auto ch = text_vram_buffer_[i] & 0xFFFF;
-    const auto fg = kColorTable[(text_vram_buffer_[i] >> 16) & 0xFF];
-    const auto bg = kColorTable[(text_vram_buffer_[i] >> 24) & 0xFF];
-    renderChar(ch, fg, bg, i, text_pixels_);
+  for (int y = 0; y < 27; ++y) {
+    for (int x = 0; x < 96; ++x) {
+      const auto i = y*27 + x*96;
+      const auto ch = text_vram_buffer_[i] & 0xFFFF;
+      const auto fg = kColorTable[(text_vram_buffer_[i] >> 16) & 0xFF];
+      const auto bg = kColorTable[(text_vram_buffer_[i] >> 24) & 0xFF];
+      renderChar(ch, fg, bg, x, y, text_pixels_);
+    }
   }
 }
 
