@@ -730,9 +730,9 @@ background_color:
     ; r6: framebuffer start.
 
 	; We calculate position in framebuffer using the formula
-	; pos(x,y) x*4 + fb_addr + y * 96 * 4 * 16
+	; pos(x,y) x*4 + fb_addr + y * 96 * 4
 	lsl r2, r2, 2
-	lsl r3, r3, 11
+	lsl r3, r3, 7
 	mul r3, r3, 3
 	add r6, r6, r2
 	add r6, r6, r3
