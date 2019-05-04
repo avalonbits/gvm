@@ -105,7 +105,7 @@ SDL2VideoDisplay::~SDL2VideoDisplay() {
   delete [] text_vram_buffer_;
   delete [] text_pixels_;
   SDL_DestroyTexture(texture_);
-  SDL_DestroyTexture(text_mode_texture_);
+  SDL_DestroyTexture(text_texture_);
   SDL_DestroyRenderer(renderer_);
   SDL_DestroyWindow(window_);
   SDL_Quit();
@@ -139,27 +139,6 @@ void SDL2VideoDisplay::CopyBuffer(uint32_t* mem, uint32_t mode) {
     SDL_UnlockTexture(texture_);
   } else if (mode == 2) {
     std::memcpy(text_vram_buffer_, mem, sizeof(uint32_t)*96*27);
-  }
-}
-
-static void char2pixels(uint32_t* pixel, const uint32_t* from) {
-}
-
-void SDL2VideoDisplay::CopyTextBuffer(uint32_t* mem) {
-  // Characters are 8x16 fixed size. That means for 768x432 pixels, we get 96x27 characters.
-  // Each character requires 32 bits (4 bytes): 16 bits for char, 8 bits for foreground
-  // color and 8 bits for background color.
-
-  const uint32_t buf_size = 768*432;
-  std::unique_ptr<uint32_t> pixels(new uint32_t[buf_size]);
-  const uint32_t tbuf_xsize = 96;
-  const uint32_t tbuf_ysize = 27;
-  for (uint32_t y = 0; y < tbuf_ysize; ++y) {
-    for (uint32_t x = 0; x < tbuf_xsize; ++x) {
-      const uint32_t* from = &mem[y * tbuf_xsize + x];
-      uint32_t* to = &pixels.get()[x*8 + y*16*768];
-      char2pixels(to, from);
-    }
   }
 }
 
