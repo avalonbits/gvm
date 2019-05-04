@@ -189,7 +189,7 @@ memcpy32:
     ret
 
 .section data
-  .equ kLineLength 2560
+ 	.equ kLineLength 2560 ; 640 * 4
 
 .section text
 
@@ -564,6 +564,65 @@ text_colors_addr: .int text_colors
 
 .section text
 
+; ==== TextPutS: Prints a string on the screen in text mode.
+@func text_puts:
+    ; r1: Address to string start.
+    ; r2: x-pos start.
+    ; r3: y-pos start.
+    ; r4: foreground color.
+    ; r5: background color.
+    ; r6: frame buffer address.
+
+    ; We copy the start addres to r1 because we will use r1 as the actual
+    ; char value to print with putc.
+    mov r20, r1
+
+loop:
+    ; Chars in string are 16-bit wide. So we need to AND and shift.
+    ldr r22, [r20]
+    and r1, r22, 0xFFFF
+    jeq r1, done
+
+    ; Save context in stack before calling putc.
+    stppi [sp, -8], r2, r3
+    stppi [sp, -8], r4, r5
+    strpi [sp, -4], r6
+    call text_putc
+
+    ; Restore context.
+    ldrip r6, [sp, 4]
+    ldpip r4, r5, [sp, 8]
+    ldpip r2, r3, [sp, 8]
+
+    ; Update (x,y)
+    call incxy
+
+    ; Next char in same word
+    lsr r1, r22, 16
+    jeq r1, done
+
+    stppi [sp, -8], r2, r3
+    stppi [sp, -8], r4, r5
+    strpi [sp, -4], r6
+
+    call text_putc
+
+    ldrip r6, [sp, 4]
+    ldpip r4, r5, [sp, 8]
+    ldpip r2, r3, [sp, 8]
+
+    ; Update (x,y)
+    call incxy
+
+    ; Advance to next string word.
+    add r20, r20, 4
+    jmp loop
+
+done:
+    ret
+@endf text_puts
+
+
 ; ==== PutS: Prints a string on the screen.
 @func puts:
     ; r1: Address to string start.
@@ -629,7 +688,7 @@ done:
     ; r2: x-pos
     ; r3: y-pos
     add r2, r2, 1
-    sub r21, r2, 80
+    sub r21, r2, 96
     jne r21, done
 
     mov r2, 0
@@ -660,6 +719,37 @@ background_color:
     lsr r1, r1, 1
     ret
 @endf wpixel
+
+; ==== TextPutC: Prints a charcater on the screen in text mode.
+@func text_putc:
+    ; r1: Character unicode value
+    ; r2: x-pos
+    ; r3: y-pos
+    ; r4: foreground color
+    ; r5: background color
+    ; r6: framebuffer start.
+
+	; We calculate position in framebuffer using the formula
+	; pos(x,y) x*4 + fb_addr + y * 96 * 4 * 16
+	lsl r2, r2, 2
+	lsl r3, r3, 11
+	mul r3, r3, 3
+	add r6, r6, r2
+	add r6, r6, r3
+
+	; In text mode, we write a word with 2 bytes for char, 1 byte for fcolor
+	; and 1 byte for bcolor. char is in r1, so we just need to write the colors.
+	and r4, r4, 0xFF
+	lsl r4, r4, 16
+	orr r1, r1, r4
+
+	and r5, r5, 0xFF;
+	lsl r5, r5, 24
+	orr r1, r1, r5
+
+	str [r6], r1
+	ret
+@endf text_putc
 
 ; ==== PutC: Prints a character on the screen.
 @func putc:
@@ -869,7 +959,7 @@ loop:
 
 @func console_init:
     ; r0: ptr to start of console
-    ; r1: ptr to start of frame buffe
+    ; r1: ptr to start of frame buffer
     ; r2: ptr to last line of frame buffer
     ; r3: fcolor
     ; r4: bcolor
@@ -895,39 +985,42 @@ loop:
     jge r3, copy_top_bottom
 
 copy_top_bottom:
-	; Before we copy, we need to wait for video to be ready.
-	call wait_video
-
     lsr r3, r3, 2
     ldr r1, [vram_start]
     ldri r2, [r0, sbuf_sline]
+
+	; Before we copy, we need to wait for video to be ready.
+	call wait_video
     call memcpy32
-	mov r26, 1
+
+	; Flush using text mode.
+	mov r26, 2
     call flush_video
+
     ret
 @endf console_flush
 
 @func console_set_cursor:
     ; if x < 0, set it to 0.
-    jge r1, x_79
+    jge r1, x_95
     mov r1, rZ
 
-x_79:
-    ; if x >= 80, set it to 79
-    sub r3, r1, 80
+x_95:
+    ; if x >= 96, set it to 95
+    sub r3, r1, 96
     jlt r3, y
-    mov r3, 79
+    mov r3, 95
 
 y:
     ; if y < 0, set it to 0
-    jge r2, y_21
+    jge r2, y_26
     mov r2, rZ
 
-y_21:
-    ; if y >= 22, set it to 21
-    sub r3, r2, 22
+y_26:
+    ; if y >= 27, set it to 26
+    sub r3, r2, 27
     jlt r3, done
-    mov r2, 21
+    mov r2, 26
 
 done:
     stri [r0, console_cursor_x], r1
@@ -965,7 +1058,8 @@ done:
     ldri r4, [r0, console_fcolor]
     ldri r5, [r0, console_bcolor]
     ldr r6, [fb_addr]
-    call putc
+
+	call text_putc
     ret
 @endf console_putc
 
@@ -975,7 +1069,7 @@ done:
     ldri r4, [r0, console_fcolor]
     ldri r5, [r0, console_bcolor]
     ldr r6, [fb_addr]
-    call puts
+    call text_puts
     ret
 @endf console_puts
 
@@ -986,34 +1080,30 @@ done:
     ldri r4, [r0, console_fcolor]
     ldri r5, [r0, console_bcolor]
     ldr r6, [fb_addr]
-    call putc
+    call text_putc
     ret
 @endf console_print_cursor
 
 @func console_erase_cursor:
-    ldri r1, [r0, console_cursor_x]
-    ldri r2, [r0, console_cursor_y]
-    ldri r3, [r0, console_bcolor]
-
-    ; Convert color number to color value.
-    ldr r4, [text_colors_addr]
-    lsl r3, r3, 2
-    ldri r3, [r4, r3]
-
-    ldr r4, [fb_addr]
-    call fill816
+	mov r1, rZ
+    ldri r2, [r0, console_cursor_x]
+    ldri r3, [r0, console_cursor_y]
+    ldri r4, [r0, console_bcolor]
+	ldri r5, [r0, console_bcolor]
+	ldr r6, [fb_addr]
+    call text_putc
     ret
 @endf console_erase_cursor
 
 @func console_next_cursor:
     ldri r1, [r0, console_cursor_x]
     add r1, r1, 1
-    sub r2, r1, 80
+    sub r2, r1, 96
     jne r2, done
 
     mov r1, rZ
     ldri r2, [r0, console_cursor_y]
-    sub r3, r2, 21
+    sub r3, r2, 27
     jne r3, done_all
 
     strpi [sp, -4], r1
@@ -1033,7 +1123,7 @@ done:
 @func console_nextline_cursor:
     mov r1, rZ
     ldri r2, [r0, console_cursor_y]
-    sub r3, r2, 21
+    sub r3, r2, 27
     jne r3, done_all
 
     strpi [sp, -4], r1
@@ -1052,8 +1142,7 @@ done:
 
 @func console_scroll_up:
     ldri r1, [r0, sbuf_sline]
-    mov r2, 2560
-    lsl r2, r2, 4
+    mov r2, 6144
     add r2, r2, r1
     ldri r3, [r0, sbuf_eline]
     sub r3, r3, r2
@@ -1066,7 +1155,7 @@ done:
     ldri r1, [r0, console_cursor_x]
     sub r1, r1, 1
     jge r1, done
-    mov r1, 79
+    mov r1, 95
 
     ldri r2, [r0, console_cursor_y]
     sub r2, r2, 1
@@ -1081,15 +1170,6 @@ done:
     stri [r0, console_cursor_x], r1
     ret
 @endf console_prev_cursor
-
-@func console_up_cursor:
-    ldri r2, [r0, console_cursor_y]
-    sub r2, r2, 1
-    jlt r2, done
-    stri [r0, console_cursor_y], r2
-done:
-    ret
-@endf console_up_cursor
 
 
 .section data
@@ -1112,8 +1192,8 @@ fb_addr: .int frame_buffer
     ; Initialize console.
     mov r0, sp
     ldr r1,  [fb_addr]
-    mov r2, 2560     ; 640 x 4 (size of line in bytes.)
-    mul r2, r2, 352  ; 16 (char height) x 22
+    mov r2, 384      ; 96 x 4 (size of text line in bytes.)
+    mul r2, r2, 432  ; 16 (char height) x 27
     add r2, r2, r1
     mov r3, 11
     mov r4, 0
