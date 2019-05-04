@@ -820,9 +820,8 @@ loop:
 ; ==== FlushVideo: tells the video controller that it can copy the framebuffer
 ; to its own memory.
 @func flush_video:
-    ldr r0, [vram_reg]
-    mov r1, 1
-    str [r0], r1
+    ldr r27, [vram_reg]
+    str [r27], r26
     ret
 @endf flush_video
 
@@ -903,6 +902,7 @@ copy_top_bottom:
     ldr r1, [vram_start]
     ldri r2, [r0, sbuf_sline]
     call memcpy32
+	mov r26, 1
     call flush_video
     ret
 @endf console_flush
