@@ -1179,7 +1179,7 @@ ready: .str "READY."
 ready_addr: .int ready
 recurring_reg: .int 0x1200010
 UI_addr: .int USER_INTERFACE
-frame_buffer: .array 921600
+frame_buffer: .array 10368
 fb_addr: .int frame_buffer
 
 .section text
@@ -1192,8 +1192,8 @@ fb_addr: .int frame_buffer
     ; Initialize console.
     mov r0, sp
     ldr r1,  [fb_addr]
-    mov r2, 384      ; 96 x 4 (size of text line in bytes.)
-    mul r2, r2, 432  ; 16 (char height) x 27
+    mov r2, 384    ; 96 x 4 (size of text line in bytes.)
+    mul r2, r2, 27 ; 27 (number of lines)
     add r2, r2, r1
     mov r3, 11
     mov r4, 0
