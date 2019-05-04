@@ -773,7 +773,7 @@ background_color:
     ; need to add 31.
     add r2, r2, 31
 
-    ; Translate colors 0-15 to their RGBA values by multiplying the value by 4
+    ; Translate colors 0-255 to their RGBA values by multiplying the value by 4
     ; and then summing it with the start of the color table.
     ldr r0, [text_colors_addr]
     lsl r4, r4, 2

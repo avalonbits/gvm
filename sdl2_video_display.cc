@@ -170,13 +170,12 @@ static void renderChar(
     const uint32_t line_size = 768;
     const uint32_t char_width = 8;
     uint32_t* char_word = &text_rom[ch << 2];
-    uint32_t idx = y * line_size * 16 + x * char_width;
+    uint32_t idx = y * line_size * 16 + x * char_width - line_size;
     for (int w = 0; w < 4; ++w) {
         uint32_t word = char_word[w];
         for (uint32_t i = 0; i < sizeof(uint32_t)*char_width; ++i) {
             if (i % 8 == 0) {
-                idx += 8;
-                if (i != 0) idx += line_size;
+                idx += line_size + char_width;
             }
             auto c = (word >> i) & 0x01;
             vram_pixels[--idx] = c == 0 ? bg : fg;
