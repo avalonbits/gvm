@@ -829,9 +829,9 @@ loop:
 ; ==== WaitVideo: waits for the video controller to signal that the framebuffer
 ; available for writing.
 @func wait_video:
-    ldr r0, [vram_reg]
-    ldr r0, [r0]
-    jne r0, wait_video
+    ldr r27, [vram_reg]
+    ldr r27, [r27]
+    jne r27, wait_video
     ret
 @endf wait_video
 
@@ -896,6 +896,9 @@ loop:
     jge r3, copy_top_bottom
 
 copy_top_bottom:
+	; Before we copy, we need to wait for video to be ready.
+	call wait_video
+
     lsr r3, r3, 2
     ldr r1, [vram_start]
     ldri r2, [r0, sbuf_sline]
