@@ -178,7 +178,7 @@ static void renderChar(
             if (i != 0 && i % 8 == 0) {
                 idx += (line_size - char_width);
             }
-            auto c = word & 0x01;
+            auto c = (word >> i) & 0x01;
             vram_pixels[idx++] = c == 0 ? bg : fg;
         }
     }
