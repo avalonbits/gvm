@@ -38,7 +38,7 @@ Computer::Computer(CPU* cpu, VideoController* video_controller)
   assert(mem_ != nullptr);
   assert(cpu_ != nullptr);
   assert(video_controller_ != nullptr);
-  memset(mem_.get(), 0, mem_size_bytes_);
+  memset(mem_.get(), 0x0, mem_size_bytes_);
   video_controller_->SetInputController(new InputController(
       [this](uint32_t value) {
     mem_.get()[kInputReg/kWordSize] = value;

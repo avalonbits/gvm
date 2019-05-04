@@ -117,7 +117,6 @@ void SDL2VideoDisplay::SetFramebufferSize(int fWidth, int fHeight, int bpp) {
   assert(bpp == 32);
   fWidth_ = fWidth;
   fHeight_ = fHeight;
-
   texture_ = SDL_CreateTexture(
       renderer_, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, fWidth, fHeight);
   assert(texture_ != nullptr);
@@ -174,13 +173,13 @@ static void renderChar(
     uint32_t idx = y * line_size * 16 + x * char_width;
     for (int w = 0; w < 4; ++w) {
         uint32_t word = char_word[w];
-        idx += 8;
-        for (uint32_t i = 0; i < sizeof(uint32_t)*8; ++i) {
-            if (i != 0 && i % 8 == 0) {
-                idx += line_size + 8;
+        for (uint32_t i = 0; i < sizeof(uint32_t)*char_width; ++i) {
+            if (i % 8 == 0) {
+                idx += 8;
+                if (i != 0) idx += line_size;
             }
             auto c = (word >> i) & 0x01;
-            vram_pixels[idx--] = c == 0 ? bg : fg;
+            vram_pixels[--idx] = c == 0 ? bg : fg;
         }
     }
 }
