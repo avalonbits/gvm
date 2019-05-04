@@ -167,18 +167,31 @@ void SDL2VideoDisplay::GraphicsRender() {
 
 static void renderChar(
     uint32_t ch, uint32_t fg, uint32_t bg, int x, int y,
-    uint32_t* vram_pixels) {
-
+    uint32_t* text_rom,  uint32_t* vram_pixels) {
+    const uint32_t line_size = 768;
+    const uint32_t char_width = 8;
+    uint32_t* char_word = &text_rom[ch << 2];
+    uint32_t idx = y * line_size * 16 + x * char_width;
+    for (int w = 0; w < 4; ++w) {
+        uint32_t word = char_word[w];
+        for (uint32_t i = 0; i < sizeof(uint32_t)*8; ++i) {
+            if (i != 0 && i % 8 == 0) {
+                idx += (line_size - char_width);
+            }
+            auto c = word & 0x01;
+            vram_pixels[idx++] = c == 0 ? bg : fg;
+        }
+    }
 }
 
 void SDL2VideoDisplay::TextRender() {
   for (int y = 0; y < 27; ++y) {
     for (int x = 0; x < 96; ++x) {
-      const auto i = y*27 + x*96;
+      const auto i = y*96 + x;
       const auto ch = text_vram_buffer_[i] & 0xFFFF;
       const auto fg = kColorTable[(text_vram_buffer_[i] >> 16) & 0xFF];
       const auto bg = kColorTable[(text_vram_buffer_[i] >> 24) & 0xFF];
-      renderChar(ch, fg, bg, x, y, text_pixels_);
+      renderChar(ch, fg, bg, x, y, text_rom_, text_pixels_);
     }
   }
 
