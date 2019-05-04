@@ -739,6 +739,7 @@ background_color:
 
 	; In text mode, we write a word with 2 bytes for char, 1 byte for fcolor
 	; and 1 byte for bcolor. char is in r1, so we just need to write the colors.
+	and r1, r1, 0xFFFF
 	and r4, r4, 0xFF
 	lsl r4, r4, 16
 	orr r1, r1, r4
