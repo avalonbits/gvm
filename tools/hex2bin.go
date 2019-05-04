@@ -2,11 +2,13 @@ package main
 
 import (
 	"bufio"
-	"bytes"
+	"encoding/binary"
 	"flag"
 	"io"
+	"log"
 	"os"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -39,30 +41,42 @@ func main() {
 	}
 	var lastNum = int64(-1)
 	for {
-
-		line, _, err := in.ReadLine()
+		line, err := in.ReadString('\n')
 		if err == io.EOF {
 			break
 		} else if err != nil {
 			panic(err)
 		}
 
-		fields := bytes.Split(line, []byte{':'})
-		num, err := strconv.ParseInt(string(fields[0]), 16, 64)
+		fields := strings.Split(line, ":")
+		num, err := strconv.ParseInt(fields[0], 16, 32)
 		if err != nil {
 			panic(err)
 		}
-		repeat := int(num - lastNum - 1)
-		lastNum = num
-		if repeat == 0 {
-			writeChar(fields[0], out)
-		} else {
-			for i := 0; i < repeat; i++ {
+		repeat := int64(num - lastNum - 1)
+		if repeat+lastNum > 0xFFFF {
+			repeat = 0xFFFF - lastNum
+		}
+		if repeat > 0 {
+			log.Printf("%d | %x | %x\n", repeat, lastNum, num)
+			for i := 0; i < int(repeat); i++ {
 				out.Write(defChar)
 			}
 		}
+		writeChar(fields[1][:32], out)
+		lastNum = num
 	}
+	out.Flush()
 }
 
-func writeChar(char []byte, out *bufio.Writer) {
+func writeChar(char string, out *bufio.Writer) {
+	b := make([]byte, 4)
+	for i := 0; i < len(char); i += 8 {
+		num, err := strconv.ParseUint(char[i:i+8], 16, 32)
+		if err != nil {
+			panic(err)
+		}
+		binary.BigEndian.PutUint32(b, uint32(num))
+		out.Write(b)
+	}
 }

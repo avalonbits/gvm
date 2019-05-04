@@ -20,6 +20,7 @@ class VideoController {
     input_controller_.reset(input_controller);
   }
   void SetSignal(SyncPoint* signal) { signal_ = signal; }
+  void SetTextRom(uint32_t* mem) { display_->SetTextRom(mem); }
   void Run();
   void Shutdown();
 

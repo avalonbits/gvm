@@ -46,6 +46,7 @@ Computer::Computer(CPU* cpu, VideoController* video_controller)
     std::this_thread::yield();
   }));
   video_controller_->SetSignal(&video_signal_);
+  video_controller_->SetTextRom(&mem_.get()[kUnicodeRomStart/kWordSize]);
   cpu_->ConnectMemory(mem_.get(), mem_size_bytes_, kVramStart);
   cpu_->SetVideoSignal(kVramReg, &video_signal_);
 

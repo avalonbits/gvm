@@ -22,18 +22,19 @@ static int ReadInput(void* ptr) {
 
 void VideoController::Run() {
   auto start = std::chrono::high_resolution_clock::now();
-  display_->Render();
+  display_->Render(1);
   SDL_Thread* input_thread = SDL_CreateThread(
           ReadInput, "ReadInput", reinterpret_cast<void*>(input_controller_.get()));
   while (!shutdown_) {
     signal_->recv();
     if (mem_[mem_reg_] == 0) continue;
 
-    display_->CopyBuffer(&mem_[mem_addr_]);
+    const uint32_t mode = mem_[mem_reg_];
+    display_->CopyBuffer(&mem_[mem_addr_], mode);
     mem_[mem_reg_] = 0;
 
     if (print_fps_) start = std::chrono::high_resolution_clock::now();
-    display_->Render();
+    display_->Render(mode);
 
     if (print_fps_) {
       const std::chrono::nanoseconds runtime =
