@@ -927,8 +927,8 @@ loop:
 
 .section data
     ; struct sbuf
-    .equ sbuf_sline 0
-    .equ sbuf_eline 4
+    .equ sbuf_start 0
+    .equ sbuf_end 4
     .equ sbuf_size 8
 
     ; struct console
@@ -945,8 +945,8 @@ loop:
     ; r0: ptr to start of sbuf
     ; r1: ptr to start of frame buffer.
     ; r2: ptr to last line of frame buffer.
-    stri [r0, sbuf_sline], r1
-    stri [r0, sbuf_eline], r2
+    stri [r0, sbuf_start], r1
+    stri [r0, sbuf_end], r2
     ret
 @endf sbuf_init
 
@@ -971,16 +971,16 @@ loop:
 
 @func console_flush:
     ; Algorithm to update display:
-    ; 1) if sbuf_sline < sbuf_eline then we just copy everything between them.
-    ldri r1, [r0, sbuf_sline]
-    ldri r2, [r0, sbuf_eline]
+    ; 1) if sbuf_start < sbuf_end then we just copy everything between them.
+    ldri r1, [r0, sbuf_start]
+    ldri r2, [r0, sbuf_end]
     sub r3, r2, r1
     jge r3, copy_top_bottom
 
 copy_top_bottom:
     lsr r3, r3, 2
     ldr r1, [vram_start]
-    ldri r2, [r0, sbuf_sline]
+    ldri r2, [r0, sbuf_start]
 
 	; Before we copy, we need to wait for video to be ready.
 	call wait_video
@@ -1135,13 +1135,13 @@ done:
 
 @func console_scroll_up:
 	; Start of frame buffer.
-    ldri r1, [r0, sbuf_sline]
+    ldri r1, [r0, sbuf_start]
 
 	; Skip line.
     add r2, r1, 384
 
 	; End of framebuffer.
-    ldri r3, [r0, sbuf_eline]
+    ldri r3, [r0, sbuf_end]
 
 	; Get number of bytes.
     sub r3, r3, r2
@@ -1153,7 +1153,7 @@ done:
     call memcpy32
 
 	; Erase last line.
-	ldri r1, [r0, sbuf_eline]
+	ldri r1, [r0, sbuf_end]
 	sub r1, r1, 384
 	mov r2, 96
 	ldri r3, [r0, console_bcolor]
