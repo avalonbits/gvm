@@ -1202,7 +1202,7 @@ fb_addr: .int frame_buffer
 
     ; Print machine name
     mov r0, sp
-    mov r1, 24
+    mov r1, 32
     mov r2, 0
     call console_set_cursor
 
