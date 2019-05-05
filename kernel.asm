@@ -1102,7 +1102,7 @@ done:
 
     mov r1, rZ
     ldri r2, [r0, console_cursor_y]
-    sub r3, r2, 27
+    sub r3, r2, 26
     jne r3, done_all
 
     strpi [sp, -4], r1
@@ -1122,7 +1122,7 @@ done:
 @func console_nextline_cursor:
     mov r1, rZ
     ldri r2, [r0, console_cursor_y]
-    sub r3, r2, 27
+    sub r3, r2, 26
     jne r3, done_all
 
     strpi [sp, -4], r1
@@ -1157,6 +1157,13 @@ done:
 
 	; Copy back skipping the first line.
     call memcpy32
+
+	; Erase last line.
+	ldri r1, [r0, sbuf_eline]
+	sub r1, r1, 384
+	mov r2, 96
+	ldri r3, [r0, console_bcolor]
+	call memset32
 
     ret
 @endf console_scroll_up
