@@ -970,26 +970,29 @@ loop:
 @endf console_init
 
 @func console_flush:
-    ; Algorithm to update display:
-    ; 1) if sbuf_start < sbuf_end then we just copy everything between them.
+    ; Copy sbuf to vram. First, get the number of bytes.
     ldri r1, [r0, sbuf_start]
     ldri r2, [r0, sbuf_end]
     sub r3, r2, r1
-    jge r3, copy_top_bottom
 
-copy_top_bottom:
+	; Convert to words.
     lsr r3, r3, 2
+
+	; Load vram start and sbuf start.
     ldr r1, [vram_start]
     ldri r2, [r0, sbuf_start]
 
 	; Before we copy, we need to wait for video to be ready.
 	call wait_video
+
+	; Copy to vram.
     call memcpy32
 
 	; Flush using text mode.
 	mov r26, 2
     call flush_video
 
+	; We are done.
     ret
 @endf console_flush
 
