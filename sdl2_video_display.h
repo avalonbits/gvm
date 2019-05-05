@@ -17,6 +17,7 @@ class SDL2VideoDisplay : public VideoDisplay {
 
   void SetFramebufferSize(int fWidth, int fHeight, int bpp) override;
   void SetTextRom(uint32_t* mem) override { text_rom_ = mem; }
+  void SetColorTable(uint32_t* mem) override { color_table_ = mem; }
   void CopyBuffer(uint32_t* mem, uint32_t mode) override;
   void Render(uint32_t mode) override;
   bool CheckEvents() override;
@@ -34,6 +35,7 @@ class SDL2VideoDisplay : public VideoDisplay {
   int fWidth_;
   int fHeight_;
   int count_;
+  uint32_t* color_table_;
   uint32_t* text_rom_;
   uint32_t* text_vram_buffer_;
   uint32_t* text_pixels_;

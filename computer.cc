@@ -16,6 +16,7 @@ const uint32_t kMemLimit =
     kKernelMemSize + kUserMemSize + kVramSize + kUnicodeBitmapFont + kIOMemSize;
 const uint32_t kVramStart = kKernelMemSize + kUserMemSize;
 const uint32_t kUnicodeRomStart = kVramStart + kVramSize;
+const uint32_t kColorTableStart = kUnicodeRomStart - 1024;
 const uint32_t kIOStart = kUnicodeRomStart + kUnicodeBitmapFont;
 const uint32_t kVramReg = kIOStart;
 const uint32_t kInputReg = kIOStart + 4;
@@ -47,6 +48,7 @@ Computer::Computer(CPU* cpu, VideoController* video_controller)
   }));
   video_controller_->SetSignal(&video_signal_);
   video_controller_->SetTextRom(&mem_.get()[kUnicodeRomStart/kWordSize]);
+  video_controller_->SetColorTable(&mem_.get()[kColorTableStart/kWordSize]);
   cpu_->ConnectMemory(mem_.get(), mem_size_bytes_, kVramStart);
   cpu_->SetVideoSignal(kVramReg, &video_signal_);
 

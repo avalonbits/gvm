@@ -21,6 +21,7 @@ class VideoController {
   }
   void SetSignal(SyncPoint* signal) { signal_ = signal; }
   void SetTextRom(uint32_t* mem) { display_->SetTextRom(mem); }
+  void SetColorTable(uint32_t* mem) { display_->SetColorTable(mem); }
   void Run();
   void Shutdown();
 
