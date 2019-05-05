@@ -927,20 +927,17 @@ loop:
 
 .section data
     ; struct sbuf
-    .equ sbuf_min_line 0
-    .equ sbuf_sline 4
-    .equ sbuf_eline 8
-    .equ sbuf_max_line 12
-    .equ sbuf_x_pos 16
-    .equ sbuf_size 20
+    .equ sbuf_sline 0
+    .equ sbuf_eline 4
+    .equ sbuf_size 8
 
     ; struct console
     .equ console_sbuf 0
-    .equ console_fcolor 20
-    .equ console_bcolor 24
-    .equ console_cursor_x 28
-    .equ console_cursor_y 32
-    .equ console_size 36
+    .equ console_fcolor 8
+    .equ console_bcolor 12
+    .equ console_cursor_x 16
+    .equ console_cursor_y 20
+    .equ console_size 24
 
 .section text
 
@@ -948,11 +945,8 @@ loop:
     ; r0: ptr to start of sbuf
     ; r1: ptr to start of frame buffer.
     ; r2: ptr to last line of frame buffer.
-    stri [r0, sbuf_min_line], r1
     stri [r0, sbuf_sline], r1
     stri [r0, sbuf_eline], r2
-    stri [r0, sbuf_max_line], r2
-    stri [r0, sbuf_x_pos], rZ
     ret
 @endf sbuf_init
 
