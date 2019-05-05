@@ -42,7 +42,7 @@ func main() {
 	}
 	for i := range cs {
 		c := &cs[i]
-		c.HexString = "0xFF" + strings.ToUpper(reverse(c.HexString)[:len(c.HexString)-1])
+		c.HexString = "0xFF" + strings.ToUpper(reverseHex(c.HexString[1:]))
 	}
 	if *asm {
 		for _, c := range cs {
@@ -74,18 +74,6 @@ type Color struct {
 	Name      string
 }
 
-func reverse(s string) string {
-	n := 0
-	rune := make([]rune, len(s))
-	for _, r := range s {
-		rune[n] = r
-		n++
-	}
-	rune = rune[0:n]
-	// Reverse
-	for i := 0; i < n/2; i++ {
-		rune[i], rune[n-1-i] = rune[n-1-i], rune[i]
-	}
-	// Convert back to UTF-8.
-	return string(rune)
+func reverseHex(s string) string {
+	return s[4:6] + s[2:4] + s[0:2]
 }
