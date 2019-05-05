@@ -189,7 +189,7 @@ memcpy32:
     ret
 
 .section data
- 	.equ kLineLength 2560 ; 640 * 4
+	.equ kLineLength 2560 ; 640 * 4
 
 .section text
 
@@ -1108,7 +1108,7 @@ done:
     strpi [sp, -4], r1
     call console_scroll_up
     ldrip r1, [sp, 4]
-    jmp done
+	mov r2, 25
 
 done_all:
     add r2, r2, 1
@@ -1128,7 +1128,7 @@ done:
     strpi [sp, -4], r1
     call console_scroll_up
     ldrip r1, [sp, 4]
-    jmp done
+	mov r2, 25
 
 done_all:
     add r2, r2, 1
