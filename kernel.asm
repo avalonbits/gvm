@@ -738,7 +738,7 @@ loop:
 @func console_set_cursor:
     ; if x < 0, set it to 0.
     jge r1, x_95
-    mov r1, rZ
+    mov r1, 0
 
 x_95:
     ; if x >= 96, set it to 95
@@ -749,7 +749,7 @@ x_95:
 y:
     ; if y < 0, set it to 0
     jge r2, y_26
-    mov r2, rZ
+    mov r2, 0
 
 y_26:
     ; if y >= 27, set it to 26
@@ -779,7 +779,7 @@ bcolor:
     jle r21, done
 
 set_z:
-    mov r2, rZ
+    mov r2, 0
 
 done:
     stri [r0, console_fcolor], r1
@@ -820,7 +820,7 @@ done:
 @endf console_print_cursor
 
 @func console_erase_cursor:
-	mov r1, rZ
+	mov r1, 0
     ldri r2, [r0, console_cursor_x]
     ldri r3, [r0, console_cursor_y]
     ldri r4, [r0, console_bcolor]
@@ -846,7 +846,7 @@ done:
 @endf console_next_cursor
 
 @func console_nextline_cursor:
-    mov r1, rZ
+    mov r1, 0
     ldri r2, [r0, console_cursor_y]
 	add r2, r2, 1
     sub r3, r2, 27
@@ -907,7 +907,7 @@ done:
     jmp done
 
 x_zero:
-    mov r1, rZ
+    mov r1, 0
 
 done:
     stri [r0, console_cursor_x], r1

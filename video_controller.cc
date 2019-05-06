@@ -31,10 +31,10 @@ void VideoController::Run() {
 
     const uint32_t mode = mem_[mem_reg_];
     display_->CopyBuffer(&mem_[mem_addr_], mode);
-    mem_[mem_reg_] = 0;
 
     if (print_fps_) start = std::chrono::high_resolution_clock::now();
     display_->Render(mode);
+    mem_[mem_reg_] = 0;
 
     if (print_fps_) {
       const std::chrono::nanoseconds runtime =
