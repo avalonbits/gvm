@@ -425,7 +425,7 @@ done:
     ; r3: y-pos
     add r2, r2, 1
     sub r21, r2, 96
-    jne r21, done
+    jlt r21, done
 
     mov r2, 0
     add r3, r3, 1
@@ -834,21 +834,11 @@ done:
     ldri r1, [r0, console_cursor_x]
     add r1, r1, 1
     sub r2, r1, 96
-    jne r2, done
+    jlt r2, done
 
-    mov r1, rZ
-    ldri r2, [r0, console_cursor_y]
-    sub r3, r2, 26
-    jne r3, done_all
-
-    strpi [sp, -4], r1
-    call console_scroll_up
-    ldrip r1, [sp, 4]
-	mov r2, 25
-
-done_all:
-    add r2, r2, 1
-    stri [r0, console_cursor_y], r2
+	; We started a new line. Move to next line.
+	call console_nextline_cursor
+	ret
 
 done:
     stri [r0, console_cursor_x], r1
@@ -858,16 +848,16 @@ done:
 @func console_nextline_cursor:
     mov r1, rZ
     ldri r2, [r0, console_cursor_y]
-    sub r3, r2, 26
-    jne r3, done_all
+	add r2, r2, 1
+    sub r3, r2, 27
+    jlt r3, done_all
 
     strpi [sp, -4], r1
     call console_scroll_up
     ldrip r1, [sp, 4]
-	mov r2, 25
+	mov r2, 26
 
 done_all:
-    add r2, r2, 1
     stri [r0, console_cursor_y], r2
 
 done:
