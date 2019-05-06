@@ -13,7 +13,7 @@ interrupt_table:
 
 .org 0x80
 .section data
-vram_reg:   .int 0x1200000
+vram_reg:   .int 0x1200400
 vram_start: .int 0x101F000
 
 .section text
@@ -31,7 +31,7 @@ reset_handler:
     jmp MAIN
 
 .section data
-input_value_addr: .int 0x1200004
+input_value_addr: .int 0x1200404
 input_jump_addr:  .int 0
 
 .section text
@@ -930,7 +930,7 @@ gvm: .str "GVM Virtual Machine Version 0.01"
 gvm_addr: .int gvm
 ready: .str "READY."
 ready_addr: .int ready
-recurring_reg: .int 0x1200010
+recurring_reg: .int 0x1200410
 UI_addr: .int USER_INTERFACE
 frame_buffer: .array 10368
 fb_addr: .int frame_buffer
@@ -1094,8 +1094,10 @@ USER_input_handler:
     str [user_input_value], r0
     ret
 
+.org 0x1100000
 
-.org 0x10FFC00
+.embed "./unicode16.chrom"
+
 .section data
 
 ; Color table for 256 color pallete.
@@ -1357,4 +1359,4 @@ text_colors:
 	.int 0xFFE4E4E4 ; 254 - Grey89
 	.int 0xFFEEEEEE ; 255 - Grey93
 
-.embed "./unicode16.chrom"
+
