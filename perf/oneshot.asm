@@ -12,7 +12,7 @@ interrupt_table:
     ret            ; Input intterupt.
 
 .section data
-oneshot_reg: .int 0x120000C
+oneshot_reg: .int 0x120040C
 
 .section text
 ; ===== The acutal benchmark function.

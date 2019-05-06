@@ -14,7 +14,7 @@ interrupt_table:
 
 
 .section data
-recurring_reg: .int 0x1200010
+recurring_reg: .int 0x1200410
 
 .section text
 ; ===== The acutal benchmark function.

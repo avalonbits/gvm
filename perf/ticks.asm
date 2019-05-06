@@ -13,7 +13,7 @@ interrupt_table:
 
 
 .section data
-timer_reg: .int 0x1200008
+timer_reg: .int 0x1200408
 b_loop: .int 100000
 
 .section text
