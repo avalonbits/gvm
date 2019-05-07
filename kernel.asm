@@ -300,65 +300,6 @@ line:
 
 .section text
 
-; ==== TextPutS: Prints a string on the screen in text mode.
-@func text_puts:
-    ; r1: Address to string start.
-    ; r2: x-pos start.
-    ; r3: y-pos start.
-    ; r4: foreground color.
-    ; r5: background color.
-    ; r6: frame buffer address.
-
-    ; We copy the start addres to r1 because we will use r1 as the actual
-    ; char value to print with putc.
-    mov r20, r1
-
-loop:
-    ; Chars in string are 16-bit wide. So we need to AND and shift.
-    ldr r22, [r20]
-    and r1, r22, 0xFFFF
-    jeq r1, done
-
-    ; Save context in stack before calling putc.
-    stppi [sp, -8], r2, r3
-    stppi [sp, -8], r4, r5
-    strpi [sp, -4], r6
-    call text_putc
-
-    ; Restore context.
-    ldrip r6, [sp, 4]
-    ldpip r4, r5, [sp, 8]
-    ldpip r2, r3, [sp, 8]
-
-    ; Update (x,y)
-    call incxy
-
-    ; Next char in same word
-    lsr r1, r22, 16
-    jeq r1, done
-
-    stppi [sp, -8], r2, r3
-    stppi [sp, -8], r4, r5
-    strpi [sp, -4], r6
-
-    call text_putc
-
-    ldrip r6, [sp, 4]
-    ldpip r4, r5, [sp, 8]
-    ldpip r2, r3, [sp, 8]
-
-    ; Update (x,y)
-    call incxy
-
-    ; Advance to next string word.
-    add r20, r20, 4
-    jmp loop
-
-done:
-    ret
-@endf text_puts
-
-
 ; ==== PutS: Prints a string on the screen.
 @func puts:
     ; r1: Address to string start.
@@ -367,6 +308,7 @@ done:
     ; r4: foreground color.
     ; r5: background color.
     ; r6: frame buffer address.
+	; r7: pointer to function that can print character.
 
     ; We copy the start addres to r1 because we will use r1 as the actual
     ; char value to print with putc.
@@ -381,11 +323,12 @@ loop:
     ; Save context in stack before calling putc.
     stppi [sp, -8], r2, r3
     stppi [sp, -8], r4, r5
-    strpi [sp, -4], r6
-    call putc
+    stppi [sp, -8], r6, r7
+
+    call r7
 
     ; Restore context.
-    ldrip r6, [sp, 4]
+    ldpip r6, r7, [sp, 8]
     ldpip r4, r5, [sp, 8]
     ldpip r2, r3, [sp, 8]
 
@@ -398,11 +341,11 @@ loop:
 
     stppi [sp, -8], r2, r3
     stppi [sp, -8], r4, r5
-    strpi [sp, -4], r6
+    stppi [sp, -8], r6, r7
 
-    call putc
+    call r7
 
-    ldrip r6, [sp, 4]
+    ldpip r6, r7, [sp, 8]
     ldpip r4, r5, [sp, 8]
     ldpip r2, r3, [sp, 8]
 
@@ -458,6 +401,9 @@ background_color:
 @endf wpixel
 
 ; ==== TextPutC: Prints a charcater on the screen in text mode.
+.section data
+text_putc_addr: .int text_putc
+.section text
 @func text_putc:
     ; r1: Character unicode value
     ; r2: x-pos
@@ -793,7 +739,6 @@ done:
     ldri r4, [r0, console_fcolor]
     ldri r5, [r0, console_bcolor]
     ldr r6, [fb_addr]
-
 	call text_putc
     ret
 @endf console_putc
@@ -804,7 +749,8 @@ done:
     ldri r4, [r0, console_fcolor]
     ldri r5, [r0, console_bcolor]
     ldr r6, [fb_addr]
-    call text_puts
+	ldr r7, [text_putc_addr]
+	call puts
     ret
 @endf console_puts
 
