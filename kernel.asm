@@ -302,52 +302,52 @@ line:
 
 ; ==== PutS: Prints a string on the screen.
 @func puts:
-    ; r1: Address to string start.
-    ; r2: x-pos start.
-    ; r3: y-pos start.
-    ; r4: foreground color.
-    ; r5: background color.
-    ; r6: frame buffer address.
+    ; r1: x-pos start.
+    ; r2: y-pos start.
+    ; r3: foreground color.
+    ; r4: background color.
+    ; r5: frame buffer address.
+    ; r6: Address to string start.
 	; r7: pointer to function that can print character.
 
-    ; We copy the start addres to r1 because we will use r1 as the actual
+    ; We copy the start addres to r20 because we will use r6 as the actual
     ; char value to print with putc.
-    mov r20, r1
+    mov r20, r6
 
 loop:
     ; Chars in string are 16-bit wide. So we need to AND and shift.
     ldr r22, [r20]
-    and r1, r22, 0xFFFF
-    jeq r1, done
+    and r6, r22, 0xFFFF
+    jeq r6, done
 
     ; Save context in stack before calling putc.
-    stppi [sp, -8], r2, r3
-    stppi [sp, -8], r4, r5
-    stppi [sp, -8], r6, r7
+    stppi [sp, -8], r1, r2
+    stppi [sp, -8], r3, r4
+    stppi [sp, -8], r5, r7
 
     call r7
 
     ; Restore context.
-    ldpip r6, r7, [sp, 8]
-    ldpip r4, r5, [sp, 8]
-    ldpip r2, r3, [sp, 8]
+    ldpip r5, r7, [sp, 8]
+    ldpip r3, r4, [sp, 8]
+    ldpip r1, r2, [sp, 8]
 
     ; Update (x,y)
     call incxy
 
     ; Next char in same word
-    lsr r1, r22, 16
-    jeq r1, done
+    lsr r6, r22, 16
+    jeq r6, done
 
-    stppi [sp, -8], r2, r3
-    stppi [sp, -8], r4, r5
-    stppi [sp, -8], r6, r7
+    stppi [sp, -8], r1, r2
+    stppi [sp, -8], r3, r4
+    stppi [sp, -8], r5, r7
 
     call r7
 
-    ldpip r6, r7, [sp, 8]
-    ldpip r4, r5, [sp, 8]
-    ldpip r2, r3, [sp, 8]
+    ldpip r5, r7, [sp, 8]
+    ldpip r3, r4, [sp, 8]
+    ldpip r1, r2, [sp, 8]
 
     ; Update (x,y)
     call incxy
@@ -364,14 +364,14 @@ done:
 ; ==== IncXY: Given an (x,y) position, moves to the next position respecting
 ; screen boundaries.
 @func incxy:
-    ; r2: x-pos
-    ; r3: y-pos
-    add r2, r2, 1
-    sub r21, r2, 96
+    ; r1: x-pos
+    ; r2: y-pos
+    add r1, r1, 1
+    sub r21, r1, 96
     jlt r21, done
 
-    mov r2, 0
-    add r3, r3, 1
+    mov r1, 0
+    add r2, r2, 1
 
 done:
     ret
@@ -405,33 +405,33 @@ background_color:
 text_putc_addr: .int text_putc
 .section text
 @func text_putc:
-    ; r1: Character unicode value
-    ; r2: x-pos
-    ; r3: y-pos
-    ; r4: foreground color
-    ; r5: background color
-    ; r6: framebuffer start.
+    ; r1: x-pos
+    ; r2: y-pos
+    ; r3 foreground color
+    ; r4: background color
+    ; r5: framebuffer start.
+	; r6: Character unicode value.
 
 	; We calculate position in framebuffer using the formula
 	; pos(x,y) x*4 + fb_addr + y * 96 * 4
-	lsl r2, r2, 2
-	lsl r3, r3, 7
-	mul r3, r3, 3
-	add r6, r6, r2
-	add r6, r6, r3
+	lsl r1, r1, 2
+	lsl r2, r2, 7
+	mul r2, r2, 3
+	add r5, r5, r1
+	add r5, r5, r2
 
 	; In text mode, we write a word with 2 bytes for char, 1 byte for fcolor
 	; and 1 byte for bcolor. char is in r1, so we just need to write the colors.
-	and r1, r1, 0xFFFF
-	and r4, r4, 0xFF
-	lsl r4, r4, 16
-	orr r1, r1, r4
+	and r6, r6, 0xFFFF
+	and r3, r3, 0xFF
+	lsl r3, r3, 16
+	orr r6, r6, r3
 
-	and r5, r5, 0xFF;
-	lsl r5, r5, 24
-	orr r1, r1, r5
+	and r4, r4, 0xFF;
+	lsl r3, r3, 24
+	orr r6, r6, r4
 
-	str [r6], r1
+	str [r5], r6
 	ret
 @endf text_putc
 
@@ -734,44 +734,44 @@ done:
 @endf console_set_color
 
 @func console_putc:
-    ldri r2, [r0, console_cursor_x]
-    ldri r3, [r0, console_cursor_y]
-    ldri r4, [r0, console_fcolor]
-    ldri r5, [r0, console_bcolor]
-    ldr r6, [fb_addr]
+    ldri r1, [r0, console_cursor_x]
+    ldri r2, [r0, console_cursor_y]
+    ldri r3, [r0, console_fcolor]
+    ldri r4, [r0, console_bcolor]
+    ldr r5, [fb_addr]
 	call text_putc
     ret
 @endf console_putc
 
 @func console_puts:
-    ldri r2, [r0, console_cursor_x]
-    ldri r3, [r0, console_cursor_y]
-    ldri r4, [r0, console_fcolor]
-    ldri r5, [r0, console_bcolor]
-    ldr r6, [fb_addr]
+    ldri r1, [r0, console_cursor_x]
+    ldri r2, [r0, console_cursor_y]
+    ldri r3, [r0, console_fcolor]
+    ldri r4, [r0, console_bcolor]
+    ldr r5, [fb_addr]
 	ldr r7, [text_putc_addr]
 	call puts
     ret
 @endf console_puts
 
 @func console_print_cursor:
-    mov r1, 0x2588
-    ldri r2, [r0, console_cursor_x]
-    ldri r3, [r0, console_cursor_y]
-    ldri r4, [r0, console_fcolor]
-    ldri r5, [r0, console_bcolor]
-    ldr r6, [fb_addr]
+    mov r6, 0x2588
+    ldri r1, [r0, console_cursor_x]
+    ldri r2, [r0, console_cursor_y]
+    ldri r3, [r0, console_fcolor]
+    ldri r4, [r0, console_bcolor]
+    ldr r5, [fb_addr]
     call text_putc
     ret
 @endf console_print_cursor
 
 @func console_erase_cursor:
-	mov r1, 0
-    ldri r2, [r0, console_cursor_x]
-    ldri r3, [r0, console_cursor_y]
-    ldri r4, [r0, console_bcolor]
-	ldri r5, [r0, console_bcolor]
-	ldr r6, [fb_addr]
+	mov r6, 0
+    ldri r1, [r0, console_cursor_x]
+    ldri r2, [r0, console_cursor_y]
+    ldri r3, [r0, console_bcolor]
+	ldri r4, [r0, console_bcolor]
+	ldr r5, [fb_addr]
     call text_putc
     ret
 @endf console_erase_cursor
@@ -894,7 +894,7 @@ fb_addr: .int frame_buffer
     mov r2, 0
     call console_set_cursor
 
-    ldr r1, [gvm_addr]
+    ldr r6, [gvm_addr]
     call console_puts
 
     ; Change text color to white.
@@ -907,7 +907,7 @@ fb_addr: .int frame_buffer
     mov r1, 0
     mov r2, 2
     call console_set_cursor
-    ldr r1, [ready_addr]
+    ldr r6, [ready_addr]
     call console_puts
 
     ; Print cursor
@@ -950,6 +950,7 @@ process_input:
     ; input.
     call USER_control_chars
     jeq r0, done
+	mov r6, r1
 
     ; Normal char, print.
     ldr r0, [console_addr]
