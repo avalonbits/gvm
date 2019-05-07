@@ -4,14 +4,27 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"unicode/utf8"
 
+	"github.com/avalonbits/gsm/lexer"
 	"github.com/avalonbits/gsm/parser"
 )
 
+func Parse(in io.Reader) (*parser.AST, error) {
+	lex := lexer.New(in)
+	p := parser.New(lex)
+	if err := p.Parse(); err != nil {
+		return nil, err
+	}
+	return p.Ast, nil
+}
+
 func Generate(ast *parser.AST, buf *bufio.Writer) error {
+	defer buf.Flush()
+
 	buf.Write([]byte("s1987gvm"))
 
 	if err := embedFile(ast); err != nil {
@@ -33,7 +46,7 @@ func Generate(ast *parser.AST, buf *bufio.Writer) error {
 	if err := writeToFile(ast, buf); err != nil {
 		return err
 	}
-	return buf.Flush()
+	return nil
 }
 
 func embedFile(ast *parser.AST) error {

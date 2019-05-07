@@ -6,8 +6,6 @@ import (
 	"os"
 
 	"github.com/avalonbits/gsm/code"
-	"github.com/avalonbits/gsm/lexer"
-	"github.com/avalonbits/gsm/parser"
 )
 
 var (
@@ -26,9 +24,8 @@ func main() {
 	}
 	defer in.Close()
 
-	lex := lexer.New(in)
-	p := parser.New(lex)
-	if err := p.Parse(); err != nil {
+	ast, err := code.Parse(in)
+	if err != nil {
 		panic(err)
 	}
 
@@ -38,7 +35,7 @@ func main() {
 	}
 	defer out.Close()
 
-	if err := code.Generate(p.Ast, bufio.NewWriter(out)); err != nil {
+	if err := code.Generate(ast, bufio.NewWriter(out)); err != nil {
 		panic(err)
 	}
 }
