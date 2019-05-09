@@ -16,10 +16,23 @@ interrupt_table:
 vram_reg:   .int 0x1200400
 vram_start: .int 0x101F000
 
+; This should be initalized to the last available memory byte.
+user_stack_end_addr: .int 0x0
+kernel_heap_start_addr: .int kernel_heap_start
+kernel_stack_end_addr: .int kernel_stack_end
+
 .section text
 
 ; ==== Reset interrupt handler.
 reset_handler:
+	; When the cpu starts, sp is pointing to the end of user memory.
+	; We will save that so that when a user program is loaded, we
+	; can set its stack correctly.
+	str [user_stack_end_addr], sp
+
+	; Now set the kernel stack pointer.
+	ldr sp, [kernel_stack_end_addr]
+
     ; Clear input register
     ldr r1, [input_value_addr]
     str [r1], rZ
@@ -1031,6 +1044,21 @@ USER_input_handler:
     str [user_input_value], r0
     ret
 
+
+
+; ============ KERNAL HEAP START. DO NOT CHANGE THIS
+.section data
+kernel_heap_start: .int 0x0
+
+; ============ KERNAL STACK END. DO NOT CHANGE THIS.
+; This is also the start of user code. All gvm programs should start loading
+; from 0x100000.
+.org 0x100000
+.section data
+kernel_stack_end: .int 0x0
+
+
+; ============ Character font.
 .org 0x1100000
 
 .embed "./unicode16.chrom"
