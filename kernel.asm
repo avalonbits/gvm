@@ -41,7 +41,7 @@ reset_handler:
     str [input_jump_addr], rZ
 
     ; Now jump to main kernel code.
-    jmp MAIN
+    jmp KERNEL_MAIN
 
 .section data
 input_value_addr: .int 0x1200404
@@ -886,7 +886,7 @@ fb_addr: .int frame_buffer
 
 .section text
 
-@func MAIN:
+@func KERNEL_MAIN:
     ; Allocate space for console
     sub sp, sp, console_size
     str [console_addr], sp
@@ -949,7 +949,7 @@ fb_addr: .int frame_buffer
     ; everything for us.
 loop: wfi
       jmp loop
-@endf MAIN
+@endf KERNEL_MAIN
 
 ; We wait for a user input and print the value on screen.
 @func USER_INTERFACE:
