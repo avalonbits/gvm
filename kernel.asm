@@ -111,6 +111,51 @@ done:
     ret
 @endf recurring_handler
 
+; ==== Memory handling functions.
+.section data
+memory_page_size: .int 128 ; bytes per page.
+
+	; struct memory_header
+	.equ page_count 0
+	.equ is_free 4
+	.equ next_header_ptr 8
+	.equ memory_header_size 12
+
+.section text
+; ==== Brk. Allocates memory from the heap.
+@infunc brk:
+	; r0: returns value. If < 0, was unable to allocate.
+	; r1: pointer to heap break
+	; r2: pointer to stack break.
+	; r3: min heap address.
+	; r4: Size. If 0, returns address of current heap break.
+	jne r4, check_size
+	mov r0, r1
+	ret
+
+check_size:
+	; Load the break values
+	ldr r4, [r1]
+	ldr r2, [r2]
+
+	; Get the amount of memory available.
+	sub r5, r5, r4
+
+	; Check if we can accomodate the requested size.
+	sub r5, r5, r3
+
+	; Not enough memory. Returm
+	
+@endf brk
+
+; ==== KBrk: Allocates memory from the kernel heap.
+@infunc kbrk:
+@endf kbrk
+
+; ==== UBrk: Allocates memory from the user heap.
+@func ubrk:
+@endf ubrk
+
 ; ==== Memset. Sets a memory region to a specific value.
 memset:
     ; r1: start address
