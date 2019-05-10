@@ -124,28 +124,51 @@ memory_page_size: .int 128 ; bytes per page.
 .section text
 ; ==== Brk. Allocates memory from the heap.
 @infunc brk:
-	; r0: returns value. If < 0, was unable to allocate.
-	; r1: pointer to heap break
-	; r2: pointer to stack break.
-	; r3: min heap address.
+	; r0: returns ptr to new break limit. If < 0, was unable to allocate.
+	; r1: pointer to heap break address.
+	; r2: heap end addres.
+	; r3: heap start address.
 	; r4: Size. If 0, returns address of current heap break.
 	jne r4, check_size
-	mov r0, r1
+
+	; Size is 0. Just return the heap break
+	ldr r0, [r1]
 	ret
 
 check_size:
-	; Load the break values
-	ldr r4, [r1]
-	ldr r2, [r2]
+	; Load the heap break limit.
+	ldr r0, [r1]
 
-	; Get the amount of memory available.
-	sub r5, r5, r4
+	; Add the size to the heap break.
+	add r0, r0, r4
 
-	; Check if we can accomodate the requested size.
-	sub r5, r5, r3
+	; If r4 > 0, caller wants more memory. Need to check upper limit.
+	jgt r4, check_available
 
-	; Not enough memory. Returm
+	; if r4 < 0, caller wants to return memory. Need to check lower limit
+	sub r4, r0, r3
+	jge r4, done
+
+	; Caller wants to return more memory than available. We will just cap
+	; it to the lower limit and return.
+	mov r0, r3
+	jmp done
 	
+
+check_available:
+	; If upper limit exceeded, return an error.
+	sub r2, r2, r0
+	jlt r2, no_memory
+
+done:
+	; We have memory and r0 already has the new limit. Save it and return.
+	str [r1], r0
+	ret
+
+no_memory:
+	; We have crossed a memory limit. Return an error.
+	mov r0, -1
+	ret
 @endf brk
 
 ; ==== KBrk: Allocates memory from the kernel heap.
