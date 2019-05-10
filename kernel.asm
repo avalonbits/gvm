@@ -24,13 +24,13 @@ kernel_stack_end_addr: .int kernel_stack_end
 
 ; ==== Reset interrupt handler.
 reset_handler:
-	; When the cpu starts, sp is pointing to the end of user memory.
-	; We will save that so that when a user program is loaded, we
-	; can set its stack correctly.
-	str [user_stack_end_addr], sp
+    ; When the cpu starts, sp is pointing to the end of user memory.
+    ; We will save that so that when a user program is loaded, we
+    ; can set its stack correctly.
+    str [user_stack_end_addr], sp
 
-	; Now set the kernel stack pointer.
-	ldr sp, [kernel_stack_end_addr]
+    ; Now set the kernel stack pointer.
+    ldr sp, [kernel_stack_end_addr]
 
     ; Clear input register
     ldr r1, [input_value_addr]
@@ -114,51 +114,51 @@ done:
 
 ; ==== Brk. (De)Allocates memory from the heap.
 @infunc brk:
-	; r0: returns break limit. If < 0, was unable to allocate.
-	; r1: Size in words. If 0, returns address of current heap break.
-	; r2: pointer to heap break address. Gets updated with the new limit.
-	; r3: heap start addres.
-	; r4: heap end address.
+    ; r0: returns break limit. If < 0, was unable to allocate.
+    ; r1: Size in words. If 0, returns address of current heap break.
+    ; r2: pointer to heap break address. Gets updated with the new limit.
+    ; r3: heap start addres.
+    ; r4: heap end address.
 
-	; Load the heap break limit.
-	ldr r0, [r2]
-	jne r1, check_size
+    ; Load the heap break limit.
+    ldr r0, [r2]
+    jne r1, check_size
 
-	; Size is 0. Just return the heap break.
-	ret
+    ; Size is 0. Just return the heap break.
+    ret
 
 check_size:
-	; Add the size to the heap break.
-	lsl r1, r1, 2  ; words * 4 == bytes.
-	add r0, r0, r1
+    ; Add the size to the heap break.
+    lsl r1, r1, 2  ; words * 4 == bytes.
+    add r0, r0, r1
 
-	; If size (r1) > 0, caller wants more memory. Need to check upper limit.
-	jgt r1, check_available
+    ; If size (r1) > 0, caller wants more memory. Need to check upper limit.
+    jgt r1, check_available
 
-	; if size (r1) < 0, caller wants to return memory. Need to check lower limit
-	sub r3, r0, r3
-	jge r3, done
+    ; if size (r1) < 0, caller wants to return memory. Need to check lower limit
+    sub r3, r0, r3
+    jge r3, done
 
-	; Caller wants to return more memory than available. We will just cap
-	; it to the lower limit and return.
-	mov r0, r3
-	jmp done
-	
+    ; Caller wants to return more memory than available. We will just cap
+    ; it to the lower limit and return.
+    mov r0, r3
+    jmp done
+    
 
 check_available:
-	; If upper limit exceeded, return an error.
-	sub r4, r4, r0
-	jlt r4, no_memory
+    ; If upper limit exceeded, return an error.
+    sub r4, r4, r0
+    jlt r4, no_memory
 
 done:
-	; We have a new heap break and it is stored in r0. Save it and return.
-	str [r2], r0
-	ret
+    ; We have a new heap break and it is stored in r0. Save it and return.
+    str [r2], r0
+    ret
 
 no_memory:
-	; We have crossed a memory limit. Return an error.
-	mov r0, -1
-	ret
+    ; We have crossed a memory limit. Return an error.
+    mov r0, -1
+    ret
 @endf brk
 
 .section data
@@ -168,110 +168,110 @@ ptr_kernel_heap_curr_limit: .int kernel_heap_curr_limit
 .section text
 ; ==== KBrk: Allocates memory from the kernel heap.
 @infunc kbrk:
-	; r0: returns break limit. If < 0, was unable to allocate.
-	; r1: Size in words. If 0, returns address o current break.
-	ldr r2, [ptr_kernel_heap_curr_limit]
-	ldr r3, [kernel_heap_lower_limit]
+    ; r0: returns break limit. If < 0, was unable to allocate.
+    ; r1: Size in words. If 0, returns address o current break.
+    ldr r2, [ptr_kernel_heap_curr_limit]
+    ldr r3, [kernel_heap_lower_limit]
 
-	; The end of heap area is the current stack limit.
-	mov r4, sp
-	sub r4, r4, 4 ; to account for the call to brk.
-	call brk
-	ret 
+    ; The end of heap area is the current stack limit.
+    mov r4, sp
+    sub r4, r4, 4 ; to account for the call to brk.
+    call brk
+    ret 
 @endf kbrk
 
 
 ; ==== Allocator: alloc and free.
 .section data
-	; struct memory_header
-	.equ mh_is_free 0
-	.equ mh_next 4
-	.equ mh_size 8
+    ; struct memory_header
+    .equ mh_is_free 0
+    .equ mh_next 4
+    .equ mh_size 8
 
-	.equ m_footer 4
+    .equ m_footer 4
 
 memory_page_shift: .int 6 ; Shifting by 6 bits gives of 64 bytes per page.
 
 .section text 
 @infunc alloc:
-	; r0: returns address of memory. if < 0 not memory was available.
-	; r1: Size in bytes to allocate.
-	; r2: pointer to heap break address. Gets updated with the new limit
-	; r3: heap start
-	; r4: heap end
+    ; r0: returns address of memory. if < 0 not memory was available.
+    ; r1: Size in bytes to allocate.
+    ; r2: pointer to heap break address. Gets updated with the new limit
+    ; r3: heap start
+    ; r4: heap end
 
-	; First, add the header and footer sizes to the number of bytes.
-	add r1, r1, mh_size
-	add r1, r1, m_footer
+    ; First, add the header and footer sizes to the number of bytes.
+    add r1, r1, mh_size
+    add r1, r1, m_footer
 
-	; Then, convert the amount of bytes to the amount of pages.
-	lsr r0, r1, memory_page_shift
+    ; Then, convert the amount of bytes to the amount of pages.
+    lsr r0, r1, memory_page_shift
 
-	; Make a copy in r5 because r1 will later be converted to number of
-	; words.
-	mov r5, r0
-	
-	; Now shift it back. If it is smaller, then add an extra page.
-	lsl r0, r0, memory_page_shift
-	sub r0, r1, r0
-	jeq r0, ok_page_count
+    ; Make a copy in r5 because r1 will later be converted to number of
+    ; words.
+    mov r5, r0
+    
+    ; Now shift it back. If it is smaller, then add an extra page.
+    lsl r0, r0, memory_page_shift
+    sub r0, r1, r0
+    jeq r0, ok_page_count
 
-	; Smaller, so adding one to r5
-	add r5, r5, 1
+    ; Smaller, so adding one to r5
+    add r5, r5, 1
 
 ok_page_count:
-	; Set r1 to the number of words we need.
-	lsl r1, r5, memory_page_shift
-	lsr r1, r1, 2
+    ; Set r1 to the number of words we need.
+    lsl r1, r5, memory_page_shift
+    lsr r1, r1, 2
 
-	; Because we create a linked list of pointers, we need to walk the list in order
-	; to find available heap memory.
+    ; Because we create a linked list of pointers, we need to walk the list in order
+    ; to find available heap memory.
 
-	; Load heap start.
-	ldr r6, [r3]
-	
-	; if r6 == 0, then this is the first heap allocation.
-	jeq r6, check_whole_memory
+    ; Load heap start.
+    ldr r6, [r3]
+    
+    ; if r6 == 0, then this is the first heap allocation.
+    jeq r6, check_whole_memory
 
-	; This is not the first alloc, so let walk the list to find the amount
-	
+    ; This is not the first alloc, so let walk the list to find the amount
+    
 check_whole_memory:
-	; Check the number of pages available
-	sub r6, r4, r3
-	lsr r6, r6, memory_page_shift
+    ; Check the number of pages available
+    sub r6, r4, r3
+    lsr r6, r6, memory_page_shift
 
-	; If r6 < r5, then not enough memory is available.
-	sub r6, r6, r5
-	jlt r6, no_memory
+    ; If r6 < r5, then not enough memory is available.
+    sub r6, r6, r5
+    jlt r6, no_memory
 
 page_alloc:
-	; Ok, we have enough memory available and no pages are available for reuse.
-	; Allocate the memory.
-	strpi [sp, -4], r5
-	call brk
-	ldrip r5, [sp, 4]
+    ; Ok, we have enough memory available and no pages are available for reuse.
+    ; Allocate the memory.
+    strpi [sp, -4], r5
+    call brk
+    ldrip r5, [sp, 4]
 
-	; r0 has the start of the memory. We write the header there, footer at end
-	; and then return r0 + mh_size.
-	stri [r0, mh_is_free], rZ
-	stri [r0, mh_next], rZ
+    ; r0 has the start of the memory. We write the header there, footer at end
+    ; and then return r0 + mh_size.
+    stri [r0, mh_is_free], rZ
+    stri [r0, mh_next], rZ
 
-	; convert r4 from #words to #bytes to get to end.
-	lsl r5, r5, 2
-	add r1, r0, r5
-	
-	; we need 4 bytes to store block size.
-	stri [r1, -4], r5
+    ; convert r4 from #words to #bytes to get to end.
+    lsl r5, r5, 2
+    add r1, r0, r5
+    
+    ; we need 4 bytes to store block size.
+    stri [r1, -4], r5
 
 done:
-	; At this point, r0 has the start of the block. Just add to it mh_size and
-	; we are done.
-	add r0, r0, mh_size
-	ret
+    ; At this point, r0 has the start of the block. Just add to it mh_size and
+    ; we are done.
+    add r0, r0, mh_size
+    ret
 
 no_memory:
-	mov r0, -1
-	ret
+    mov r0, -1
+    ret
 
 @endf alloc
 
@@ -370,7 +370,7 @@ memcpy32:
     ret
 
 .section data
-	.equ kLineLength 2560 ; 640 * 4
+    .equ kLineLength 2560 ; 640 * 4
 
 .section text
 
@@ -489,7 +489,7 @@ line:
     ; r4: background color.
     ; r5: frame buffer address.
     ; r6: Address to string start.
-	; r7: pointer to function that can print character.
+    ; r7: pointer to function that can print character.
 
     ; We copy the start addres to r20 because we will use r6 as the actual
     ; char value to print with putc.
@@ -591,29 +591,29 @@ text_putc_addr: .int text_putc
     ; r3 foreground color
     ; r4: background color
     ; r5: framebuffer start.
-	; r6: Character unicode value.
+    ; r6: Character unicode value.
 
-	; We calculate position in framebuffer using the formula
-	; pos(x,y) x*4 + fb_addr + y * 96 * 4
-	lsl r1, r1, 2
-	lsl r2, r2, 7
-	mul r2, r2, 3
-	add r5, r5, r1
-	add r5, r5, r2
+    ; We calculate position in framebuffer using the formula
+    ; pos(x,y) x*4 + fb_addr + y * 96 * 4
+    lsl r1, r1, 2
+    lsl r2, r2, 7
+    mul r2, r2, 3
+    add r5, r5, r1
+    add r5, r5, r2
 
-	; In text mode, we write a word with 2 bytes for char, 1 byte for fcolor
-	; and 1 byte for bcolor. char is in r1, so we just need to write the colors.
-	and r6, r6, 0xFFFF
-	and r3, r3, 0xFF
-	lsl r3, r3, 16
-	orr r6, r6, r3
+    ; In text mode, we write a word with 2 bytes for char, 1 byte for fcolor
+    ; and 1 byte for bcolor. char is in r1, so we just need to write the colors.
+    and r6, r6, 0xFFFF
+    and r3, r3, 0xFF
+    lsl r3, r3, 16
+    orr r6, r6, r3
 
-	and r4, r4, 0xFF;
-	lsl r3, r3, 24
-	orr r6, r6, r4
+    and r4, r4, 0xFF;
+    lsl r3, r3, 24
+    orr r6, r6, r4
 
-	str [r5], r6
-	ret
+    str [r5], r6
+    ret
 @endf text_putc
 
 ; ==== PutC: Prints a character on the screen.
@@ -841,24 +841,24 @@ loop:
     ldri r2, [r0, sbuf_end]
     sub r3, r2, r1
 
-	; Convert to words.
+    ; Convert to words.
     lsr r3, r3, 2
 
-	; Load vram start and sbuf start.
+    ; Load vram start and sbuf start.
     ldr r1, [vram_start]
     ldri r2, [r0, sbuf_start]
 
-	; Before we copy, we need to wait for video to be ready.
-	call wait_video
+    ; Before we copy, we need to wait for video to be ready.
+    call wait_video
 
-	; Copy to vram.
+    ; Copy to vram.
     call memcpy32
 
-	; Flush using text mode.
-	mov r26, 2
+    ; Flush using text mode.
+    mov r26, 2
     call flush_video
 
-	; We are done.
+    ; We are done.
     ret
 @endf console_flush
 
@@ -920,7 +920,7 @@ done:
     ldri r3, [r0, console_fcolor]
     ldri r4, [r0, console_bcolor]
     ldr r5, [fb_addr]
-	call text_putc
+    call text_putc
     ret
 @endf console_putc
 
@@ -930,8 +930,8 @@ done:
     ldri r3, [r0, console_fcolor]
     ldri r4, [r0, console_bcolor]
     ldr r5, [fb_addr]
-	ldr r7, [text_putc_addr]
-	call puts
+    ldr r7, [text_putc_addr]
+    call puts
     ret
 @endf console_puts
 
@@ -947,12 +947,12 @@ done:
 @endf console_print_cursor
 
 @func console_erase_cursor:
-	mov r6, 0
+    mov r6, 0
     ldri r1, [r0, console_cursor_x]
     ldri r2, [r0, console_cursor_y]
     ldri r3, [r0, console_bcolor]
-	ldri r4, [r0, console_bcolor]
-	ldr r5, [fb_addr]
+    ldri r4, [r0, console_bcolor]
+    ldr r5, [fb_addr]
     call text_putc
     ret
 @endf console_erase_cursor
@@ -963,9 +963,9 @@ done:
     sub r2, r1, 96
     jlt r2, done
 
-	; We started a new line. Move to next line.
-	call console_nextline_cursor
-	ret
+    ; We started a new line. Move to next line.
+    call console_nextline_cursor
+    ret
 
 done:
     stri [r0, console_cursor_x], r1
@@ -975,14 +975,14 @@ done:
 @func console_nextline_cursor:
     mov r1, 0
     ldri r2, [r0, console_cursor_y]
-	add r2, r2, 1
+    add r2, r2, 1
     sub r3, r2, 27
     jlt r3, done_all
 
     strpi [sp, -4], r1
     call console_scroll_up
     ldrip r1, [sp, 4]
-	mov r2, 26
+    mov r2, 26
 
 done_all:
     stri [r0, console_cursor_y], r2
@@ -993,30 +993,30 @@ done:
 @endf console_nextline_cursor
 
 @func console_scroll_up:
-	; Start of frame buffer.
+    ; Start of frame buffer.
     ldri r1, [r0, sbuf_start]
 
-	; Skip line.
+    ; Skip line.
     add r2, r1, 384
 
-	; End of framebuffer.
+    ; End of framebuffer.
     ldri r3, [r0, sbuf_end]
 
-	; Get number of bytes.
+    ; Get number of bytes.
     sub r3, r3, r2
 
-	; Convert to words.
+    ; Convert to words.
     lsr r3, r3, 2
 
-	; Copy back skipping the first line.
+    ; Copy back skipping the first line.
     call memcpy32
 
-	; Erase last line.
-	ldri r1, [r0, sbuf_end]
-	sub r1, r1, 384
-	mov r2, 96
-	ldri r3, [r0, console_bcolor]
-	call memset32
+    ; Erase last line.
+    ldri r1, [r0, sbuf_end]
+    sub r1, r1, 384
+    mov r2, 96
+    ldri r3, [r0, console_bcolor]
+    call memset32
 
     ret
 @endf console_scroll_up
@@ -1131,7 +1131,7 @@ process_input:
     ; input.
     call USER_control_chars
     jeq r0, done
-	mov r6, r1
+    mov r6, r1
 
     ; Normal char, print.
     ldr r0, [console_addr]
@@ -1235,261 +1235,261 @@ kernel_stack_end: .int 0x0
 
 ; Color table for 256 color pallete.
 text_colors:
-	.int 0xFF000000 ;   0 - Black
-	.int 0xFF000080 ;   1 - Maroon
-	.int 0xFF008000 ;   2 - Green
-	.int 0xFF008080 ;   3 - Olive
-	.int 0xFF800000 ;   4 - Navy
-	.int 0xFF800080 ;   5 - Purple
-	.int 0xFF808000 ;   6 - Teal
-	.int 0xFFC0C0C0 ;   7 - Silver
-	.int 0xFF808080 ;   8 - Grey
-	.int 0xFF0000FF ;   9 - Red
-	.int 0xFF00FF00 ;  10 - Lime
-	.int 0xFF00FFFF ;  11 - Yellow
-	.int 0xFFFF0000 ;  12 - Blue
-	.int 0xFFFF00FF ;  13 - Fuchsia
-	.int 0xFFFFFF00 ;  14 - Aqua
-	.int 0xFFFFFFFF ;  15 - White
-	.int 0xFF000000 ;  16 - Grey0
-	.int 0xFF5F0000 ;  17 - NavyBlue
-	.int 0xFF870000 ;  18 - DarkBlue
-	.int 0xFFAF0000 ;  19 - Blue3
-	.int 0xFFD70000 ;  20 - Blue3
-	.int 0xFFFF0000 ;  21 - Blue1
-	.int 0xFF005F00 ;  22 - DarkGreen
-	.int 0xFF5F5F00 ;  23 - DeepSkyBlue4
-	.int 0xFF875F00 ;  24 - DeepSkyBlue4
-	.int 0xFFAF5F00 ;  25 - DeepSkyBlue4
-	.int 0xFFD75F00 ;  26 - DodgerBlue3
-	.int 0xFFFF5F00 ;  27 - DodgerBlue2
-	.int 0xFF008700 ;  28 - Green4
-	.int 0xFF5F8700 ;  29 - SpringGreen4
-	.int 0xFF878700 ;  30 - Turquoise4
-	.int 0xFFAF8700 ;  31 - DeepSkyBlue3
-	.int 0xFFD78700 ;  32 - DeepSkyBlue3
-	.int 0xFFFF8700 ;  33 - DodgerBlue1
-	.int 0xFF00AF00 ;  34 - Green3
-	.int 0xFF5FAF00 ;  35 - SpringGreen3
-	.int 0xFF87AF00 ;  36 - DarkCyan
-	.int 0xFFAFAF00 ;  37 - LightSeaGreen
-	.int 0xFFD7AF00 ;  38 - DeepSkyBlue2
-	.int 0xFFFFAF00 ;  39 - DeepSkyBlue1
-	.int 0xFF00D700 ;  40 - Green3
-	.int 0xFF5FD700 ;  41 - SpringGreen3
-	.int 0xFF87D700 ;  42 - SpringGreen2
-	.int 0xFFAFD700 ;  43 - Cyan3
-	.int 0xFFD7D700 ;  44 - DarkTurquoise
-	.int 0xFFFFD700 ;  45 - Turquoise2
-	.int 0xFF00FF00 ;  46 - Green1
-	.int 0xFF5FFF00 ;  47 - SpringGreen2
-	.int 0xFF87FF00 ;  48 - SpringGreen1
-	.int 0xFFAFFF00 ;  49 - MediumSpringGreen
-	.int 0xFFD7FF00 ;  50 - Cyan2
-	.int 0xFFFFFF00 ;  51 - Cyan1
-	.int 0xFF00005F ;  52 - DarkRed
-	.int 0xFF5F005F ;  53 - DeepPink4
-	.int 0xFF87005F ;  54 - Purple4
-	.int 0xFFAF005F ;  55 - Purple4
-	.int 0xFFD7005F ;  56 - Purple3
-	.int 0xFFFF005F ;  57 - BlueViolet
-	.int 0xFF005F5F ;  58 - Orange4
-	.int 0xFF5F5F5F ;  59 - Grey37
-	.int 0xFF875F5F ;  60 - MediumPurple4
-	.int 0xFFAF5F5F ;  61 - SlateBlue3
-	.int 0xFFD75F5F ;  62 - SlateBlue3
-	.int 0xFFFF5F5F ;  63 - RoyalBlue1
-	.int 0xFF00875F ;  64 - Chartreuse4
-	.int 0xFF5F875F ;  65 - DarkSeaGreen4
-	.int 0xFF87875F ;  66 - PaleTurquoise4
-	.int 0xFFAF875F ;  67 - SteelBlue
-	.int 0xFFD7875F ;  68 - SteelBlue3
-	.int 0xFFFF875F ;  69 - CornflowerBlue
-	.int 0xFF00AF5F ;  70 - Chartreuse3
-	.int 0xFF5FAF5F ;  71 - DarkSeaGreen4
-	.int 0xFF87AF5F ;  72 - CadetBlue
-	.int 0xFFAFAF5F ;  73 - CadetBlue
-	.int 0xFFD7AF5F ;  74 - SkyBlue3
-	.int 0xFFFFAF5F ;  75 - SteelBlue1
-	.int 0xFF00D75F ;  76 - Chartreuse3
-	.int 0xFF5FD75F ;  77 - PaleGreen3
-	.int 0xFF87D75F ;  78 - SeaGreen3
-	.int 0xFFAFD75F ;  79 - Aquamarine3
-	.int 0xFFD7D75F ;  80 - MediumTurquoise
-	.int 0xFFFFD75F ;  81 - SteelBlue1
-	.int 0xFF00FF5F ;  82 - Chartreuse2
-	.int 0xFF5FFF5F ;  83 - SeaGreen2
-	.int 0xFF87FF5F ;  84 - SeaGreen1
-	.int 0xFFAFFF5F ;  85 - SeaGreen1
-	.int 0xFFD7FF5F ;  86 - Aquamarine1
-	.int 0xFFFFFF5F ;  87 - DarkSlateGray2
-	.int 0xFF000087 ;  88 - DarkRed
-	.int 0xFF5F0087 ;  89 - DeepPink4
-	.int 0xFF870087 ;  90 - DarkMagenta
-	.int 0xFFAF0087 ;  91 - DarkMagenta
-	.int 0xFFD70087 ;  92 - DarkViolet
-	.int 0xFFFF0087 ;  93 - Purple
-	.int 0xFF005F87 ;  94 - Orange4
-	.int 0xFF5F5F87 ;  95 - LightPink4
-	.int 0xFF875F87 ;  96 - Plum4
-	.int 0xFFAF5F87 ;  97 - MediumPurple3
-	.int 0xFFD75F87 ;  98 - MediumPurple3
-	.int 0xFFFF5F87 ;  99 - SlateBlue1
-	.int 0xFF008787 ; 100 - Yellow4
-	.int 0xFF5F8787 ; 101 - Wheat4
-	.int 0xFF878787 ; 102 - Grey53
-	.int 0xFFAF8787 ; 103 - LightSlateGrey
-	.int 0xFFD78787 ; 104 - MediumPurple
-	.int 0xFFFF8787 ; 105 - LightSlateBlue
-	.int 0xFF00AF87 ; 106 - Yellow4
-	.int 0xFF5FAF87 ; 107 - DarkOliveGreen3
-	.int 0xFF87AF87 ; 108 - DarkSeaGreen
-	.int 0xFFAFAF87 ; 109 - LightSkyBlue3
-	.int 0xFFD7AF87 ; 110 - LightSkyBlue3
-	.int 0xFFFFAF87 ; 111 - SkyBlue2
-	.int 0xFF00D787 ; 112 - Chartreuse2
-	.int 0xFF5FD787 ; 113 - DarkOliveGreen3
-	.int 0xFF87D787 ; 114 - PaleGreen3
-	.int 0xFFAFD787 ; 115 - DarkSeaGreen3
-	.int 0xFFD7D787 ; 116 - DarkSlateGray3
-	.int 0xFFFFD787 ; 117 - SkyBlue1
-	.int 0xFF00FF87 ; 118 - Chartreuse1
-	.int 0xFF5FFF87 ; 119 - LightGreen
-	.int 0xFF87FF87 ; 120 - LightGreen
-	.int 0xFFAFFF87 ; 121 - PaleGreen1
-	.int 0xFFD7FF87 ; 122 - Aquamarine1
-	.int 0xFFFFFF87 ; 123 - DarkSlateGray1
-	.int 0xFF0000AF ; 124 - Red3
-	.int 0xFF5F00AF ; 125 - DeepPink4
-	.int 0xFF8700AF ; 126 - MediumVioletRed
-	.int 0xFFAF00AF ; 127 - Magenta3
-	.int 0xFFD700AF ; 128 - DarkViolet
-	.int 0xFFFF00AF ; 129 - Purple
-	.int 0xFF005FAF ; 130 - DarkOrange3
-	.int 0xFF5F5FAF ; 131 - IndianRed
-	.int 0xFF875FAF ; 132 - HotPink3
-	.int 0xFFAF5FAF ; 133 - MediumOrchid3
-	.int 0xFFD75FAF ; 134 - MediumOrchid
-	.int 0xFFFF5FAF ; 135 - MediumPurple2
-	.int 0xFF0087AF ; 136 - DarkGoldenrod
-	.int 0xFF5F87AF ; 137 - LightSalmon3
-	.int 0xFF8787AF ; 138 - RosyBrown
-	.int 0xFFAF87AF ; 139 - Grey63
-	.int 0xFFD787AF ; 140 - MediumPurple2
-	.int 0xFFFF87AF ; 141 - MediumPurple1
-	.int 0xFF00AFAF ; 142 - Gold3
-	.int 0xFF5FAFAF ; 143 - DarkKhaki
-	.int 0xFF87AFAF ; 144 - NavajoWhite3
-	.int 0xFFAFAFAF ; 145 - Grey69
-	.int 0xFFD7AFAF ; 146 - LightSteelBlue3
-	.int 0xFFFFAFAF ; 147 - LightSteelBlue
-	.int 0xFF00D7AF ; 148 - Yellow3
-	.int 0xFF5FD7AF ; 149 - DarkOliveGreen3
-	.int 0xFF87D7AF ; 150 - DarkSeaGreen3
-	.int 0xFFAFD7AF ; 151 - DarkSeaGreen2
-	.int 0xFFD7D7AF ; 152 - LightCyan3
-	.int 0xFFFFD7AF ; 153 - LightSkyBlue1
-	.int 0xFF00FFAF ; 154 - GreenYellow
-	.int 0xFF5FFFAF ; 155 - DarkOliveGreen2
-	.int 0xFF87FFAF ; 156 - PaleGreen1
-	.int 0xFFAFFFAF ; 157 - DarkSeaGreen2
-	.int 0xFFD7FFAF ; 158 - DarkSeaGreen1
-	.int 0xFFFFFFAF ; 159 - PaleTurquoise1
-	.int 0xFF0000D7 ; 160 - Red3
-	.int 0xFF5F00D7 ; 161 - DeepPink3
-	.int 0xFF8700D7 ; 162 - DeepPink3
-	.int 0xFFAF00D7 ; 163 - Magenta3
-	.int 0xFFD700D7 ; 164 - Magenta3
-	.int 0xFFFF00D7 ; 165 - Magenta2
-	.int 0xFF005FD7 ; 166 - DarkOrange3
-	.int 0xFF5F5FD7 ; 167 - IndianRed
-	.int 0xFF875FD7 ; 168 - HotPink3
-	.int 0xFFAF5FD7 ; 169 - HotPink2
-	.int 0xFFD75FD7 ; 170 - Orchid
-	.int 0xFFFF5FD7 ; 171 - MediumOrchid1
-	.int 0xFF0087D7 ; 172 - Orange3
-	.int 0xFF5F87D7 ; 173 - LightSalmon3
-	.int 0xFF8787D7 ; 174 - LightPink3
-	.int 0xFFAF87D7 ; 175 - Pink3
-	.int 0xFFD787D7 ; 176 - Plum3
-	.int 0xFFFF87D7 ; 177 - Violet
-	.int 0xFF00AFD7 ; 178 - Gold3
-	.int 0xFF5FAFD7 ; 179 - LightGoldenrod3
-	.int 0xFF87AFD7 ; 180 - Tan
-	.int 0xFFAFAFD7 ; 181 - MistyRose3
-	.int 0xFFD7AFD7 ; 182 - Thistle3
-	.int 0xFFFFAFD7 ; 183 - Plum2
-	.int 0xFF00D7D7 ; 184 - Yellow3
-	.int 0xFF5FD7D7 ; 185 - Khaki3
-	.int 0xFF87D7D7 ; 186 - LightGoldenrod2
-	.int 0xFFAFD7D7 ; 187 - LightYellow3
-	.int 0xFFD7D7D7 ; 188 - Grey84
-	.int 0xFFFFD7D7 ; 189 - LightSteelBlue1
-	.int 0xFF00FFD7 ; 190 - Yellow2
-	.int 0xFF5FFFD7 ; 191 - DarkOliveGreen1
-	.int 0xFF87FFD7 ; 192 - DarkOliveGreen1
-	.int 0xFFAFFFD7 ; 193 - DarkSeaGreen1
-	.int 0xFFD7FFD7 ; 194 - Honeydew2
-	.int 0xFFFFFFD7 ; 195 - LightCyan1
-	.int 0xFF0000FF ; 196 - Red1
-	.int 0xFF5F00FF ; 197 - DeepPink2
-	.int 0xFF8700FF ; 198 - DeepPink1
-	.int 0xFFAF00FF ; 199 - DeepPink1
-	.int 0xFFD700FF ; 200 - Magenta2
-	.int 0xFFFF00FF ; 201 - Magenta1
-	.int 0xFF005FFF ; 202 - OrangeRed1
-	.int 0xFF5F5FFF ; 203 - IndianRed1
-	.int 0xFF875FFF ; 204 - IndianRed1
-	.int 0xFFAF5FFF ; 205 - HotPink
-	.int 0xFFD75FFF ; 206 - HotPink
-	.int 0xFFFF5FFF ; 207 - MediumOrchid1
-	.int 0xFF0087FF ; 208 - DarkOrange
-	.int 0xFF5F87FF ; 209 - Salmon1
-	.int 0xFF8787FF ; 210 - LightCoral
-	.int 0xFFAF87FF ; 211 - PaleVioletRed1
-	.int 0xFFD787FF ; 212 - Orchid2
-	.int 0xFFFF87FF ; 213 - Orchid1
-	.int 0xFF00AFFF ; 214 - Orange1
-	.int 0xFF5FAFFF ; 215 - SandyBrown
-	.int 0xFF87AFFF ; 216 - LightSalmon1
-	.int 0xFFAFAFFF ; 217 - LightPink1
-	.int 0xFFD7AFFF ; 218 - Pink1
-	.int 0xFFFFAFFF ; 219 - Plum1
-	.int 0xFF00D7FF ; 220 - Gold1
-	.int 0xFF5FD7FF ; 221 - LightGoldenrod2
-	.int 0xFF87D7FF ; 222 - LightGoldenrod2
-	.int 0xFFAFD7FF ; 223 - NavajoWhite1
-	.int 0xFFD7D7FF ; 224 - MistyRose1
-	.int 0xFFFFD7FF ; 225 - Thistle1
-	.int 0xFF00FFFF ; 226 - Yellow1
-	.int 0xFF5FFFFF ; 227 - LightGoldenrod1
-	.int 0xFF87FFFF ; 228 - Khaki1
-	.int 0xFFAFFFFF ; 229 - Wheat1
-	.int 0xFFD7FFFF ; 230 - Cornsilk1
-	.int 0xFFFFFFFF ; 231 - Grey100
-	.int 0xFF080808 ; 232 - Grey3
-	.int 0xFF121212 ; 233 - Grey7
-	.int 0xFF1C1C1C ; 234 - Grey11
-	.int 0xFF262626 ; 235 - Grey15
-	.int 0xFF303030 ; 236 - Grey19
-	.int 0xFF3A3A3A ; 237 - Grey23
-	.int 0xFF444444 ; 238 - Grey27
-	.int 0xFF4E4E4E ; 239 - Grey30
-	.int 0xFF585858 ; 240 - Grey35
-	.int 0xFF626262 ; 241 - Grey39
-	.int 0xFF6C6C6C ; 242 - Grey42
-	.int 0xFF767676 ; 243 - Grey46
-	.int 0xFF808080 ; 244 - Grey50
-	.int 0xFF8A8A8A ; 245 - Grey54
-	.int 0xFF949494 ; 246 - Grey58
-	.int 0xFF9E9E9E ; 247 - Grey62
-	.int 0xFFA8A8A8 ; 248 - Grey66
-	.int 0xFFB2B2B2 ; 249 - Grey70
-	.int 0xFFBCBCBC ; 250 - Grey74
-	.int 0xFFC6C6C6 ; 251 - Grey78
-	.int 0xFFD0D0D0 ; 252 - Grey82
-	.int 0xFFDADADA ; 253 - Grey85
-	.int 0xFFE4E4E4 ; 254 - Grey89
-	.int 0xFFEEEEEE ; 255 - Grey93
+    .int 0xFF000000 ;   0 - Black
+    .int 0xFF000080 ;   1 - Maroon
+    .int 0xFF008000 ;   2 - Green
+    .int 0xFF008080 ;   3 - Olive
+    .int 0xFF800000 ;   4 - Navy
+    .int 0xFF800080 ;   5 - Purple
+    .int 0xFF808000 ;   6 - Teal
+    .int 0xFFC0C0C0 ;   7 - Silver
+    .int 0xFF808080 ;   8 - Grey
+    .int 0xFF0000FF ;   9 - Red
+    .int 0xFF00FF00 ;  10 - Lime
+    .int 0xFF00FFFF ;  11 - Yellow
+    .int 0xFFFF0000 ;  12 - Blue
+    .int 0xFFFF00FF ;  13 - Fuchsia
+    .int 0xFFFFFF00 ;  14 - Aqua
+    .int 0xFFFFFFFF ;  15 - White
+    .int 0xFF000000 ;  16 - Grey0
+    .int 0xFF5F0000 ;  17 - NavyBlue
+    .int 0xFF870000 ;  18 - DarkBlue
+    .int 0xFFAF0000 ;  19 - Blue3
+    .int 0xFFD70000 ;  20 - Blue3
+    .int 0xFFFF0000 ;  21 - Blue1
+    .int 0xFF005F00 ;  22 - DarkGreen
+    .int 0xFF5F5F00 ;  23 - DeepSkyBlue4
+    .int 0xFF875F00 ;  24 - DeepSkyBlue4
+    .int 0xFFAF5F00 ;  25 - DeepSkyBlue4
+    .int 0xFFD75F00 ;  26 - DodgerBlue3
+    .int 0xFFFF5F00 ;  27 - DodgerBlue2
+    .int 0xFF008700 ;  28 - Green4
+    .int 0xFF5F8700 ;  29 - SpringGreen4
+    .int 0xFF878700 ;  30 - Turquoise4
+    .int 0xFFAF8700 ;  31 - DeepSkyBlue3
+    .int 0xFFD78700 ;  32 - DeepSkyBlue3
+    .int 0xFFFF8700 ;  33 - DodgerBlue1
+    .int 0xFF00AF00 ;  34 - Green3
+    .int 0xFF5FAF00 ;  35 - SpringGreen3
+    .int 0xFF87AF00 ;  36 - DarkCyan
+    .int 0xFFAFAF00 ;  37 - LightSeaGreen
+    .int 0xFFD7AF00 ;  38 - DeepSkyBlue2
+    .int 0xFFFFAF00 ;  39 - DeepSkyBlue1
+    .int 0xFF00D700 ;  40 - Green3
+    .int 0xFF5FD700 ;  41 - SpringGreen3
+    .int 0xFF87D700 ;  42 - SpringGreen2
+    .int 0xFFAFD700 ;  43 - Cyan3
+    .int 0xFFD7D700 ;  44 - DarkTurquoise
+    .int 0xFFFFD700 ;  45 - Turquoise2
+    .int 0xFF00FF00 ;  46 - Green1
+    .int 0xFF5FFF00 ;  47 - SpringGreen2
+    .int 0xFF87FF00 ;  48 - SpringGreen1
+    .int 0xFFAFFF00 ;  49 - MediumSpringGreen
+    .int 0xFFD7FF00 ;  50 - Cyan2
+    .int 0xFFFFFF00 ;  51 - Cyan1
+    .int 0xFF00005F ;  52 - DarkRed
+    .int 0xFF5F005F ;  53 - DeepPink4
+    .int 0xFF87005F ;  54 - Purple4
+    .int 0xFFAF005F ;  55 - Purple4
+    .int 0xFFD7005F ;  56 - Purple3
+    .int 0xFFFF005F ;  57 - BlueViolet
+    .int 0xFF005F5F ;  58 - Orange4
+    .int 0xFF5F5F5F ;  59 - Grey37
+    .int 0xFF875F5F ;  60 - MediumPurple4
+    .int 0xFFAF5F5F ;  61 - SlateBlue3
+    .int 0xFFD75F5F ;  62 - SlateBlue3
+    .int 0xFFFF5F5F ;  63 - RoyalBlue1
+    .int 0xFF00875F ;  64 - Chartreuse4
+    .int 0xFF5F875F ;  65 - DarkSeaGreen4
+    .int 0xFF87875F ;  66 - PaleTurquoise4
+    .int 0xFFAF875F ;  67 - SteelBlue
+    .int 0xFFD7875F ;  68 - SteelBlue3
+    .int 0xFFFF875F ;  69 - CornflowerBlue
+    .int 0xFF00AF5F ;  70 - Chartreuse3
+    .int 0xFF5FAF5F ;  71 - DarkSeaGreen4
+    .int 0xFF87AF5F ;  72 - CadetBlue
+    .int 0xFFAFAF5F ;  73 - CadetBlue
+    .int 0xFFD7AF5F ;  74 - SkyBlue3
+    .int 0xFFFFAF5F ;  75 - SteelBlue1
+    .int 0xFF00D75F ;  76 - Chartreuse3
+    .int 0xFF5FD75F ;  77 - PaleGreen3
+    .int 0xFF87D75F ;  78 - SeaGreen3
+    .int 0xFFAFD75F ;  79 - Aquamarine3
+    .int 0xFFD7D75F ;  80 - MediumTurquoise
+    .int 0xFFFFD75F ;  81 - SteelBlue1
+    .int 0xFF00FF5F ;  82 - Chartreuse2
+    .int 0xFF5FFF5F ;  83 - SeaGreen2
+    .int 0xFF87FF5F ;  84 - SeaGreen1
+    .int 0xFFAFFF5F ;  85 - SeaGreen1
+    .int 0xFFD7FF5F ;  86 - Aquamarine1
+    .int 0xFFFFFF5F ;  87 - DarkSlateGray2
+    .int 0xFF000087 ;  88 - DarkRed
+    .int 0xFF5F0087 ;  89 - DeepPink4
+    .int 0xFF870087 ;  90 - DarkMagenta
+    .int 0xFFAF0087 ;  91 - DarkMagenta
+    .int 0xFFD70087 ;  92 - DarkViolet
+    .int 0xFFFF0087 ;  93 - Purple
+    .int 0xFF005F87 ;  94 - Orange4
+    .int 0xFF5F5F87 ;  95 - LightPink4
+    .int 0xFF875F87 ;  96 - Plum4
+    .int 0xFFAF5F87 ;  97 - MediumPurple3
+    .int 0xFFD75F87 ;  98 - MediumPurple3
+    .int 0xFFFF5F87 ;  99 - SlateBlue1
+    .int 0xFF008787 ; 100 - Yellow4
+    .int 0xFF5F8787 ; 101 - Wheat4
+    .int 0xFF878787 ; 102 - Grey53
+    .int 0xFFAF8787 ; 103 - LightSlateGrey
+    .int 0xFFD78787 ; 104 - MediumPurple
+    .int 0xFFFF8787 ; 105 - LightSlateBlue
+    .int 0xFF00AF87 ; 106 - Yellow4
+    .int 0xFF5FAF87 ; 107 - DarkOliveGreen3
+    .int 0xFF87AF87 ; 108 - DarkSeaGreen
+    .int 0xFFAFAF87 ; 109 - LightSkyBlue3
+    .int 0xFFD7AF87 ; 110 - LightSkyBlue3
+    .int 0xFFFFAF87 ; 111 - SkyBlue2
+    .int 0xFF00D787 ; 112 - Chartreuse2
+    .int 0xFF5FD787 ; 113 - DarkOliveGreen3
+    .int 0xFF87D787 ; 114 - PaleGreen3
+    .int 0xFFAFD787 ; 115 - DarkSeaGreen3
+    .int 0xFFD7D787 ; 116 - DarkSlateGray3
+    .int 0xFFFFD787 ; 117 - SkyBlue1
+    .int 0xFF00FF87 ; 118 - Chartreuse1
+    .int 0xFF5FFF87 ; 119 - LightGreen
+    .int 0xFF87FF87 ; 120 - LightGreen
+    .int 0xFFAFFF87 ; 121 - PaleGreen1
+    .int 0xFFD7FF87 ; 122 - Aquamarine1
+    .int 0xFFFFFF87 ; 123 - DarkSlateGray1
+    .int 0xFF0000AF ; 124 - Red3
+    .int 0xFF5F00AF ; 125 - DeepPink4
+    .int 0xFF8700AF ; 126 - MediumVioletRed
+    .int 0xFFAF00AF ; 127 - Magenta3
+    .int 0xFFD700AF ; 128 - DarkViolet
+    .int 0xFFFF00AF ; 129 - Purple
+    .int 0xFF005FAF ; 130 - DarkOrange3
+    .int 0xFF5F5FAF ; 131 - IndianRed
+    .int 0xFF875FAF ; 132 - HotPink3
+    .int 0xFFAF5FAF ; 133 - MediumOrchid3
+    .int 0xFFD75FAF ; 134 - MediumOrchid
+    .int 0xFFFF5FAF ; 135 - MediumPurple2
+    .int 0xFF0087AF ; 136 - DarkGoldenrod
+    .int 0xFF5F87AF ; 137 - LightSalmon3
+    .int 0xFF8787AF ; 138 - RosyBrown
+    .int 0xFFAF87AF ; 139 - Grey63
+    .int 0xFFD787AF ; 140 - MediumPurple2
+    .int 0xFFFF87AF ; 141 - MediumPurple1
+    .int 0xFF00AFAF ; 142 - Gold3
+    .int 0xFF5FAFAF ; 143 - DarkKhaki
+    .int 0xFF87AFAF ; 144 - NavajoWhite3
+    .int 0xFFAFAFAF ; 145 - Grey69
+    .int 0xFFD7AFAF ; 146 - LightSteelBlue3
+    .int 0xFFFFAFAF ; 147 - LightSteelBlue
+    .int 0xFF00D7AF ; 148 - Yellow3
+    .int 0xFF5FD7AF ; 149 - DarkOliveGreen3
+    .int 0xFF87D7AF ; 150 - DarkSeaGreen3
+    .int 0xFFAFD7AF ; 151 - DarkSeaGreen2
+    .int 0xFFD7D7AF ; 152 - LightCyan3
+    .int 0xFFFFD7AF ; 153 - LightSkyBlue1
+    .int 0xFF00FFAF ; 154 - GreenYellow
+    .int 0xFF5FFFAF ; 155 - DarkOliveGreen2
+    .int 0xFF87FFAF ; 156 - PaleGreen1
+    .int 0xFFAFFFAF ; 157 - DarkSeaGreen2
+    .int 0xFFD7FFAF ; 158 - DarkSeaGreen1
+    .int 0xFFFFFFAF ; 159 - PaleTurquoise1
+    .int 0xFF0000D7 ; 160 - Red3
+    .int 0xFF5F00D7 ; 161 - DeepPink3
+    .int 0xFF8700D7 ; 162 - DeepPink3
+    .int 0xFFAF00D7 ; 163 - Magenta3
+    .int 0xFFD700D7 ; 164 - Magenta3
+    .int 0xFFFF00D7 ; 165 - Magenta2
+    .int 0xFF005FD7 ; 166 - DarkOrange3
+    .int 0xFF5F5FD7 ; 167 - IndianRed
+    .int 0xFF875FD7 ; 168 - HotPink3
+    .int 0xFFAF5FD7 ; 169 - HotPink2
+    .int 0xFFD75FD7 ; 170 - Orchid
+    .int 0xFFFF5FD7 ; 171 - MediumOrchid1
+    .int 0xFF0087D7 ; 172 - Orange3
+    .int 0xFF5F87D7 ; 173 - LightSalmon3
+    .int 0xFF8787D7 ; 174 - LightPink3
+    .int 0xFFAF87D7 ; 175 - Pink3
+    .int 0xFFD787D7 ; 176 - Plum3
+    .int 0xFFFF87D7 ; 177 - Violet
+    .int 0xFF00AFD7 ; 178 - Gold3
+    .int 0xFF5FAFD7 ; 179 - LightGoldenrod3
+    .int 0xFF87AFD7 ; 180 - Tan
+    .int 0xFFAFAFD7 ; 181 - MistyRose3
+    .int 0xFFD7AFD7 ; 182 - Thistle3
+    .int 0xFFFFAFD7 ; 183 - Plum2
+    .int 0xFF00D7D7 ; 184 - Yellow3
+    .int 0xFF5FD7D7 ; 185 - Khaki3
+    .int 0xFF87D7D7 ; 186 - LightGoldenrod2
+    .int 0xFFAFD7D7 ; 187 - LightYellow3
+    .int 0xFFD7D7D7 ; 188 - Grey84
+    .int 0xFFFFD7D7 ; 189 - LightSteelBlue1
+    .int 0xFF00FFD7 ; 190 - Yellow2
+    .int 0xFF5FFFD7 ; 191 - DarkOliveGreen1
+    .int 0xFF87FFD7 ; 192 - DarkOliveGreen1
+    .int 0xFFAFFFD7 ; 193 - DarkSeaGreen1
+    .int 0xFFD7FFD7 ; 194 - Honeydew2
+    .int 0xFFFFFFD7 ; 195 - LightCyan1
+    .int 0xFF0000FF ; 196 - Red1
+    .int 0xFF5F00FF ; 197 - DeepPink2
+    .int 0xFF8700FF ; 198 - DeepPink1
+    .int 0xFFAF00FF ; 199 - DeepPink1
+    .int 0xFFD700FF ; 200 - Magenta2
+    .int 0xFFFF00FF ; 201 - Magenta1
+    .int 0xFF005FFF ; 202 - OrangeRed1
+    .int 0xFF5F5FFF ; 203 - IndianRed1
+    .int 0xFF875FFF ; 204 - IndianRed1
+    .int 0xFFAF5FFF ; 205 - HotPink
+    .int 0xFFD75FFF ; 206 - HotPink
+    .int 0xFFFF5FFF ; 207 - MediumOrchid1
+    .int 0xFF0087FF ; 208 - DarkOrange
+    .int 0xFF5F87FF ; 209 - Salmon1
+    .int 0xFF8787FF ; 210 - LightCoral
+    .int 0xFFAF87FF ; 211 - PaleVioletRed1
+    .int 0xFFD787FF ; 212 - Orchid2
+    .int 0xFFFF87FF ; 213 - Orchid1
+    .int 0xFF00AFFF ; 214 - Orange1
+    .int 0xFF5FAFFF ; 215 - SandyBrown
+    .int 0xFF87AFFF ; 216 - LightSalmon1
+    .int 0xFFAFAFFF ; 217 - LightPink1
+    .int 0xFFD7AFFF ; 218 - Pink1
+    .int 0xFFFFAFFF ; 219 - Plum1
+    .int 0xFF00D7FF ; 220 - Gold1
+    .int 0xFF5FD7FF ; 221 - LightGoldenrod2
+    .int 0xFF87D7FF ; 222 - LightGoldenrod2
+    .int 0xFFAFD7FF ; 223 - NavajoWhite1
+    .int 0xFFD7D7FF ; 224 - MistyRose1
+    .int 0xFFFFD7FF ; 225 - Thistle1
+    .int 0xFF00FFFF ; 226 - Yellow1
+    .int 0xFF5FFFFF ; 227 - LightGoldenrod1
+    .int 0xFF87FFFF ; 228 - Khaki1
+    .int 0xFFAFFFFF ; 229 - Wheat1
+    .int 0xFFD7FFFF ; 230 - Cornsilk1
+    .int 0xFFFFFFFF ; 231 - Grey100
+    .int 0xFF080808 ; 232 - Grey3
+    .int 0xFF121212 ; 233 - Grey7
+    .int 0xFF1C1C1C ; 234 - Grey11
+    .int 0xFF262626 ; 235 - Grey15
+    .int 0xFF303030 ; 236 - Grey19
+    .int 0xFF3A3A3A ; 237 - Grey23
+    .int 0xFF444444 ; 238 - Grey27
+    .int 0xFF4E4E4E ; 239 - Grey30
+    .int 0xFF585858 ; 240 - Grey35
+    .int 0xFF626262 ; 241 - Grey39
+    .int 0xFF6C6C6C ; 242 - Grey42
+    .int 0xFF767676 ; 243 - Grey46
+    .int 0xFF808080 ; 244 - Grey50
+    .int 0xFF8A8A8A ; 245 - Grey54
+    .int 0xFF949494 ; 246 - Grey58
+    .int 0xFF9E9E9E ; 247 - Grey62
+    .int 0xFFA8A8A8 ; 248 - Grey66
+    .int 0xFFB2B2B2 ; 249 - Grey70
+    .int 0xFFBCBCBC ; 250 - Grey74
+    .int 0xFFC6C6C6 ; 251 - Grey78
+    .int 0xFFD0D0D0 ; 252 - Grey82
+    .int 0xFFDADADA ; 253 - Grey85
+    .int 0xFFE4E4E4 ; 254 - Grey89
+    .int 0xFFEEEEEE ; 255 - Grey93
 
 
