@@ -18,7 +18,6 @@ vram_start: .int 0x101F000
 
 ; This should be initalized to the last available memory byte.
 user_stack_end_addr: .int 0x0
-kernel_heap_start_addr: .int kernel_heap_start
 kernel_stack_end_addr: .int kernel_stack_end
 
 .section text
@@ -122,32 +121,32 @@ memory_page_size: .int 128 ; bytes per page.
 	.equ memory_header_size 12
 
 .section text
-; ==== Brk. Allocates memory from the heap.
+; ==== Brk. (De)Allocates memory from the heap.
 @infunc brk:
-	; r0: returns ptr to new break limit. If < 0, was unable to allocate.
-	; r1: pointer to heap break address.
-	; r2: heap end addres.
-	; r3: heap start address.
-	; r4: Size. If 0, returns address of current heap break.
-	jne r4, check_size
+	; r0: returns break limit. If < 0, was unable to allocate.
+	; r1: Size in words. If 0, returns address of current heap break.
+	; r2: pointer to heap break address. Gets updated with the new limit.
+	; r3: heap start addres.
+	; r4: heap end address.
 
-	; Size is 0. Just return the heap break
-	ldr r0, [r1]
+	; Load the heap break limit.
+	ldr r0, [r2]
+	jne r1, check_size
+
+	; Size is 0. Just return the heap break.
 	ret
 
 check_size:
-	; Load the heap break limit.
-	ldr r0, [r1]
-
 	; Add the size to the heap break.
-	add r0, r0, r4
+	lsl r1, r1, 2  ; words * 4 == bytes.
+	add r0, r0, r1
 
-	; If r4 > 0, caller wants more memory. Need to check upper limit.
-	jgt r4, check_available
+	; If size (r1) > 0, caller wants more memory. Need to check upper limit.
+	jgt r1, check_available
 
-	; if r4 < 0, caller wants to return memory. Need to check lower limit
-	sub r4, r0, r3
-	jge r4, done
+	; if size (r1) < 0, caller wants to return memory. Need to check lower limit
+	sub r3, r0, r3
+	jge r3, done
 
 	; Caller wants to return more memory than available. We will just cap
 	; it to the lower limit and return.
@@ -157,12 +156,12 @@ check_size:
 
 check_available:
 	; If upper limit exceeded, return an error.
-	sub r2, r2, r0
-	jlt r2, no_memory
+	sub r4, r4, r0
+	jlt r4, no_memory
 
 done:
-	; We have memory and r0 already has the new limit. Save it and return.
-	str [r1], r0
+	; We have a new heap break and it is stored in r0. Save it and return.
+	str [r2], r0
 	ret
 
 no_memory:
@@ -171,8 +170,23 @@ no_memory:
 	ret
 @endf brk
 
+.section data
+kernel_heap_lower_limit: .int kernel_heap_start
+kernel_heap_curr_limit: .int kernel_heap_start
+ptr_kernel_heap_curr_limit: .int kernel_heap_curr_limit
+.section text
 ; ==== KBrk: Allocates memory from the kernel heap.
 @infunc kbrk:
+	; r0: returns break limit. If < 0, was unable to allocate.
+	; r1: Size in words. If 0, returns address o current break.
+	ldr r2, [ptr_kernel_heap_curr_limit]
+	ldr r3, [kernel_heap_lower_limit]
+
+	; The end of heap area is the current stack limit.
+	mov r4, sp
+	sub r4, r4, 4 ; to account for the call to brk.
+	call brk
+	ret 
 @endf kbrk
 
 ; ==== UBrk: Allocates memory from the user heap.
