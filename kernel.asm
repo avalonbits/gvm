@@ -196,9 +196,9 @@ memory_page_shift: .int 6 ; Shifting by 6 bits gives of 64 bytes per page.
 @infunc alloc:
 	; r0: returns address of memory. if < 0 not memory was available.
 	; r1: Size in bytes to allocate.
-	; r2: heap start
-	; r3: heap end
-	; r4: ponter to brk function.
+	; r2: pointer to heap break address. Gets updated with the new limit
+	; r3: heap start
+	; r4: heap end
 
 	; First, add the header and footer sizes to the number of bytes.
 	add r1, r1, mh_size
@@ -221,42 +221,35 @@ memory_page_shift: .int 6 ; Shifting by 6 bits gives of 64 bytes per page.
 
 ok_page_count:
 	; Set r1 to the number of words we need.
+	lsl r1, r5, memory_page_shift
 	lsr r1, r1, 2
-
-	; At this point we have r1 with the number of words to allocate and r4 has the
-	; number of pages.
 
 	; Because we create a linked list of pointers, we need to walk the list in order
 	; to find available heap memory.
 
 	; Load heap start.
-	ldr r2, [r2]
+	ldr r6, [r3]
 	
-	; if r2 == 0, then this is the first heap allocation, so we only need to check
-	; if size is greater than 
-	jeq r2, first_alloc
+	; if r6 == 0, then this is the first heap allocation.
+	jeq r6, check_memory
 
 	; This is not the first alloc, so let walk the list to find the amount
 
-first_alloc:
+check_memory:
 	; Check the number of pages available
-	sub r3, r3, r2
-	lsr r3, r3, memory_page_shift
+	sub r6, r4, r3
+	lsr r6, r6, memory_page_shift
 
-	; If r3 < r5, then not enough memory is available.
-	sub r3, r3, r5
-	jlt r3, no_memory
+	; If r6 < r5, then not enough memory is available.
+	sub r6, r6, r5
+	jlt r6, no_memory
 
-allocate_new_pages:
+page_alloc:
 	; Ok, we have enough memory available and no pages are available for reuse.
 	; Allocate the memory.
-	stppi [sp, -8], r1, r2
-	stppi [sp, -8], r3, r4
-	strpi [sp, 4], r5
-	call r4
+	strpi [sp, -4], r5
+	call brk
 	ldrip r5, [sp, 4]
-	ldpip r3, r4, [sp, 8]
-	ldpip r1, r2, [sp, 8]
 
 	; r0 has the start of the memory. We write the header there, footer at end
 	; and then return r0 + mh_size.
@@ -264,16 +257,17 @@ allocate_new_pages:
 	stri [r0, mh_next], rZ
 
 	; convert r4 from #words to #bytes to get to end.
-	lsl r4, r4, 2
-	add r1, r0, r4
+	lsl r5, r5, 2
+	add r1, r0, r5
 	
 	; we need 4 bytes to store block size.
-	stri [r1, -4], r4
+	stri [r1, -4], r5
 
 done:
 	; At this point, r0 has the start of the block. Just add to it mh_size and
 	; we are done.
 	add r0, r0, mh_size
+	ret
 
 no_memory:
 	mov r0, -1
