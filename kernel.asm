@@ -112,7 +112,7 @@ done:
 
 ; ==== Memory handling functions.
 
-; ==== Brk. (De)Allocates memory from the heap.
+; ==== Brk. Adjustes heap break limit.
 @infunc brk:
     ; r0: returns break limit. If < 0, was unable to allocate.
     ; r1: Size in words. If 0, returns address of current heap break.
@@ -122,18 +122,18 @@ done:
 
     ; Load the heap break limit.
     ldr r0, [r2]
-    jne r1, check_size
+    jne r1, brk_limit
 
     ; Size is 0. Just return the heap break.
     ret
 
-check_size:
-    ; Add the size to the heap break.
+brk_limit
+    ; Compute the next break limit.
     lsl r1, r1, 2  ; words * 4 == bytes.
     add r0, r0, r1
 
     ; If size (r1) > 0, caller wants more memory. Need to check upper limit.
-    jgt r1, check_available
+    jgt r1, more_memory
 
     ; if size (r1) < 0, caller wants to return memory. Need to check lower limit
     sub r3, r0, r3
@@ -143,12 +143,11 @@ check_size:
     ; it to the lower limit and return.
     mov r0, r3
     jmp done
-    
 
-check_available:
+more_memory:
     ; If upper limit exceeded, return an error.
     sub r4, r4, r0
-    jlt r4, no_memory
+    jltuu r4, no_memory
 
 done:
     ; We have a new heap break and it is stored in r0. Save it and return.
