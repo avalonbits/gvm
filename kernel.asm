@@ -231,11 +231,11 @@ ok_page_count:
 	ldr r6, [r3]
 	
 	; if r6 == 0, then this is the first heap allocation.
-	jeq r6, check_memory
+	jeq r6, check_whole_memory
 
 	; This is not the first alloc, so let walk the list to find the amount
-
-check_memory:
+	
+check_whole_memory:
 	; Check the number of pages available
 	sub r6, r4, r3
 	lsr r6, r6, memory_page_shift
