@@ -15,22 +15,17 @@ interrupt_table:
 .section data
 vram_reg:   .int 0x1200400
 vram_start: .int 0x101F000
-
-; This should be initalized to the last available memory byte.
-user_stack_end_addr: .int 0x0
-kernel_stack_end_addr: .int kernel_stack_end
+ptr_heap_start: .int heap_start
 
 .section text
 
+
 ; ==== Reset interrupt handler.
 reset_handler:
-    ; When the cpu starts, sp is pointing to the end of user memory.
-    ; We will save that so that when a user program is loaded, we
-    ; can set its stack correctly.
-    str [user_stack_end_addr], sp
-
-    ; Now set the kernel stack pointer.
-    ldr sp, [kernel_stack_end_addr]
+	; We initialize the first two words of the heap to zero. This corresponds
+	; to the header fields size and next.
+	ldr r0, [ptr_heap_start]
+	stpip [r0, 0x0], rZ, rZ
 
     ; Clear input register
     ldr r1, [input_value_addr]
@@ -127,7 +122,7 @@ done:
     ; Size is 0. Just return the heap break.
     ret
 
-brk_limit
+brk_limit:
     ; Compute the next break limit.
     lsl r1, r1, 2  ; words * 4 == bytes.
     add r0, r0, r1
@@ -136,8 +131,8 @@ brk_limit
     jgt r1, more_memory
 
     ; if size (r1) < 0, caller wants to return memory. Need to check lower limit
-    sub r3, r0, r3
-    jge r3, done
+    sub r5, r0, r3
+    jge r5, done
 
     ; Caller wants to return more memory than available. We will just cap
     ; it to the lower limit and return.
@@ -146,8 +141,8 @@ brk_limit
 
 more_memory:
     ; If upper limit exceeded, return an error.
-    sub r4, r4, r0
-    jltuu r4, no_memory
+    sub r5, r4, r0
+    jlt r5, no_memory
 
 done:
     ; We have a new heap break and it is stored in r0. Save it and return.
@@ -160,56 +155,43 @@ no_memory:
     ret
 @endf brk
 
+; ==== Allocator: malloc and free.
 .section data
-kernel_heap_lower_limit: .int kernel_heap_start
-kernel_heap_curr_limit: .int kernel_heap_start
-ptr_kernel_heap_curr_limit: .int kernel_heap_curr_limit
-.section text
-; ==== KBrk: Allocates memory from the kernel heap.
-@infunc kbrk:
-    ; r0: returns break limit. If < 0, was unable to allocate.
-    ; r1: Size in words. If 0, returns address o current break.
-    ldr r2, [ptr_kernel_heap_curr_limit]
-    ldr r3, [kernel_heap_lower_limit]
+heap_lower_limit: .int heap_start
+heap_curr_limit: .int heap_start
+ptr_heap_curr_limit: .int heap_curr_limit
 
-    ; The end of heap area is the current stack limit.
-    mov r4, sp
-    sub r4, r4, 4 ; to account for the call to brk.
-    call brk
-    ret 
-@endf kbrk
-
-
-; ==== Allocator: alloc and free.
-.section data
     ; struct memory_header
-    .equ mh_is_free 0
-    .equ mh_next 4
-    .equ mh_size 8
+    .equ mh_bytes 0
+	.equ mh_next  4
+	.equ mh_size  8
 
-    .equ m_footer 4
+memory_page_shift: .int 4 ; Shifting by 4 bits gives 16 bytes per page.
 
-memory_page_shift: .int 6 ; Shifting by 6 bits gives of 64 bytes per page.
-
-.section text 
-@infunc alloc:
+.section text
+@infunc malloc:
     ; r0: returns address of memory. if < 0 not memory was available.
     ; r1: Size in bytes to allocate.
     ; r2: pointer to heap break address. Gets updated with the new limit
     ; r3: heap start
     ; r4: heap end
 
-    ; First, add the header and footer sizes to the number of bytes.
+	jgt r1, valid_byte_count
+
+	; Byte count is <= 0. Return an error.
+	mov r0, -1
+	ret
+
+valid_byte_count:
+    ; First, add the header size to the number of bytes.
     add r1, r1, mh_size
-    add r1, r1, m_footer
 
     ; Then, convert the amount of bytes to the amount of pages.
     lsr r0, r1, memory_page_shift
 
-    ; Make a copy in r5 because r1 will later be converted to number of
-    ; words.
+    ; Make a copy of page count in r5.
     mov r5, r0
-    
+
     ; Now shift it back. If it is smaller, then add an extra page.
     lsl r0, r0, memory_page_shift
     sub r0, r1, r0
@@ -218,65 +200,95 @@ memory_page_shift: .int 6 ; Shifting by 6 bits gives of 64 bytes per page.
     ; Smaller, so adding one to r5
     add r5, r5, 1
 
-ok_page_count:
-    ; Set r1 to the number of words we need.
+    ; Set r1 to the number of bytes we need.
     lsl r1, r5, memory_page_shift
-    lsr r1, r1, 2
 
+ok_page_count:
     ; Because we create a linked list of pointers, we need to walk the list in order
     ; to find available heap memory.
 
-    ; Load heap start.
-    ldr r6, [r3]
-    
-    ; if r6 == 0, then this is the first heap allocation.
-    jeq r6, check_whole_memory
+    ; Copy heap start to r5 because r3 is constant and will be used by brk.
+    mov r5, r3
 
-    ; This is not the first alloc, so let walk the list to find the amount
-    
-check_whole_memory:
-    ; Check the number of pages available
-    sub r6, r4, r3
-    lsr r6, r6, memory_page_shift
+walk_list:
+	; Ok, we are at the start of a header. We need to check a few things:
+	; 1) If mh_size == 0 then we allocate a new page.
+	ldri r6, [r5, mh_bytes]
+	jeq r6, allocate_page
 
-    ; If r6 < r5, then not enough memory is available.
-    sub r6, r6, r5
-    jlt r6, no_memory
+	; 2) mh.size < 0 is a free page. We now check if r1 <= -mh.size
+	mul r6, r6, -1
+	sub r7, r6, r2
+	jlt r7, next_or_allocate
 
-page_alloc:
-    ; Ok, we have enough memory available and no pages are available for reuse.
-    ; Allocate the memory.
-    strpi [sp, -4], r5
-    call brk
-    ldrip r5, [sp, 4]
+	; Ok, bytes is available! Write -mh.size back and return the valid address.
+	; TODO(icc): Shorten the page in case it's bigger.
+	stri [r5, mh_bytes], r6
 
-    ; r0 has the start of the memory. We write the header there, footer at end
-    ; and then return r0 + mh_size.
-    stri [r0, mh_is_free], rZ
-    stri [r0, mh_next], rZ
+	; Memory block starts right after the header.
+	add r0, r5, mh_size
+	ret
 
-    ; convert r4 from #words to #bytes to get to end.
-    lsl r5, r5, 2
-    add r1, r0, r5
-    
-    ; we need 4 bytes to store block size.
-    stri [r1, -4], r5
 
-done:
-    ; At this point, r0 has the start of the block. Just add to it mh_size and
-    ; we are done.
-    add r0, r0, mh_size
-    ret
+next_or_allocate:
+	; 3) Either mh.next is valid and we loop to the next block or it is invalid
+	; and we need to allocate a new page.
+	ldri r6, [r5, mh_next]
+	jeq r6, allocate_page
+
+	; mh.next is valid. Copy it to r5 and loop.
+	mov r5, r6
+	jmp walk_list
+
+allocate_page:
+	; Finally we know that no page is available in the list, so we need to
+	; allocate a new one.
+
+	; We need to get the current limit. For that, we call brk(0).
+	; Convert r1 to words in r5 so we can set r1 to 0.
+	lsr r5, r1, 2
+
+	; Set r1 to 0
+	mov r1, 0
+
+	; Call brk(0)
+	call brk
+
+	; r0 now has the current heap address. Now we need to allocate memory so
+    ; that this block become valid.
+
+	; Copy the block to r7
+	mov r7, r0
+
+	; Copy the number of words to request to r1
+	mov r1, r5
+
+	; Call brk(r1)
+	call brk
+
+	; r0 now has either a valid new memory addres or < 0. If it is < 0 then no
+	; memory was allocated
+
+	jlt r0, no_memory
+
+	; Ok, we got memory! Setup the header and return the start of the block.
+
+	; brk converted r1 from words to bytes, so we can write it to memory.
+	stri [r7, mh_bytes], r1
+	stri [r7, mh_next], r0
+
+	; Set r0 mh_bytes t0 0 so we know this is the point that we need to allocate.
+	stri [r0, mh_bytes], rZ
+
+	add r0, r7, mh_size
+	ret
+
 
 no_memory:
     mov r0, -1
     ret
 
-@endf alloc
-
-; ==== UBrk: Allocates memory from the user heap.
-@func ubrk:
-@endf ubrk
+@endf malloc
 
 ; ==== Memset. Sets a memory region to a specific value.
 memset:
@@ -1213,17 +1225,9 @@ USER_input_handler:
 
 
 
-; ============ KERNAL HEAP START. DO NOT CHANGE THIS
+; ============ HEAP START. DO NOT CHANGE THIS
 .section data
-kernel_heap_start: .int 0x0
-
-; ============ KERNAL STACK END. DO NOT CHANGE THIS.
-; This is also the start of user code. All gvm programs should start loading
-; from 0x100000.
-.org 0x100000
-.section data
-kernel_stack_end: .int 0x0
-
+heap_start: .int 0x0
 
 ; ============ Character font.
 .org 0x1100000

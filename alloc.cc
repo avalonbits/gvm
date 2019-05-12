@@ -60,12 +60,10 @@ uint32_t* alloc(int32_t bytes, uint32_t** curr, uint32_t* const start, uint32_t*
   }
 
   // Total bytes = bytes + header_size and must be aligned to page boundary.
-  std::cerr << "Requested " << bytes << std::endl;
   bytes += kMHsize;
   const int32_t pages = bytes / PAGE_SIZE_BYTES;
   const int32_t page_bytes = pages * PAGE_SIZE_BYTES;
   if (bytes != page_bytes) bytes = page_bytes + PAGE_SIZE_BYTES;
-  std::cerr << "Will allocate " << bytes << std::endl;
 
   MHeader* mh;
   uint32_t* heap = start;
