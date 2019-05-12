@@ -48,7 +48,6 @@ uint32_t* kbrk(int32_t words) {
 
 typedef struct MHeader{
    uint32_t size;
-   uint32_t is_free;
    uint32_t* next;
 } MHeader;
 const uint32_t kMHsize = sizeof(MHeader);
@@ -81,14 +80,13 @@ uint32_t* alloc(int32_t bytes, uint32_t** curr, uint32_t* const start, uint32_t*
       }
       // Got the memory. Write the header and return ptr to the block.
       mh.size = bytes;
-      mh.is_free = 0;
       mh.next = next;
       memcpy(heap, &mh, kMHsize);
       return &heap[kMHwords];
 
-    } else if (mh.is_free && mh.size >= bytes) {
+    } else if (mh.size < 0) {
+      mh.size *= -1;
       // We found a free page with enough memory.
-      mh.is_free = 0;
       memcpy(heap, &mh, kMHsize);
       return &heap[kMHwords];
 
@@ -103,7 +101,6 @@ uint32_t* alloc(int32_t bytes, uint32_t** curr, uint32_t* const start, uint32_t*
         }
         // Got the memory. Write the header and return ptr to the block.
         mh.size = bytes;
-        mh.is_free = 0;
         mh.next = next;
         memcpy(heap, &mh, kMHsize);
         return &heap[kMHwords];
