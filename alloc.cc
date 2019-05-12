@@ -72,8 +72,8 @@ uint32_t* alloc(int32_t bytes, uint32_t** curr, uint32_t* const start, uint32_t*
 
   while (true) {
     mh = reinterpret_cast<MHeader*>(heap);
-    if (mh->size == 0) {
-      // First page ever.
+    if (mh->size == 0 || (bytes > -mh->size && mh->next == nullptr)) {
+      // Allocate a page.
       uint32_t* next = brk(bytes/sizeof(uint32_t), curr, start, end);
       if (next == nullptr) {
         return nullptr;
@@ -87,19 +87,7 @@ uint32_t* alloc(int32_t bytes, uint32_t** curr, uint32_t* const start, uint32_t*
       // We found a free page with enough memory.
       return &heap[kMHwords];
     } else {
-      // Current page is not good. Go to the next one or allocate memory.
-      if (mh->next != nullptr) {
-        heap = mh->next;
-      } else {
-        uint32_t* next = brk(bytes/sizeof(uint32_t), curr, start, end);
-        if (next == nullptr) {
-          return nullptr;
-        }
-        // Got the memory. Write the header and return ptr to the block.
-        mh->size = bytes;
-        mh->next = next;
-        return &heap[kMHwords];
-      }
+      heap = mh->next;
     }
   }
 
