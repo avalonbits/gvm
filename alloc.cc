@@ -47,7 +47,7 @@ uint32_t* kbrk(int32_t words) {
 }
 
 typedef struct MHeader{
-   uint32_t size;
+   int32_t size;
    uint32_t* next;
 } MHeader;
 const uint32_t kMHsize = sizeof(MHeader);
@@ -67,48 +67,54 @@ uint32_t* alloc(int32_t bytes, uint32_t** curr, uint32_t* const start, uint32_t*
   if (bytes != page_bytes) bytes = page_bytes + PAGE_SIZE_BYTES;
   std::cerr << "Will allocate " << bytes << std::endl;
 
-  MHeader mh;
+  MHeader* mh;
   uint32_t* heap = start;
 
   while (true) {
-    memcpy(&mh, heap, kMHsize);
-    if (mh.size == 0) {
+    mh = reinterpret_cast<MHeader*>(heap);
+    if (mh->size == 0) {
       // First page ever.
       uint32_t* next = brk(bytes/sizeof(uint32_t), curr, start, end);
       if (next == nullptr) {
         return nullptr;
       }
       // Got the memory. Write the header and return ptr to the block.
-      mh.size = bytes;
-      mh.next = next;
-      memcpy(heap, &mh, kMHsize);
+      mh->size = bytes;
+      mh->next = next;
       return &heap[kMHwords];
-
-    } else if (mh.size < 0) {
-      mh.size *= -1;
+    } else if (bytes <= (-mh->size)) {
+      mh->size = -mh->size;
       // We found a free page with enough memory.
-      memcpy(heap, &mh, kMHsize);
       return &heap[kMHwords];
-
     } else {
       // Current page is not good. Go to the next one or allocate memory.
-      if (mh.next != nullptr) {
-        heap = mh.next;
+      if (mh->next != nullptr) {
+        heap = mh->next;
       } else {
         uint32_t* next = brk(bytes/sizeof(uint32_t), curr, start, end);
         if (next == nullptr) {
           return nullptr;
         }
         // Got the memory. Write the header and return ptr to the block.
-        mh.size = bytes;
-        mh.next = next;
-        memcpy(heap, &mh, kMHsize);
+        mh->size = bytes;
+        mh->next = next;
         return &heap[kMHwords];
       }
     }
   }
 
   return nullptr;
+}
+
+void kfree(uint32_t* block) {
+    // Every block start right after a header, so to free it, we just need to
+    // jump backp size of header and mark the block as free.
+    std::cerr << "Freeing block " << block << std::endl;
+    MHeader* mh;
+    mh = reinterpret_cast<MHeader*>(block - kMHwords);
+    if (mh->size > 0) {
+        mh->size = -mh->size;
+    }
 }
 
 uint32_t* kalloc(int32_t bytes) {
@@ -128,8 +134,10 @@ int main(void) {
   std::cerr << kbrk(-(1<<20)) << std::endl;
 
   // Test that kalloc is working.
-  std::cerr << kalloc(16) << std::endl;
-  std::cerr << kalloc(16) << std::endl;
+  uint32_t* mem;
+  std::cerr << (mem = kalloc(16)) << std::endl;
+  kfree(mem);
+  std::cerr << kalloc(49) << std::endl;
   std::cerr << kalloc(48) << std::endl;
   std::cerr << kalloc(49) << std::endl;
 
