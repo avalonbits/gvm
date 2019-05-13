@@ -783,15 +783,6 @@ loop:
     ret
 @endf flush_video
 
-; ==== WaitVideo: waits for the video controller to signal that the framebuffer
-; available for writing.
-@func wait_video:
-    ldr r27, [vram_reg]
-    ldr r27, [r27]
-    jne r27, wait_video
-    ret
-@endf wait_video
-
 ; ======================== User interface code =======================
 
 .section data
