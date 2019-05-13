@@ -851,9 +851,6 @@ loop:
     ldr r1, [vram_start]
     ldri r2, [r0, sbuf_start]
 
-    ; Before we copy, we need to wait for video to be ready.
-    call wait_video
-
     ; Copy to vram.
     call memcpy32
 
