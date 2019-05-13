@@ -110,7 +110,7 @@ done:
 ; ==== Brk. Adjustes heap break limit.
 @infunc brk:
     ; r0: returns break limit. If < 0, was unable to allocate.
-    ; r1: Size in words. If 0, returns address of current heap break.
+    ; r1: Size in bytes. If 0, returns address of current heap break.
     ; r2: pointer to heap break address. Gets updated with the new limit.
     ; r3: heap start addres.
     ; r4: heap end address.
@@ -124,7 +124,6 @@ done:
 
 brk_limit:
     ; Compute the next break limit.
-    lsl r1, r1, 2  ; words * 4 == bytes.
     add r0, r0, r1
 
     ; If size (r1) > 0, caller wants more memory. Need to check upper limit.
@@ -169,21 +168,17 @@ ptr_heap_curr_limit: .int heap_curr_limit
 memory_page_shift: .int 4 ; Shifting by 4 bits gives 16 bytes per page.
 
 .section text
-@infunc malloc:
+@infunc alloc:
     ; r0: returns address of memory. if < 0 not memory was available.
     ; r1: Size in bytes to allocate.
     ; r2: pointer to heap break address. Gets updated with the new limit
     ; r3: heap start
     ; r4: heap end
 
-	jgt r1, valid_byte_count
+	; If r1 <= 0, we have an error.
+	jle r1, no_memory
 
-	; Byte count is <= 0. Return an error.
-	mov r0, -1
-	ret
-
-valid_byte_count:
-    ; First, add the header size to the number of bytes.
+    ; We have positive bytes. Add the header size to the number of bytes.
     add r1, r1, mh_size
 
     ; Then, convert the amount of bytes to the amount of pages.
@@ -218,17 +213,16 @@ walk_list:
 
 	; 2) mh.size < 0 is a free page. We now check if r1 <= -mh.size
 	mul r6, r6, -1
-	sub r7, r6, r2
+	sub r7, r6, r1
 	jlt r7, next_or_allocate
 
-	; Ok, bytes is available! Write -mh.size back and return the valid address.
+	; Ok, bytes are available! Write -mh.size back and return the valid address.
 	; TODO(icc): Shorten the page in case it's bigger.
 	stri [r5, mh_bytes], r6
 
 	; Memory block starts right after the header.
 	add r0, r5, mh_size
 	ret
-
 
 next_or_allocate:
 	; 3) Either mh.next is valid and we loop to the next block or it is invalid
@@ -245,7 +239,7 @@ allocate_page:
 	; allocate a new one.
 
 	; We need to get the current limit. For that, we call brk(0).
-	; Convert r1 to words in r5 so we can set r1 to 0.
+	; Copy bytes to r5
 	lsr r5, r1, 2
 
 	; Set r1 to 0
@@ -263,7 +257,7 @@ allocate_page:
 	; Copy the number of words to request to r1
 	mov r1, r5
 
-	; Call brk(r1)
+	; Call brk(bytes)
 	call brk
 
 	; r0 now has either a valid new memory addres or < 0. If it is < 0 then no
@@ -272,23 +266,21 @@ allocate_page:
 	jlt r0, no_memory
 
 	; Ok, we got memory! Setup the header and return the start of the block.
-
-	; brk converted r1 from words to bytes, so we can write it to memory.
 	stri [r7, mh_bytes], r1
 	stri [r7, mh_next], r0
 
-	; Set r0 mh_bytes t0 0 so we know this is the point that we need to allocate.
+	; Set r0 mh_bytes to 0 so we know this is the point that we need to allocate.
 	stri [r0, mh_bytes], rZ
 
+	; memory block starts right after header.
 	add r0, r7, mh_size
 	ret
-
 
 no_memory:
     mov r0, -1
     ret
 
-@endf malloc
+@endf alloc
 
 ; ==== Memset. Sets a memory region to a specific value.
 memset:
