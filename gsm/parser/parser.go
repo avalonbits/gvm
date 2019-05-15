@@ -255,7 +255,7 @@ func (p *Parser) org() state {
 			return ERROR
 		}
 	}
-	o := Org{PIC: pic}
+	o := Org{PIC: pic, Addr: 0}
 
 	if !pic {
 		if oLen > 0 && p.Ast.Orgs[oLen-1].PIC {
@@ -398,7 +398,7 @@ func (p *Parser) include() state {
 
 func (p *Parser) data_block(cur state) state {
 	tok := p.tokenizer.PeakToken()
-	if tok.Type == lexer.ORG {
+	if tok.Type == lexer.ORG || tok.Type == lexer.PIC {
 		return START
 	}
 	if tok.Type == lexer.SECTION {
@@ -527,7 +527,7 @@ func (p *Parser) text_block(cur state) state {
 	aBlock := &aSection.Blocks[len(aSection.Blocks)-1]
 
 	tok := p.tokenizer.PeakToken()
-	if tok.Type == lexer.ORG {
+	if tok.Type == lexer.ORG || tok.Type == lexer.PIC {
 		if aBlock.inFunc {
 			p.err = fmt.Errorf(
 				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
