@@ -17,6 +17,7 @@ type AST struct {
 
 type Org struct {
 	Addr     uint32
+	PIC      bool
 	Sections []Section
 }
 
@@ -239,24 +240,41 @@ func (p *Parser) skipCommentsAndWhitespace(next state) state {
 
 func (p *Parser) org() state {
 	tok := p.tokenizer.NextToken()
-	if tok.Type != lexer.ORG {
-		p.err = fmt.Errorf("expected .org, got %q", tok.Literal)
+	if tok.Type != lexer.ORG && tok.Type != lexer.PIC {
+		p.err = fmt.Errorf("expected .org or .pic, got %q", tok.Literal)
 		return ERROR
 	}
-
-	tok = p.tokenizer.NextToken()
-	if tok.Type != lexer.NUMBER {
-		p.err = fmt.Errorf("expected an address constant, got %q\n", tok.Literal)
-		return ERROR
+	pic := tok.Type == lexer.PIC
+	oLen := len(p.Ast.Orgs)
+	if pic && oLen > 0 {
+		if p.Ast.Orgs[oLen-1].PIC {
+			// We are already in a pic file. Just return.
+			return SECTION
+		} else {
+			p.err = fmt.Errorf("cannot mix .pic and .org.")
+			return ERROR
+		}
 	}
+	o := Org{PIC: pic}
 
-	n, err := ParseNumber(tok.Literal)
-	if err != nil {
-		p.err = err
-		return ERROR
+	if !pic {
+		if oLen > 0 && p.Ast.Orgs[oLen-1].PIC {
+			p.err = fmt.Errorf("cannot mix .pic and .org.")
+			return ERROR
+		}
+		tok = p.tokenizer.NextToken()
+		if tok.Type != lexer.NUMBER {
+			p.err = fmt.Errorf("expected an address constant, got %q\n", tok.Literal)
+			return ERROR
+		}
+
+		n, err := ParseNumber(tok.Literal)
+		if err != nil {
+			p.err = err
+			return ERROR
+		}
+		o.Addr = n
 	}
-
-	o := Org{Addr: n}
 	p.Ast.Orgs = append(p.Ast.Orgs, o)
 	return SECTION
 }

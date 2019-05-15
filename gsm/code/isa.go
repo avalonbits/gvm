@@ -9,6 +9,7 @@ const (
 	halt
 	load_ri
 	load_ix
+	load_pc
 	load_ixr
 	load_pi
 	load_ip
@@ -16,6 +17,7 @@ const (
 	ldp_ip
 	stor_ri
 	stor_ix
+	stor_pc
 	stor_pi
 	stor_ip
 	stp_pi
@@ -78,6 +80,11 @@ func LoadRR(dest, src uint32) parser.Word {
 	return LoadIX(dest, src, 0)
 }
 
+func LoadPC(dest, value uint32) parser.Word {
+	value = value & 0x1FFFFF
+	return load_pc | parser.Word(dest)<<6 | parser.Word(value)<<11
+}
+
 func LoadRI(dest, value uint32) parser.Word {
 	value = value & 0x1FFFFF
 	return load_ri | parser.Word(dest)<<6 | parser.Word(value)<<11
@@ -125,6 +132,11 @@ func StorRI(dest, src uint32) parser.Word {
 func StorIX(dest, src, offset uint32) parser.Word {
 	offset = offset & 0xFFFF
 	return stor_ix | parser.Word(dest)<<6 | parser.Word(src)<<11 | parser.Word(offset)<<16
+}
+
+func StorPC(dest, src uint32) parser.Word {
+	dest = dest & 0x1FFFFF
+	return stor_pc | parser.Word(src)<<6 | parser.Word(dest)<<11
 }
 
 func StorPI(dest, src, offset uint32) parser.Word {

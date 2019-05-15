@@ -195,14 +195,12 @@ func convertOperand(instr string, instrAddr uint32, block parser.Block, labelMap
 		case "jmp", "jne", "jeq", "jlt", "jle", "jge", "jgt", "call":
 			value -= instrAddr
 		case "ldr", "str":
-			if value&0xFFFFF != value {
-				value -= instrAddr
-				v := int32(value)
-				if v > (1<<15)-1 || v < -(1<<15) {
-					return fmt.Errorf("Operand is out of range.")
-				}
-				op.Type = parser.OP_DIFF
+			value -= instrAddr
+			v := int32(value)
+			if v > (1<<20)-1 || v < -(1<<20) {
+				return fmt.Errorf("Operand is out of range.")
 			}
+			op.Type = parser.OP_DIFF
 		}
 
 		// We need first to convert from uint32 -> int32 so we can get the value
@@ -452,8 +450,8 @@ func encodeLoad(i parser.Instruction) (parser.Word, error) {
 	} else if i.Op2.Type == parser.OP_NUMBER {
 		return LoadRI(rToI(i.Op1.Op), toNum(i.Op2.Op)), nil
 	} else {
-		// We are convert a ldr -> ldri and doing it pc relative. pc is r29.
-		return LoadIX(rToI(i.Op1.Op), 29, toNum(i.Op2.Op)), nil
+		// We are convert a ldr -> ldri and doing it pc relative.
+		return LoadPC(rToI(i.Op1.Op), toNum(i.Op2.Op)), nil
 	}
 }
 
@@ -550,7 +548,7 @@ func encodeStor(i parser.Instruction) (parser.Word, error) {
 	} else if i.Op1.Type == parser.OP_NUMBER {
 		return StorRI(toNum(i.Op1.Op), rToI(i.Op2.Op)), nil
 	} else {
-		return StorIX(29, rToI(i.Op2.Op), toNum(i.Op1.Op)), nil
+		return StorPC(toNum(i.Op1.Op), rToI(i.Op2.Op)), nil
 	}
 }
 

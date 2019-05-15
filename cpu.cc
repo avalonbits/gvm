@@ -134,13 +134,13 @@ void CPU::RecurringTimer2() {
 
 void CPU::Run() {
   static void* opcodes[] = {
-    &&NOP, &&HALT, &&LOAD_RI, &&LOAD_IX, &&LOAD_IXR, &&LOAD_PI, &&LOAD_IP,
-    &&LDP_PI, &&LDP_IP, &&STOR_RI, &&STOR_IX, &&STOR_PI, &&STOR_IP, &&STP_PI,
-    &&STP_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI, &&JMP, &&JNE,
-    &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI, &&CALLR, &&RET, &&AND_RR,
-    &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR, &&XOR_RI, &&LSL_RR, &&LSL_RI,
-    &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI, &&MUL_RR, &&MUL_RI, &&DIV_RR,
-    &&DIV_RI, &&MULL_RR, &&WFI
+    &&NOP, &&HALT, &&LOAD_RI, &&LOAD_IX, &&LOAD_PC, &&LOAD_IXR, &&LOAD_PI,
+    &&LOAD_IP, &&LDP_PI, &&LDP_IP, &&STOR_RI, &&STOR_IX, &&STOR_PC, &&STOR_PI,
+    &&STOR_IP, &&STP_PI, &&STP_IP, &&ADD_RR, &&ADD_RI, &&SUB_RR, &&SUB_RI,
+    &&JMP, &&JNE, &&JEQ, &&JGT, &&JGE, &&JLT, &&JLE, &&CALLI, &&CALLR, &&RET,
+    &&AND_RR, &&AND_RI, &&ORR_RR, &&ORR_RI, &&XOR_RR, &&XOR_RI, &&LSL_RR,
+    &&LSL_RI, &&LSR_RR, &&LSR_RI, &&ASR_RR, &&ASR_RI, &&MUL_RR, &&MUL_RI,
+    &&DIV_RR, &&DIV_RI, &&MULL_RR, &&WFI
   };
   uint32_t pc = pc_-4;
   uint32_t word = 0;
@@ -206,6 +206,14 @@ void CPU::Run() {
   LOAD_IX: {
       const uint32_t idx = reg1(word);
       const uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
+      int32_t v;
+      TIMER_READ(addr, v, mem_[m2w(addr)]);
+      reg_[idx] = v;
+      DISPATCH();
+  }
+  LOAD_PC: {
+      const uint32_t idx = reg1(word);
+      const uint32_t addr = pc + reladdr21(word);
       int32_t v;
       TIMER_READ(addr, v, mem_[m2w(addr)]);
       reg_[idx] = v;
@@ -278,6 +286,13 @@ void CPU::Run() {
   STOR_IX: {
       const uint32_t addr = regv(reg1(word), pc, reg_) + ext16bit(word);
       const auto v = mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
+      VSIG(addr);
+      TIMER_WRITE(addr, v);
+      DISPATCH();
+  }
+  STOR_PC: {
+      const uint32_t addr = pc + reladdr21(word);
+      const auto v = mem_[m2w(addr)] = regv(reg1(word), pc, reg_);
       VSIG(addr);
       TIMER_WRITE(addr, v);
       DISPATCH();
@@ -601,7 +616,7 @@ void CPU::RunHandlers() {
     pc_ = pc-4;
     std::cerr << PrintInstruction(word) << std::endl;
     std::cerr << PrintRegisters(true) << std::endl;
-#endif 
+#endif
     if (interrupt_ != 0) { InterruptService(pc); }
     word =  mem_[m2w(pc)];
     ++op_count_;
