@@ -25,8 +25,6 @@ func Parse(in io.Reader) (*parser.AST, error) {
 func Generate(ast *parser.AST, buf *bufio.Writer) error {
 	defer buf.Flush()
 
-	buf.Write([]byte("s1987gvm"))
-
 	if err := embedFile(ast); err != nil {
 		return err
 	}
@@ -43,6 +41,16 @@ func Generate(ast *parser.AST, buf *bufio.Writer) error {
 	if err := rewriteInstructions(ast); err != nil {
 		return err
 	}
+
+	if ast.Orgs[0].PIC {
+		if len(ast.Orgs) > 1 {
+			return fmt.Errorf("For PIC code we expect a single org, got %d", len(ast.Orgs))
+		}
+		buf.Write([]byte("PIC87gvm"))
+	} else {
+		buf.Write([]byte("s1987gvm"))
+	}
+
 	if err := writeToFile(ast, buf); err != nil {
 		return err
 	}
