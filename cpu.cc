@@ -96,6 +96,7 @@ uint32_t CPU::PowerOn() {
 }
 
 uint32_t CPU::Reset() {
+  mask_interrupt_ = true;
   const uint32_t op_count = op_count_;
   interrupt_ = 1;  // Mask out all interrupts and set bit 0 to 1, signaling reset.
   interrupt_event_.notify_one();
@@ -536,6 +537,7 @@ void CPU::Run() {
       std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
       fp_ = sp_ = user_ram_limit_;
       pc = pc_-4;
+      mask_interrupt_ = false;
     } else {
       mask_interrupt_ = true;
       sp_ -= 4;
