@@ -1,14 +1,14 @@
 ccflags = ['-O3', '-g', '-Wall', '-Werror', '-std=c++14', '-march=native']
 
-dstep = ARGUMENTS.get('dstep', 0)
+dstep = ARGUMENTS.get('dstep', '0')
 if int(dstep):
   ccflags.append('-DDEBUG_DISPATCH')
 
-handlers = ARGUMENTS.get('handlers', 0)
-if int(handlers):
+handlers = ARGUMENTS.get('handlers', '0')
+if handlers and int(handlers):
   ccflags.append('-DCPU_HANDLERS')
 
-debug = ARGUMENTS.get('debug', 0)
+debug = ARGUMENTS.get('debug', '0')
 if int(debug):
   ccflags.remove('-O3')
   ccflags.remove('-g')

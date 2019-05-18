@@ -29,7 +29,7 @@ namespace gvm {
  * 6-22: first sector (0 - 2^17)
  * 21-32: sector count (0 - 2^10 sectors [1MiB])
  *
- * DMA is similar but the address is assumed to be aligned with sector size. 
+ * DMA is similar but we can specify 4 buffer sizes and address is limited to 25 bits.
  * 0-2 bits: command
  * 3: disk (0 or 1)
  * 4-5: dmaid (0-3)

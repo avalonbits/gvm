@@ -1071,6 +1071,9 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::LOAD_IX:
       ss << "load r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
       break;
+    case ISA::LOAD_PC:
+      ss << "load r" << reg1(word) << ", [r29, 0x" << std::hex << reladdr21(word) << "]";
+      break;
     case ISA::LOAD_IXR:
       ss << "load r" << reg1(word) << ", [r" << reg2(word) << ", r" << reg3(word) << "]";
       break;
@@ -1091,6 +1094,9 @@ std::string CPU::PrintInstruction(const Word word) {
       break;
     case ISA::STOR_IX:
       ss << "stor [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word);
+      break;
+    case ISA::STOR_PC:
+      ss << "stor [r29, 0x" << std::hex << reladdr21(word) << "], r" << std::dec << reg1(word);
       break;
     case ISA::STOR_IP:
       ss << "stor post inc [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word);
@@ -1193,7 +1199,7 @@ std::string CPU::PrintInstruction(const Word word) {
       ss << "wfi";
       break;
     default:
-      ss << "Unrecognizd instrucation: 0x" << std::hex << word;
+      std::cerr << "Unrecognizd instrucation: "<< opcode << std::endl;
       assert(false);
       break;
   }

@@ -165,9 +165,51 @@ ptr_heap_curr_limit: .int heap_curr_limit
 	.equ mh_next  4
 	.equ mh_size  8
 
-memory_page_shift: .int 4 ; Shifting by 4 bits gives 16 bytes per page.
+	.equ memory_page_shift 4  ; Shifting by 4 bits gives 16 bytes per page.
 
 .section text
+@func malloc:
+	; r0 returns address of memory. If < 0 no memory was available.
+	; r1: Size in bytes to allocate.
+
+	ldr r2, [ptr_heap_curr_limit]
+	ldr r3, [heap_lower_limit]
+
+	; We subtract 8 from sp to account for the call to alloc.
+	sub r4, sp, 8
+
+	call alloc
+	ret
+@endf malloc
+
+
+@func free:
+	; r0: 0 if it was able to deallocate, -1 otherwise.
+	; r1: heap block to free.
+
+	; If the memory address is within the heap limits, we assume it is a valid
+	; address and proceed.
+	ldr r2, [heap_lower_limit]
+	sub r2, r1, r2
+	jlt r2, invalid_memory
+
+	sub r2, sp, r1
+	jlt r2, invalid_memory
+
+	; Ok, both limits are valid. Mark the block as free and be gone.
+	; The memory block is right after the header and the number of bytes of the block
+	; is the first field. So, we want to go to that field and make it negative.
+	sub r1, r1, mh_size
+	ldr r2, [r1]
+	mul r2, r2, -1
+	str [r1], r2
+	ret
+
+invalid_memory:
+	mov r0, -1
+	ret
+@endf free
+
 @infunc alloc:
     ; r0: returns address of memory. if < 0 not memory was available.
     ; r1: Size in bytes to allocate.
@@ -184,19 +226,15 @@ memory_page_shift: .int 4 ; Shifting by 4 bits gives 16 bytes per page.
     ; Then, convert the amount of bytes to the amount of pages.
     lsr r0, r1, memory_page_shift
 
-    ; Make a copy of page count in r5.
-    mov r5, r0
-
-    ; Now shift it back. If it is smaller, then add an extra page.
+    ; Now convert back to bytes. If it is smaller,  add an extra page.
     lsl r0, r0, memory_page_shift
     sub r0, r1, r0
     jeq r0, ok_page_count
 
-    ; Smaller, so adding one to r5
-    add r5, r5, 1
-
-    ; Set r1 to the number of bytes we need.
-    lsl r1, r5, memory_page_shift
+    ; Smaller, so adding a page to r1
+	mov r0, 1
+	lsl r0, r0, memory_page_shift
+	add r1, r0, r1
 
 ok_page_count:
     ; Because we create a linked list of pointers, we need to walk the list in order
@@ -207,7 +245,7 @@ ok_page_count:
 
 walk_list:
 	; Ok, we are at the start of a header. We need to check a few things:
-	; 1) If mh_size == 0 then we allocate a new page.
+	; 1) If mh_bytes == 0 then we allocate a new page.
 	ldri r6, [r5, mh_bytes]
 	jeq r6, allocate_page
 
@@ -240,7 +278,7 @@ allocate_page:
 
 	; We need to get the current limit. For that, we call brk(0).
 	; Copy bytes to r5
-	lsr r5, r1, 2
+	mov r5, r1
 
 	; Set r1 to 0
 	mov r1, 0
@@ -254,7 +292,7 @@ allocate_page:
 	; Copy the block to r7
 	mov r7, r0
 
-	; Copy the number of words to request to r1
+	; Copy the number of bytes to request to r1
 	mov r1, r5
 
 	; Call brk(bytes)
@@ -271,6 +309,7 @@ allocate_page:
 
 	; Set r0 mh_bytes to 0 so we know this is the point that we need to allocate.
 	stri [r0, mh_bytes], rZ
+	stri [r0, mh_next], rZ
 
 	; memory block starts right after header.
 	add r0, r7, mh_size
@@ -1047,11 +1086,17 @@ fb_addr: .int frame_buffer
 
 @func KERNEL_MAIN:
     ; Allocate space for console
-    sub sp, sp, console_size
-    str [console_addr], sp
+	mov r1, console_size
+	call malloc
+
+	jge r0, allocated
+	; Not enough memory. Halt the cpu.
+	halt
+
+allocated:
+    str [console_addr], r0
 
     ; Initialize console.
-    mov r0, sp
     ldr r1,  [fb_addr]
     mov r2, 384    ; 96 x 4 (size of text line in bytes.)
     mul r2, r2, 27 ; 27 (number of lines)
@@ -1061,7 +1106,7 @@ fb_addr: .int frame_buffer
     call console_init
 
     ; Print machine name
-    mov r0, sp
+    ldr r0, [console_addr]
     mov r1, 32
     mov r2, 0
     call console_set_cursor
@@ -1070,7 +1115,7 @@ fb_addr: .int frame_buffer
     call console_puts
 
     ; Change text color to white.
-    mov r0, sp
+    ldr r0, [console_addr]
     mov r1, 15
     mov r2, 0
     call console_set_color
@@ -1083,8 +1128,7 @@ fb_addr: .int frame_buffer
     call console_puts
 
     ; Print cursor
-
-    mov r0, sp
+    ldr r0, [console_addr]
     mov r1, 0
     mov r2, 3
     call console_set_cursor
