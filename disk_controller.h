@@ -15,26 +15,25 @@ namespace gvm {
  * DMA: disk, dmaid, buffer sector count, start address as multiple of sector size.
  * STAT: no params, should return disk count and dmaids associated, if available.
  *
- * Max disks supported: 2 (2 bit)
+ * Max disks supported: 2 (1 bit)
  * Max dma buffers per disk: 4 (2 bits)
  * Sector size: 512 bytes (2^9)
  * Max disk size: 1 GiB (2^30 bytes)
- * Max partition size: 256 MiB (2^26 bytes)
- * Max sector count per partition: 2^17 (128k sectors)
+ * Max partition size: 256 MiB (2^28 bytes)
+ * Max sector count per partition: 2^17 (256M sectors)
  *
  * READ/WRITE Commands are all issued using a 32 bit word.
  * 0-2 bit: command
  * 3: disk (0 or 1)
  * 4-5: dmaid (0-3)
- * 6-22: first sector (0 - 2^17)
- * 21-32: sector count (0 - 2^10 sectors [1MiB])
+ * 6-24: first sector (0 - 2^19))
+ * 25-32: sector count (0 - 2^8 sectors [128KiB])
  *
- * DMA is similar but we can specify 4 buffer sizes and address is limited to 25 bits.
+ * DMA is similar. It assumes 128k buffer sizes and address is limited to 27 bits.
  * 0-2 bits: command
  * 3: disk (0 or 1)
  * 4-5: dmaid (0-3)
- * 6-7: buffer size (128k - 1MiB)
- * 8-32: address to write to (Limited to first 32MiB)
+ * 6-32: address to write to (limited to first 128MiB))
  *
  * STAT is actually multi purpose:
  * 0-2: command
