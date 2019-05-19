@@ -19,7 +19,7 @@ FileBackedDisk::~FileBackedDisk() {
 bool FileBackedDisk::Init() {
   if (map_ != nullptr) return true;
 
-  file_descriptor_ = open(file_name_.c_str(), O_RDWR | O_CREAT | O_TRUNC, (mode_t)0600);
+  file_descriptor_ = open(file_name_.c_str(), O_RDWR | O_CREAT, (mode_t)0600);
   if (file_descriptor_ == -1) {
     std::cerr << "Unable to open " << file_name_ << ".\n";
     return false;

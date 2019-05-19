@@ -6,6 +6,7 @@
 #include "computer.h"
 #include "cpu.h"
 #include "cxxopts.hpp"
+#include "disk.h"
 #include "isa.h"
 #include "null_video_display.h"
 #include "sdl2_video_display.h"
