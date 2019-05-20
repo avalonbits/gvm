@@ -16,9 +16,9 @@ class Disk {
   virtual bool Init() = 0;
 
   virtual int32_t Read(
-      uint32_t start_sector, uint32_t sector_count, uint32_t* mem) const = 0;
+      uint32_t start_sector, uint32_t sector_count, uint8_t* mem) const = 0;
   virtual int32_t Write(
-      uint32_t start_sector, uint32_t sector_count, const uint32_t* mem) = 0;
+      uint32_t start_sector, uint32_t sector_count, const uint8_t* mem) = 0;
 };
 
 
@@ -31,14 +31,14 @@ class FileBackedDisk : public Disk {
   bool Init() override;
 
   int32_t Read(
-      uint32_t start_sector, uint32_t sector_count, uint32_t* mem) const override;
+      uint32_t start_sector, uint32_t sector_count, uint8_t* mem) const override;
   int32_t Write(
-      uint32_t start_sector, uint32_t sector_count, const uint32_t* mem) override;
+      uint32_t start_sector, uint32_t sector_count, const uint8_t* mem) override;
 
  private:
   std::string file_name_;
   const uint32_t sector_count_;
-  uint32_t* map_;
+  uint8_t* map_;
   int file_descriptor_;
 };
 

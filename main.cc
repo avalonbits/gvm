@@ -48,6 +48,11 @@ int main(int argc, char* argv[]) {
     ;
   auto result = options.parse(argc, argv);
 
+  gvm::FileBackedDisk disk("/tmp/teste.hd", 1 << 21);
+  if (!disk.Init()) {
+    std::cerr << "No disk available.";
+  }
+
   const std::string mode = result["video_mode"].as<std::string>();
   const bool print_fps = mode != "null";
   auto* display = CreateSDL2Display(mode);
