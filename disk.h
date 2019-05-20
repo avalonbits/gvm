@@ -24,8 +24,8 @@ class Disk {
 
 class FileBackedDisk : public Disk {
  public:
-  FileBackedDisk(const std::string& file_name, uint32_t sector_count)
-    : file_name_(file_name), sector_count_(sector_count), map_(nullptr) {}
+  FileBackedDisk(const std::string& file_name, uint32_t total_sectors)
+    : file_name_(file_name), total_sectors_(total_sectors), map_(nullptr) {}
   ~FileBackedDisk() override;
 
   bool Init() override;
@@ -37,7 +37,7 @@ class FileBackedDisk : public Disk {
 
  private:
   std::string file_name_;
-  const uint32_t sector_count_;
+  const uint32_t total_sectors_;
   uint8_t* map_;
   int file_descriptor_;
 };

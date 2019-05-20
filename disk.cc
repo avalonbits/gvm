@@ -1,5 +1,6 @@
 #include "disk.h"
 
+#include <cstring>
 #include <iostream>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -19,7 +20,7 @@ FileBackedDisk::~FileBackedDisk() {
 bool FileBackedDisk::Init() {
   if (map_ != nullptr) return true;
 
-  const size_t file_size = Disk::kSectorSize * sector_count_;
+  const size_t file_size = Disk::kSectorSize * total_sectors_;
   file_descriptor_ = open(file_name_.c_str(), O_RDWR, (mode_t)0600);
   if (file_descriptor_ == -1) {
     // File doesn't exist. Create it with the correct size.
@@ -61,13 +62,32 @@ bool FileBackedDisk::Init() {
 
 int32_t FileBackedDisk::Read(
     uint32_t start_sector, uint32_t sector_count, uint8_t* mem) const {
+  if (sector_count == 0) return 0;
   if (map_ == nullptr) return -1;
+  if (start_sector >= total_sectors_) return -2;
+  if (start_sector + sector_count > total_sectors_) {
+    sector_count = total_sectors_ - start_sector;
+  }
+  const auto start_byte = start_sector * Disk::kSectorSize;
+  const auto end_byte = (start_sector + sector_count) * Disk::kSectorSize;
+  std::memcpy(mem, &map_[start_byte], end_byte - start_byte);
+
+  return sector_count;
 }
 
 int32_t FileBackedDisk::Write(
     uint32_t start_sector, uint32_t sector_count, const uint8_t* mem) {
+  if (sector_count == 0) return 0;
   if (map_ == nullptr) return -1;
-}
+  if (start_sector >= total_sectors_) return -2;
+  if (start_sector + sector_count > total_sectors_) {
+    sector_count = total_sectors_ - start_sector;
+  }
+  const auto start_byte = start_sector * Disk::kSectorSize;
+  const auto end_byte = (start_sector + sector_count) * Disk::kSectorSize;
+  std::memcpy(&map_[start_byte], mem, end_byte - start_byte);
 
+  return sector_count;
+}
 
 }  // namespace gvm

@@ -41,16 +41,21 @@ int main(int argc, char* argv[]) {
   cxxopts::Options options("gvm", "The GVM virtual machine.");
   options.add_options()
     ("prgrom", "Rom file used to boot computer. If present, will ignore chrom.",
-              cxxopts::value<std::string>()->default_value(""))
+               cxxopts::value<std::string>()->default_value(""))
     ("video_mode", "Video mode used. Values can be: null, fullscreen, 480p, "
                    "540p, 900p and 1080p",
-                   cxxopts::value<std::string>()->default_value("720p"))
+                   cxxopts::value<std::string>()->default_value("900p"))
+    ("disk_file", "File to be used as 1 GiB disk. If non-existent, will try to create.",
+                  cxxopts::value<std::string>()->default_value(""))
     ;
   auto result = options.parse(argc, argv);
 
-  gvm::FileBackedDisk disk("/tmp/teste.hd", 1 << 21);
-  if (!disk.Init()) {
-    std::cerr << "No disk available.";
+  const std::string disk_file = result["disk_file"].as<std::string>();
+  if (!disk_file.empty()) {
+    gvm::FileBackedDisk disk(disk_file, 1 << 21);
+    if (!disk.Init()) {
+      std::cerr << "No disk available. All writes to it will fail.";
+    }
   }
 
   const std::string mode = result["video_mode"].as<std::string>();
