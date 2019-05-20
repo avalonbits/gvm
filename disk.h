@@ -19,6 +19,7 @@ class Disk {
       uint32_t start_sector, uint32_t sector_count, uint8_t* mem) const = 0;
   virtual int32_t Write(
       uint32_t start_sector, uint32_t sector_count, const uint8_t* mem) = 0;
+  virtual uint32_t Sectors() const = 0;
 };
 
 
@@ -34,6 +35,10 @@ class FileBackedDisk : public Disk {
       uint32_t start_sector, uint32_t sector_count, uint8_t* mem) const override;
   int32_t Write(
       uint32_t start_sector, uint32_t sector_count, const uint8_t* mem) override;
+  uint32_t Sectors() const override {
+    if (map_ == nullptr) return 0;
+    return total_sectors_;
+  }
 
  private:
   std::string file_name_;
