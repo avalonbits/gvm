@@ -20,7 +20,7 @@ namespace gvm {
  * Sector size: 512 bytes (2^9)
  * Max disk size: 1 GiB (2^30 bytes)
  * Max partition size: 256 MiB (2^28 bytes)
- * Max sector count per partition: 2^17 (256M sectors)
+ * Max sector count per partition: 2^19 (512k sectors)
  *
  * READ/WRITE Commands are all issued using a 32 bit word.
  * 0-2 bit: command
