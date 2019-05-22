@@ -7,6 +7,7 @@
 #include "cpu.h"
 #include "cxxopts.hpp"
 #include "disk.h"
+#include "gfs.h"
 #include "isa.h"
 #include "null_video_display.h"
 #include "sdl2_video_display.h"
@@ -55,6 +56,23 @@ int main(int argc, char* argv[]) {
     gvm::FileBackedDisk disk(disk_file, 1 << 21);
     if (!disk.Init()) {
       std::cerr << "No disk available. All writes to it will fail.";
+    }
+    gvm::gfs::DiskPartition partitions[4] = {
+      {1, (1<<19)+1, "root"},
+      {0, 0, ""},
+      {0, 0, ""},
+      {0, 0, ""},
+    };
+    if (!gvm::gfs::Partition(&disk, partitions)) {
+      std::cerr << "Disk was not partitioned!";
+      return -1;
+    }
+    if (!gvm::gfs::Format(&disk, 0)) {
+      std::cerr << "Disk was not formated!";
+      return -1;
+    }
+    if (!disk.Fsync()) {
+      return -1;
     }
   }
 

@@ -12,6 +12,7 @@ namespace gvm {
 
 FileBackedDisk::~FileBackedDisk() {
   if (map_ != nullptr) {
+    Fsync();
     close(file_descriptor_);
     map_ = nullptr;
   }
@@ -55,9 +56,7 @@ bool FileBackedDisk::Init() {
     std::cerr << "Unable to memory map " << file_name_ << "\n"; 
     return false;
   }
-
-  // All is fine.
-  return true;
+  return Fsync();
 }
 
 int32_t FileBackedDisk::Read(
@@ -88,6 +87,14 @@ int32_t FileBackedDisk::Write(
   std::memcpy(&map_[start_byte], mem, end_byte - start_byte);
 
   return sector_count;
+}
+
+bool FileBackedDisk::Fsync() {
+  if (fsync(file_descriptor_) < 0) {
+    perror("Fsync: ");
+    return false;
+  }
+  return true;
 }
 
 }  // namespace gvm

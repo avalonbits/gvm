@@ -5,8 +5,14 @@
 namespace gvm {
 namespace gfs {
 
-bool Partition(Disk* disk);
-bool Format(Disk* disk);
+typedef struct {
+  uint32_t start_sector;
+  uint32_t end_sector;
+  char label[24];
+} DiskPartition;
+
+bool Partition(Disk* disk, DiskPartition partitions[4]);
+bool Format(Disk* disk, uint32_t partition);
 
 }  // namespace gfs
 }  // namespace gvm

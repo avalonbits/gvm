@@ -8,12 +8,6 @@
 namespace gvm {
 namespace gfs {
 
-typedef struct {
-  uint32_t start_sector;
-  uint32_t end_sector;
-  char label[24];
-} DiskPartition;
-
 bool Partition(Disk* disk, DiskPartition partitions[4]) {
   if (!disk->Init()) {
     std::cerr << "Disk was not properly initalized.\n";
@@ -26,15 +20,11 @@ bool Partition(Disk* disk, DiskPartition partitions[4]) {
 
   // Partitions will be written to sector 0.
   uint8_t block[Disk::kSectorSize];
-  std::memcpy(block, &partitions, sizeof(DiskPartition)*4);
-  auto bytes = disk->Write(0, 1, &block[0]);
-  if (bytes < 0) {
-    std::cerr << "Error writing partition information to block 0 of disk: "
-              << bytes << "\n";
-    return false;
-  }
-  if (bytes != Disk::kSectorSize) {
-    std::cerr << "Wrote less then 1 block: "  << bytes << "\n";
+  std::memcpy(block, partitions, sizeof(DiskPartition)*4);
+  auto sectors = disk->Write(0, 1, &block[0]);
+  if (sectors != 1) {
+    std::cerr << "Error writing partition information to sector 0 of disk: "
+              << sectors << "\n";
     return false;
   }
   return true;
@@ -46,11 +36,7 @@ typedef struct {
   uint32_t total_inodes;
 
   // The number of bytes need to keep track of free sectors.
-  // if it is <= 496 then bitmap is contained within the same sector of the
-  // super block. Otherwise we allocate one extra sector for every 512 bytes.
-  // This value will be ceil(total_sectors / 8.0);
-  uint32_t bytes_bitmap_count;
-  uint8_t sec_bitmap[496];
+  uint32_t bytes_for_bitmap;
 } SuperBlock;
 
 
@@ -78,42 +64,61 @@ static bool formatPartition(Disk* disk, DiskPartition* const part) {
   sblock.total_inodes = total_sectors < 10240
     ? 200
     : static_cast<uint32_t>(std::ceil(total_sectors * 0.02));
-  sblock.bytes_bitmap_count = static_cast<uint32_t>(std::ceil(total_sectors / 8.0));
-
-  // Calculate the number of extra sectors for the bitmap
-  int32_t used_sectors = 2;  // partition table and superblock each use a sector.
-  if (sblock.bytes_bitmap_count > 496) {
-    used_sectors += std::ceil((sblock.bytes_bitmap_count - 496) / 512.0);
-  }
-  std::memset(&sblock.sec_bitmap[0], 0, 496);
-
-  // Set the used blocks in the bitmap.
-  // TODO(icc): Support disks that require more than 496 bytes for free secotr bitmap.
-  for (int i = 0; i < 496; ++i) {
-    used_sectors -= 8;
-    if (used_sectors >= 0) {
-      sblock.sec_bitmap[i] = 0xFF;
-      if (used_sectors == 0) break;
-    } else {
-      sblock.sec_bitmap[i] = 1;
-      used_sectors += 8;
-      while (--used_sectors > 0) {
-        sblock.sec_bitmap[i] <<= 1;
-        sblock.sec_bitmap[i] |= 1;
-      }
-      break;
-    }
-  }
+  sblock.bytes_for_bitmap = static_cast<uint32_t>(std::ceil(total_sectors / 8.0));
+  std::cerr << sblock.bytes_for_bitmap << "\n";
 
   // Super block is the first sector of the partition.
-  auto bytes = disk->Write(part->start_sector, 1, reinterpret_cast<uint8_t*>(&sblock));
-  if (bytes < 0 || bytes < static_cast<int32_t>(Disk::kSectorSize)) {
+  auto sectors = disk->Write(part->start_sector, 1, reinterpret_cast<uint8_t*>(&sblock));
+  if (sectors != 1) {
     std::cerr << "Unable to write the super block at  " << part->start_sector << ": "
-              << bytes << "\n";
+              << sectors << "\n";
     return false;
   }
 
+  // Now we need to write the bitmap to dislk.
+  // First, calculate the number of used sectors for the bitmap
+  int32_t used_sectors = 2;  // partition table and superblock each use a sector.
+  used_sectors += std::ceil(sblock.bytes_for_bitmap / 512.0);
+  std::cerr << used_sectors << std::endl;
 
+  uint8_t block[512];
+  memset(&block[0], 0, 512);
+
+  // Set the used blocks in the bitmap.
+  // TODO(icc): Support disks that require more than 512 bytes for used sector bitmap.
+  int32_t unmarked_sectors = used_sectors;
+  for (int i = 0; i < 512; ++i) {
+    unmarked_sectors -= 8;
+    if (unmarked_sectors >= 0) {
+      block[i] = 0xFF;
+      if (unmarked_sectors == 0) break;
+      continue;
+    }
+
+    // At this point we are at the last byte of the bitmap.
+    block[i] = 1;
+    unmarked_sectors += 8;
+    while (--unmarked_sectors > 0) {
+      block[i] <<= 1;
+      block[i] |= 1;
+    }
+    break;
+  }
+
+  // Write the bitmap blocks. It starts at start_sector + 2 because inode
+  // 0 is always at start_sect + 1.
+  for (int i = 0; i < used_sectors; ++i) {
+    const auto sec = part->start_sector + 2 + i;
+    std::cerr << "Writing sector " << sec << std::endl;
+    auto count = disk->Write(sec, 1, &block[0]);
+    if (count != 1) {
+      std::cerr << "Unable to write bitmap entry at sector " << sec << "\n";
+      return false;
+    }
+    if (i == 0) {
+      memset(&block[0], 0, 512);
+    }
+  }
   // TODO(icc): write the root inode.
   return true;
 }
@@ -130,10 +135,10 @@ bool Format(Disk* disk, uint32_t partition) {
 
   // Read the partition table and check if the partition is valid.
   uint8_t block[Disk::kSectorSize];
-  auto bytes = disk->Read(0, 1, &block[0]);
-  if (bytes < 0) {
+  auto sectors = disk->Read(0, 1, &block[0]);
+  if (sectors != 1) {
     std::cerr << "Error reading partition information from block 0 of disk: "
-              << bytes << "\n";
+              << sectors << "\n";
     return false;
   }
 

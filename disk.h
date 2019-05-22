@@ -20,6 +20,7 @@ class Disk {
   virtual int32_t Write(
       uint32_t start_sector, uint32_t sector_count, const uint8_t* mem) = 0;
   virtual uint32_t Sectors() const = 0;
+  virtual bool Fsync() = 0;
 };
 
 
@@ -39,6 +40,8 @@ class FileBackedDisk : public Disk {
     if (map_ == nullptr) return 0;
     return total_sectors_;
   }
+
+  bool Fsync() override;
 
  private:
   std::string file_name_;
