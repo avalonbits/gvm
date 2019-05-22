@@ -27,7 +27,7 @@ bool Partition(Disk* disk, DiskPartition partitions[4]) {
               << sectors << "\n";
     return false;
   }
-  return true;
+  return disk->Fsync();
 }
 
 typedef struct {
@@ -39,6 +39,15 @@ typedef struct {
   uint32_t bytes_for_bitmap;
 } SuperBlock;
 
+typedef struct {
+  char name[64];
+  uint32_t attr;
+  uint32_t size;
+  uint32_t direct[11];
+  uint32_t indirect;
+  uint32_t d_indirect;
+  uint32_t t_inderict;
+} Inode;
 
 static bool formatPartition(Disk* disk, DiskPartition* const part) {
   if (part->start_sector >= part->end_sector) {
@@ -65,7 +74,6 @@ static bool formatPartition(Disk* disk, DiskPartition* const part) {
     ? 200
     : static_cast<uint32_t>(std::ceil(total_sectors * 0.02));
   sblock.bytes_for_bitmap = static_cast<uint32_t>(std::ceil(total_sectors / 8.0));
-  std::cerr << sblock.bytes_for_bitmap << "\n";
 
   // Super block is the first sector of the partition.
   auto sectors = disk->Write(part->start_sector, 1, reinterpret_cast<uint8_t*>(&sblock));
@@ -77,9 +85,8 @@ static bool formatPartition(Disk* disk, DiskPartition* const part) {
 
   // Now we need to write the bitmap to dislk.
   // First, calculate the number of used sectors for the bitmap
-  int32_t used_sectors = 2;  // partition table and superblock each use a sector.
+  int32_t used_sectors = 3;  // partition table, superblock and root inode sectors.
   used_sectors += std::ceil(sblock.bytes_for_bitmap / 512.0);
-  std::cerr << used_sectors << std::endl;
 
   uint8_t block[512];
   memset(&block[0], 0, 512);
@@ -109,7 +116,6 @@ static bool formatPartition(Disk* disk, DiskPartition* const part) {
   // 0 is always at start_sect + 1.
   for (int i = 0; i < used_sectors; ++i) {
     const auto sec = part->start_sector + 2 + i;
-    std::cerr << "Writing sector " << sec << std::endl;
     auto count = disk->Write(sec, 1, &block[0]);
     if (count != 1) {
       std::cerr << "Unable to write bitmap entry at sector " << sec << "\n";
@@ -119,8 +125,16 @@ static bool formatPartition(Disk* disk, DiskPartition* const part) {
       memset(&block[0], 0, 512);
     }
   }
-  // TODO(icc): write the root inode.
-  return true;
+
+  // Finally, write the root inode.
+  Inode root;
+  memset(&root, 0, sizeof(Inode));
+  sectors = disk->Write(part->start_sector + 1, 1, reinterpret_cast<uint8_t*>(&root));
+  if (sectors != 1) {
+    std::cerr << "Unable to write root inode: " << sectors << std::endl;
+    return false;
+  }
+  return disk->Fsync();
 }
 
 bool Format(Disk* disk, uint32_t partition) {

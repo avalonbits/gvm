@@ -71,9 +71,6 @@ int main(int argc, char* argv[]) {
       std::cerr << "Disk was not formated!";
       return -1;
     }
-    if (!disk.Fsync()) {
-      return -1;
-    }
   }
 
   const std::string mode = result["video_mode"].as<std::string>();
