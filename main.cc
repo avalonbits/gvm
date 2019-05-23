@@ -57,19 +57,25 @@ int main(int argc, char* argv[]) {
     if (!disk.Init()) {
       std::cerr << "No disk available. All writes to it will fail.";
     }
-    gvm::gfs::DiskPartition partitions[4] = {
-      {1, (1<<19)+1, "root"},
-      {0, 0, ""},
-      {0, 0, ""},
-      {0, 0, ""},
-    };
-    if (!gvm::gfs::Partition(&disk, partitions)) {
-      std::cerr << "Disk was not partitioned!";
-      return -1;
+    if (!gvm::gfs::IsDiskPartitioned(&disk)) {
+      std::cerr << "Need to partition disk.\n";
+      gvm::gfs::PartitionTable table;
+      memset(&table, 0, sizeof(gvm::gfs::PartitionTable));
+      table.partitions[0].start_sector = 1;
+      table.partitions[0].end_sector = (1 << 19) + 1;  // 512k sectors (256 MiB).
+      table.set_partitions = 1;  // Just partition 0 is set.
+      gvm::gfs::UCS2name(table.partitions[0].label, "root");
+      if (!gvm::gfs::Partition(&disk, &table)) {
+        std::cerr << "Disk was not partitioned!\n";
+        return -1;
+      }
     }
-    if (!gvm::gfs::Format(&disk, 0)) {
-      std::cerr << "Disk was not formated!";
-      return -1;
+    if (!gvm::gfs::IsDiskPartitionFormated(&disk, 0)) {
+      std::cerr << "Need to format disk.\n";
+      if (!gvm::gfs::Format(&disk, 0)) {
+        std::cerr << "Disk was not formated!\n";
+        return -1;
+      }
     }
   }
 

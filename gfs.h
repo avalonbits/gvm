@@ -11,8 +11,17 @@ typedef struct {
   char label[24];
 } DiskPartition;
 
-bool Partition(Disk* disk, DiskPartition partitions[4]);
+typedef struct {
+  uint32_t magic;
+  DiskPartition partitions[4];
+  uint32_t set_partitions;
+} PartitionTable;
+
+void UCS2name(char* name16, const char* name8); 
+bool Partition(Disk* disk, PartitionTable* const table);
 bool Format(Disk* disk, uint32_t partition);
+bool IsDiskPartitioned(Disk* disk);
+bool IsDiskPartitionFormated(Disk* disk, uint32_t partition);
 
 }  // namespace gfs
 }  // namespace gvm

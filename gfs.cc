@@ -8,19 +8,27 @@
 namespace gvm {
 namespace gfs {
 
-bool Partition(Disk* disk, DiskPartition partitions[4]) {
+void UCS2name(char* name16, const char* name8) {
+  for (int i = 0; name8[i] != 0; ++i) {
+    name16[2*i] = name8[i];
+    name16[2*i+1] = 0;
+  }
+}
+
+bool Partition(Disk* disk, PartitionTable* const table) {
   if (!disk->Init()) {
     std::cerr << "Disk was not properly initalized.\n";
     return false;
   }
+  table->set_partitions &= 0xF;  // We only allow 4 partitions.
 
-  for (int i = 0; i < 4; ++i) {
-    // Check that partitions are valid.
-  }
+  // Enforce the magic number.
+  table->magic = 0xEE1987EE;
 
   // Partitions will be written to sector 0.
   uint8_t block[Disk::kSectorSize];
-  std::memcpy(block, partitions, sizeof(DiskPartition)*4);
+  memset(block, 0, Disk::kSectorSize);
+  std::memcpy(block, table, sizeof(PartitionTable));
   auto sectors = disk->Write(0, 1, &block[0]);
   if (sectors != 1) {
     std::cerr << "Error writing partition information to sector 0 of disk: "
@@ -76,7 +84,10 @@ static bool formatPartition(Disk* disk, DiskPartition* const part) {
   sblock.bytes_for_bitmap = static_cast<uint32_t>(std::ceil(total_sectors / 8.0));
 
   // Super block is the first sector of the partition.
-  auto sectors = disk->Write(part->start_sector, 1, reinterpret_cast<uint8_t*>(&sblock));
+  uint8_t block[Disk::kSectorSize];
+  memset(&block[0], 0, Disk::kSectorSize);
+  memcpy(&block[0], &sblock, sizeof(SuperBlock));
+  auto sectors = disk->Write(part->start_sector, 1, block);
   if (sectors != 1) {
     std::cerr << "Unable to write the super block at  " << part->start_sector << ": "
               << sectors << "\n";
@@ -86,15 +97,11 @@ static bool formatPartition(Disk* disk, DiskPartition* const part) {
   // Now we need to write the bitmap to dislk.
   // First, calculate the number of used sectors for the bitmap
   int32_t used_sectors = 3;  // partition table, superblock and root inode sectors.
-  used_sectors += std::ceil(sblock.bytes_for_bitmap / 512.0);
-
-  uint8_t block[512];
-  memset(&block[0], 0, 512);
-
+  used_sectors += std::ceil(
+      sblock.bytes_for_bitmap / static_cast<double>(Disk::kSectorSize));
   // Set the used blocks in the bitmap.
-  // TODO(icc): Support disks that require more than 512 bytes for used sector bitmap.
   int32_t unmarked_sectors = used_sectors;
-  for (int i = 0; i < 512; ++i) {
+  for (uint32_t i = 0; i < Disk::kSectorSize; ++i) {
     unmarked_sectors -= 8;
     if (unmarked_sectors >= 0) {
       block[i] = 0xFF;
@@ -122,14 +129,16 @@ static bool formatPartition(Disk* disk, DiskPartition* const part) {
       return false;
     }
     if (i == 0) {
-      memset(&block[0], 0, 512);
+      memset(&block[0], 0, Disk::kSectorSize);
     }
   }
 
   // Finally, write the root inode.
   Inode root;
   memset(&root, 0, sizeof(Inode));
-  sectors = disk->Write(part->start_sector + 1, 1, reinterpret_cast<uint8_t*>(&root));
+  memset(block, 0, Disk::kSectorSize);
+  memcpy(block, &root, sizeof(Inode));
+  sectors = disk->Write(part->start_sector + 1, 1, block);
   if (sectors != 1) {
     std::cerr << "Unable to write root inode: " << sectors << std::endl;
     return false;
@@ -156,11 +165,66 @@ bool Format(Disk* disk, uint32_t partition) {
     return false;
   }
 
-  DiskPartition partitions[4];
-  std::memcpy(partitions, block, sizeof(DiskPartition) * 4);
+  PartitionTable table;
+  std::memcpy(&table, block, sizeof(PartitionTable));
+  
+  // Check is partition that will be formated is valid.
+  const bool valid = (table.set_partitions >> partition) & 0x1;
+  if (!valid) {
+    std::cerr << "Partition " << partition << " is not valid.\n";
+    return false;
+  }
 
-  return formatPartition(disk, &partitions[partition]);
+  return formatPartition(disk, &table.partitions[partition]);
 }
 
+// We only check the simple stuff: magic number and set_partions <= 0xF
+bool IsDiskPartitioned(Disk* disk) {
+  uint8_t block[Disk::kSectorSize];
+  auto count = disk->Read(0, 1, block);
+  if (count != 1) {
+    std::cerr << "Error reading disk partion from sector 0.\n";
+    return false;
+  }
+
+  PartitionTable table;
+  memcpy(&table, block, sizeof(PartitionTable));
+  return table.magic == 0xEE1987EE && table.set_partitions <= 0xF;
+}
+
+bool IsDiskPartitionFormated(Disk* disk, uint32_t partition) {
+  uint8_t block[Disk::kSectorSize];
+  auto count = disk->Read(0, 1, block);
+  if (count != 1) {
+    std::cerr << "Error reading disk partion from sector 0.\n";
+    return false;
+  }
+
+  PartitionTable table;
+  memcpy(&table, block, sizeof(PartitionTable));
+  if (table.magic != 0xEE1987EE || table.set_partitions > 0xF) {
+    std::cerr << "Disk is not partitioned.\n";
+    return false;
+  }
+
+  if (!((table.set_partitions >> partition) & 0x01)) {
+    std::cerr << "Partition " << partition << " is invalid.\n";
+    return false;
+  }
+
+  auto* part = &table.partitions[partition];
+  count = disk->Read(part->start_sector, 1, block);
+  if (count != 1) {
+    std::cerr << "Error reading partition " << partition << " super block from sector "
+              << part->start_sector << ".\n";
+    return false;
+  }
+
+  SuperBlock sb;
+  memcpy(&sb, block, sizeof(SuperBlock));
+
+  // Just check the magic number and hope for the best.
+  return sb.magic == 0xFF1987FF;
+}
 }  // namespace gfs
 }  // namespace gvm
