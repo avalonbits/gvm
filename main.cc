@@ -7,6 +7,7 @@
 #include "cpu.h"
 #include "cxxopts.hpp"
 #include "disk.h"
+#include "disk_controller.h"
 #include "gfs.h"
 #include "isa.h"
 #include "null_video_display.h"
@@ -52,12 +53,13 @@ int main(int argc, char* argv[]) {
   auto result = options.parse(argc, argv);
 
   const std::string disk_file = result["disk_file"].as<std::string>();
+  std::unique_ptr<gvm::Disk> disk;
   if (!disk_file.empty()) {
-    gvm::FileBackedDisk disk(disk_file, 1 << 21);
-    if (!disk.Init()) {
+    disk.reset(new gvm::FileBackedDisk(disk_file, 1 << 21));
+    if (!disk->Init()) {
       std::cerr << "No disk available. All writes to it will fail.";
     }
-    if (!gvm::gfs::IsDiskPartitioned(&disk)) {
+    if (!gvm::gfs::IsDiskPartitioned(disk.get())) {
       std::cerr << "Need to partition disk.\n";
       gvm::gfs::PartitionTable table;
       memset(&table, 0, sizeof(gvm::gfs::PartitionTable));
@@ -65,26 +67,27 @@ int main(int argc, char* argv[]) {
       table.partitions[0].end_sector = (1 << 19) + 1;  // 512k sectors (256 MiB).
       table.set_partitions = 1;  // Just partition 0 is set.
       gvm::gfs::UCS2name(table.partitions[0].label, "root");
-      if (!gvm::gfs::Partition(&disk, &table)) {
+      if (!gvm::gfs::Partition(disk.get(), &table)) {
         std::cerr << "Disk was not partitioned!\n";
         return -1;
       }
     }
-    if (!gvm::gfs::IsDiskPartitionFormated(&disk, 0)) {
+    if (!gvm::gfs::IsDiskPartitionFormated(disk.get(), 0)) {
       std::cerr << "Need to format disk.\n";
-      if (!gvm::gfs::Format(&disk, 0)) {
+      if (!gvm::gfs::Format(disk.get(), 0)) {
         std::cerr << "Disk was not formated!\n";
         return -1;
       }
     }
   }
 
+  auto* disk_controller = new gvm::DiskController({disk.get()});
   const std::string mode = result["video_mode"].as<std::string>();
   const bool print_fps = mode != "null";
   auto* display = CreateSDL2Display(mode);
-  auto* controller = new gvm::VideoController(print_fps, display);
+  auto* video_controller = new gvm::VideoController(print_fps, display);
   auto* cpu = new gvm::CPU();
-  gvm::Computer computer(cpu, controller);
+  gvm::Computer computer(cpu, video_controller, disk_controller);
   const std::string prgrom = result["prgrom"].as<std::string>();
   const gvm::Rom* rom = nullptr;
   rom = ReadRom(prgrom);

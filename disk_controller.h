@@ -3,7 +3,9 @@
 
 #include <cassert>
 #include <cstdint>
+#include <vector>
 
+#include "disk.h"
 #include "sync_types.h"
 
 namespace gvm {
@@ -45,10 +47,12 @@ namespace gvm {
  */
 class DiskController {
  public:
-  DiskController(SyncChan<uint32_t>* chan, uint32_t* mem)
-    : chan_(chan), mem_(mem) {
-    assert(chan_ != nullptr);
-    assert(mem_ != nullptr);
+  explicit DiskController(const std::vector<Disk*>& disks)
+    : disks_(disks) {
+  }
+
+  void SetMemRegister(SyncChan<uint32_t>* chan) {
+    chan_ = chan;
   }
 
   void Start();
@@ -59,6 +63,7 @@ class DiskController {
 
  private:
   SyncChan<uint32_t>* chan_;
+  std::vector<Disk*> disks_;
   uint32_t* mem_;
 };
 

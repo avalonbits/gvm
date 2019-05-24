@@ -34,10 +34,11 @@ const int kFrameBufferH = 360;
 
 namespace gvm {
 
-Computer::Computer(CPU* cpu, VideoController* video_controller)
+Computer::Computer(CPU* cpu, VideoController* video_controller,
+                   DiskController* disk_controller)
     : mem_size_bytes_(kMemLimit),
       mem_(new uint32_t[mem_size_bytes_/kWordSize]),
-      cpu_(cpu), video_controller_(video_controller) {
+      cpu_(cpu), video_controller_(video_controller), disk_controller_(disk_controller) {
   assert(mem_ != nullptr);
   assert(cpu_ != nullptr);
   assert(video_controller_ != nullptr);
