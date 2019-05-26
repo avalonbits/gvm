@@ -129,6 +129,7 @@ read_input:
 
 	; Now get the char at buffer[r2]
 	add r2, r0, r2
+	ldr r2, [r2]
 
 	; Update ib_head and wrap if needed.
 	add r1, r1, 1
