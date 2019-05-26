@@ -18,6 +18,7 @@ InputController::InputController(std::function<void(uint32_t value)> callback)
 
 InputController::~InputController() {}
 
+
 static bool IsControlKey(uint32_t sym) {
   switch(sym) {
     case SDLK_LCTRL:
@@ -51,6 +52,7 @@ static bool IsControlKey(uint32_t sym) {
   return false;
 }
 
+
 void InputController::Read() {
   SDL_Event event;
   while (!shutdown_) {
@@ -69,13 +71,24 @@ void InputController::Read() {
         if (IsControlKey(sym)) callback_(sym);
         break;
       }
+      case SDL_KEYUP: {
+        uint32_t sym = event.key.keysym.sym;
+        std::cerr << "Keyup: " << sym << std::endl;
+        if (IsControlKey(sym)) {
+            sym |= (1 << 31);
+            callback_(sym);
+        }
+        break;
+      }
+
+    /*
       case SDL_TEXTINPUT: {
         const char* text = event.text.text;
         int codepoint = 0;
         utf8codepoint(text, &codepoint);
         callback_(static_cast<uint32_t>(codepoint));
         break;
-      }
+      }*/
       default:
         break;
     }

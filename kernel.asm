@@ -19,7 +19,6 @@ ptr_heap_start: .int heap_start
 
 .section text
 
-
 ; ==== Reset interrupt handler.
 reset_handler:
 	; We initialize the first two words of the heap to zero. This corresponds
@@ -31,44 +30,119 @@ reset_handler:
     ldr r1, [input_value_addr]
     str [r1], rZ
 
-    ; Clear user input vector address.
-    str [input_jump_addr], rZ
+	; Reset input buffer
+	ldr r0, [input_buffer_addr]
+	stri [r0, ib_head], rZ
+	stri [r0, ib_tail], rZ
 
     ; Now jump to main kernel code.
     jmp KERNEL_MAIN
 
 .section data
 input_value_addr: .int 0x1200404
-input_jump_addr:  .int 0
+	; struct input_buffer
+	.equ ib_buffer       0
+	.equ ib_head        128
+	.equ ib_tail        132
+	.equ ib_struct_size 136
+input_buffer: .array 136
+input_buffer_addr: .int input_buffer
 
 .section text
 ; ==== Input handler
+; The input handler will only add new key inputs to the circular buffer. If the
+; buffer is full, the input buffer is overwritten
 @func input_handler:
-    ; Save the contents of r0 and r1 on the stack so we don't disrupt user code.
-    stppi [sp, -8], r0, r1
+    ; Save the contents of r0 and r2 on the stack so we don't disrupt user code.
+    stppi [sp, -8], r0, r2
 
     ; Read the value from the input.
-    ldr r0, [input_value_addr]
-    ldr r0, [r0]
+    ldr r2, [input_value_addr]
+    ldr r2, [r2]
 
     ; Quit is the value 0xFFFFFFFF so adding 1 should result in 0.
-    add r1, r0, 1
-    jeq r1, quit
+    add r0, r2, 1
+    jeq r0, quit
 
-    ; Load the user jump address. If it's != 0, call it.
-    ldr r1, [input_jump_addr]
-    jeq r1, done
-    call r1
+	; Save r1 to the stack.
+	stppi [sp, -8], r1, r3
+
+	; Load input buffer.
+	ldr r0, [input_buffer_addr]
+
+    ; Load the buffer tail and write.
+	ldri r1, [r0, ib_tail]
+
+	; Because we operate with words, we need to multiply r1 by 4.
+	lsl r3, r1, 2
+	add r3, r0, r3
+	str [r3], r2
+
+	; Update the tail
+	add r1, r1, 1
+
+	; If it is not 32, then just write it back and be done.
+	sub r3, r1, 32
+	jne r3, done
+
+	; Need to wrap around.
+	mov r1, 0
 
 done:
-    ; Input processing done. Restore restore r1 and r0 and return.
-    ldpip r0, r1, [sp, 8]
+	stri [r0, ib_tail], r1
+
+    ; Input processing done. Restore restore regs and return.
+	ldpip r1, r3, [sp, 8]
+    ldpip r0, r2, [sp, 8]
     ret
 
 quit:
     ; Quit means we want to turn of the cpu.
     halt
 @endf input_handler
+
+; === GetKey. Reads the next key from the key input buffer.
+@func getkey:
+	; r0: returns the key read. r0 == 0 means no input available.
+
+	; The first thing to do is to get ib_tail. This way, if an interrupt
+    ; happens while we are in this function, we will reduce the chance of
+	; buffer overwrite.
+	ldr r0, [input_buffer_addr]
+	ldri r2, [r0, ib_tail]
+	ldri r1, [r0, ib_head]
+
+	;  If tail != head then the buffer has keys so we can read it.
+	sub r2, r2, r1
+	jne r2, read_input
+
+	; tail == head means no key in buffer. Return 0.
+	mov r0, 0
+	ret
+
+read_input:
+	; We read the input to r2, update ib_head then move the result to r0 to
+	; return it to caller.
+
+	; Because we operate on words, we need to multiply ib_head by 4.
+	lsl r2, r1, 2
+
+	; Now get the char at buffer[r2]
+	add r2, r0, r2
+
+	; Update ib_head and wrap if needed.
+	add r1, r1, 1
+	sub r3, r1, 32
+	jne r3, done
+
+	; We need to wrap back to 0.
+	mov r1, rZ
+
+done:
+	stri [r0, ib_head], r1
+	mov r0, r2
+	ret
+@endf getkey
 
 .section data
 display_update: .int 0x0
@@ -150,7 +224,7 @@ done:
 
 no_memory:
     ; We have crossed a memory limit. Return an error.
-    mov r0, -1
+    mov r0, 0
     ret
 @endf brk
 
@@ -211,7 +285,7 @@ invalid_memory:
 @endf free
 
 @infunc alloc:
-    ; r0: returns address of memory. if < 0 not memory was available.
+    ; r0: returns address of memory. if == 0 no memory was available.
     ; r1: Size in bytes to allocate.
     ; r2: pointer to heap break address. Gets updated with the new limit
     ; r3: heap start
@@ -301,7 +375,7 @@ allocate_page:
 	; r0 now has either a valid new memory addres or < 0. If it is < 0 then no
 	; memory was allocated
 
-	jlt r0, no_memory
+	jeq r0, no_memory
 
 	; Ok, we got memory! Setup the header and return the start of the block.
 	stri [r7, mh_bytes], r1
@@ -316,7 +390,7 @@ allocate_page:
 	ret
 
 no_memory:
-    mov r0, -1
+    mov r0, 0
     ret
 
 @endf alloc
@@ -1089,7 +1163,7 @@ fb_addr: .int frame_buffer
 	mov r1, console_size
 	call malloc
 
-	jge r0, allocated
+	jne r0, allocated
 	; Not enough memory. Halt the cpu.
 	halt
 
@@ -1134,10 +1208,6 @@ allocated:
     call console_set_cursor
     call console_print_cursor
 
-    ; Install our input handler.
-    ldr r0, [user_input_handler_addr]
-    str [input_jump_addr], r0
-
     ; Install our display updater.
     ldr r0, [UI_addr]
     str [display_update], r0
@@ -1156,14 +1226,14 @@ loop: wfi
 
 ; We wait for a user input and print the value on screen.
 @func USER_INTERFACE:
-    call USER_INTERFACE_getin
-    add r0, r1, 1
+	call getkey
     jne r0, process_input
     ret
 
 process_input:
     ; check if we have a control char. If we do, update ui accordingly and get next
     ; input.
+	mov r1, r0
     call USER_control_chars
     jeq r0, done
     mov r6, r1
@@ -1212,42 +1282,7 @@ enter:
     call console_print_cursor
     mov r0, 0
     ret
-
 @endf USER_control_chars
-
-.section data
-wait_input_value: .int 0xFFFFFFFF
-
-.section text
-; ===== UI getc. Pools user input.
-@func USER_INTERFACE_getin:
-    ; r1: returns user input value.
-
-    ; Pool input and return wait_input value if input is not ready.
-    ldr r1, [user_input_value]
-    add r0, r1, 1
-    jeq r0, done
-
-    ; Now set user input to 0 so we don't keep writing stuff over.
-    ldr r0, [wait_input_value]
-    str [user_input_value], r0
-done:
-    ret
-@endf USER_INTERFACE_getin
-
-.section data
-user_input_value: .int 0xFFFFFFFF
-user_input_handler_addr: .int USER_input_handler
-
-.section text
-; This will be called on every input that is not a quit signal.
-USER_input_handler:
-    ; The input value will be stored in r0. We just copy it to a user memory
-    ; location and return. We will deal with the value later.
-    str [user_input_value], r0
-    ret
-
-
 
 ; ============ HEAP START. DO NOT CHANGE THIS
 .section data
