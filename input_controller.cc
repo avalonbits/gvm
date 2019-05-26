@@ -68,7 +68,7 @@ void InputController::Read() {
       case SDL_KEYDOWN: {
         const uint32_t sym = event.key.keysym.sym;
         std::cerr << "Keydown: " << sym << std::endl;
-        if (IsControlKey(sym)) callback_(sym);
+        callback_(sym);
         break;
       }
       case SDL_KEYUP: {
