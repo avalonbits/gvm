@@ -40,9 +40,9 @@ reset_handler:
 
 .section data
 input_value_addr: .int 0x1200404
-	; struct input_buffer
+	; struct input_buffer. Defines 32 key long circular buffer.
 	.equ ib_buffer       0
-	.equ ib_head        128
+	.equ ib_head        128  ; 32 * 4.
 	.equ ib_tail        132
 	.equ ib_struct_size 136
 input_buffer: .array 136
@@ -64,7 +64,7 @@ input_buffer_addr: .int input_buffer
     add r0, r2, 1
     jeq r0, quit
 
-	; Save r1 to the stack.
+	; Save r1 and r3 to the stack.
 	stppi [sp, -8], r1, r3
 
 	; Load input buffer.
@@ -91,7 +91,7 @@ input_buffer_addr: .int input_buffer
 done:
 	stri [r0, ib_tail], r1
 
-    ; Input processing done. Restore restore regs and return.
+    ; Input processing done. Restore registers and return.
 	ldpip r1, r3, [sp, 8]
     ldpip r0, r2, [sp, 8]
     ret
@@ -1148,7 +1148,7 @@ done:
 
 
 .section data
-gvm: .str "GVM Virtual Machine Version 0.01"
+gvm: .str "GVM Virtual Machine Version 0.1987"
 gvm_addr: .int gvm
 ready: .str "READY."
 ready_addr: .int ready
@@ -1182,7 +1182,7 @@ allocated:
 
     ; Print machine name
     ldr r0, [console_addr]
-    mov r1, 32
+    mov r1, 30
     mov r2, 0
     call console_set_cursor
 
