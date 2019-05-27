@@ -20,6 +20,9 @@ getkey:    .int _getkey
 text_putc: .int _text_putc
 putc:	   .int _putc
 puts:      .int _puts
+memcpy:    .int _memcpy
+memcpy2:   .int _memcpy2
+memcpy32:  .int _memcpy32
 
 .org 0x2100
 .section data
@@ -442,7 +445,7 @@ memset32:
 
 ; ==== Memcopy. Copies the contents of one region of memory to another.
 ; Does not handle overlap.
-memcpy:
+_memcpy:
     ; r1: start to-address
     ; r2: start from:address
     ; r3: size in words.
@@ -450,11 +453,25 @@ memcpy:
     ldrip r4, [r2, 4]
     strip [r1, 4], r4
     sub r3, r3, 1
-    jgt r3, memcpy
+    jgt r3, _memcpy
     ret
 
+; ==== Memcopy2. Same as memcpy but assumes size is a multiple of 2 words.
+; Dones not handle overalp.
+_memcpy2:
+	; r1: start to-addres
+	; r2: start from-addres
+	; r3: size in words.
+	; r24, r25: local variable for copying memory.
+	ldpip r24, r25, [r2, 8]
+	stpip [r1, 8], r24, r25
+	sub r3, r3, 2
+	jgt r3, _memcpy2
+	ret
+
 ; ==== Memcopy32. Same as memcpy but assumes size is a multiple of 32 words.
-memcpy32:
+; Does not handle overlap.
+_memcpy32:
     ; r1: start to-address
     ; r2: start from:address
     ; r3: size in words.
@@ -492,7 +509,7 @@ memcpy32:
     ldpip r24, r25, [r2, 8]
     stpip [r1, 8], r24, r25
     sub r3, r3, 32
-    jgt r3, memcpy32
+    jgt r3, _memcpy32
     ret
 
 .section data
@@ -964,7 +981,8 @@ loop:
     ldri r2, [r0, sbuf_start]
 
     ; Copy to vram.
-    call memcpy32
+	ldr r24, [memcpy32]
+    call r24
 
     ; Flush using text mode.
     mov r26, 2
@@ -1125,7 +1143,8 @@ done:
     lsr r3, r3, 2
 
     ; Copy back skipping the first line.
-    call memcpy32
+	ldr r24, [memcpy32]
+    call r24
 
     ; Erase last line.
     ldri r1, [r0, sbuf_end]
