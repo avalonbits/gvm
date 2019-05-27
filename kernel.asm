@@ -11,7 +11,7 @@ interrupt_table:
     jmp input_handler     ; Input handler
     jmp recurring_handler ; Recurring timer handler
 
-.org 0x80
+.org 0x100
 .section data
 ; ===== Kernel function table.
 malloc:    .int _malloc
@@ -21,7 +21,7 @@ text_putc: .int _text_putc
 putc:	   .int _putc
 puts:      .int _puts
 
-.org 0x2000
+.org 0x2100
 .section data
 vram_reg:   .int 0x1200400
 vram_start: .int 0x101F000
