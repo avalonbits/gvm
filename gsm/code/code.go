@@ -203,18 +203,20 @@ func convertOperand(instr string, instrAddr uint32, block parser.Block, labelMap
 		case "jmp", "jne", "jeq", "jlt", "jle", "jge", "jgt", "call":
 			value -= instrAddr
 		case "ldr", "str", "mov":
-			value -= instrAddr
-			v := int32(value)
-			if instr == "ldr" || instr == "str" {
-				if v > (1<<20)-1 || v < -(1<<20) {
-					return fmt.Errorf("Operand is out of range.")
+			if value >= 0x2000 {
+				value -= instrAddr
+				v := int32(value)
+				if instr == "ldr" || instr == "str" {
+					if v > (1<<20)-1 || v < -(1<<20) {
+						return fmt.Errorf("Operand is out of range.")
+					}
+				} else {
+					if v > (1<<15)-1 || v < -(1<<15) {
+						return fmt.Errorf("Operand is out of range.")
+					}
 				}
-			} else {
-				if v > (1<<15)-1 || v < -(1<<15) {
-					return fmt.Errorf("Operand is out of range.")
-				}
+				op.Type = parser.OP_DIFF
 			}
-			op.Type = parser.OP_DIFF
 		}
 
 		// We need first to convert from uint32 -> int32 so we can get the value

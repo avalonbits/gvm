@@ -219,7 +219,7 @@ func (l *Lexer) nextToken() *Token {
 				return newTok(WHITE_SPACE, l.readWhiteSpace())
 			}
 		}
-		if l.r == '.' || l.r == '@' || unicode.IsLetter(l.r) {
+		if l.r == '.' || l.r == '@' || l.r == '_' || unicode.IsLetter(l.r) {
 			ident := l.readIdent()
 			return newTok(lookupIdent(ident), ident)
 		}

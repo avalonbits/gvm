@@ -13,6 +13,13 @@ interrupt_table:
 
 .org 0x80
 .section data
+; ===== Kernel function table.
+malloc: .int _malloc
+free:   .int _free
+getkey: .int _getkey
+
+.org 0x2000
+.section data
 vram_reg:   .int 0x1200400
 vram_start: .int 0x101F000
 ptr_heap_start: .int heap_start
@@ -101,7 +108,7 @@ quit:
 @endf input_handler
 
 ; === GetKey. Reads the next key from the key input buffer.
-@func getkey:
+@func _getkey:
 	; r0: returns the key read. r0 == 0 means no input available.
 
 	; The first thing to do is to get ib_tail. This way, if an interrupt
@@ -142,7 +149,7 @@ done:
 	stri [r0, ib_head], r1
 	mov r0, r2
 	ret
-@endf getkey
+@endf _getkey
 
 .section data
 display_update: .int 0x0
@@ -242,7 +249,7 @@ ptr_heap_curr_limit: .int heap_curr_limit
 	.equ memory_page_shift 4  ; Shifting by 4 bits gives 16 bytes per page.
 
 .section text
-@func malloc:
+@func _malloc:
 	; r0 returns address of memory. If < 0 no memory was available.
 	; r1: Size in bytes to allocate.
 
@@ -254,10 +261,10 @@ ptr_heap_curr_limit: .int heap_curr_limit
 
 	call alloc
 	ret
-@endf malloc
+@endf _malloc
 
 
-@func free:
+@func _free:
 	; r0: 0 if it was able to deallocate, -1 otherwise.
 	; r1: heap block to free.
 
@@ -282,7 +289,7 @@ ptr_heap_curr_limit: .int heap_curr_limit
 invalid_memory:
 	mov r0, -1
 	ret
-@endf free
+@endf _free
 
 @infunc alloc:
     ; r0: returns address of memory. if == 0 no memory was available.
@@ -1155,7 +1162,7 @@ frame_buffer: .array 10368
 @func KERNEL_MAIN:
     ; Allocate space for console
 	mov r1, console_size
-	call malloc
+	call _malloc
 
 	jne r0, allocated
 	; Not enough memory. Halt the cpu.
@@ -1220,7 +1227,8 @@ loop: wfi
 
 ; We wait for a user input and print the value on screen.
 @func USER_INTERFACE:
-	call getkey
+	ldr r0, [getkey]
+	call r0
     jne r0, process_input
     ret
 
