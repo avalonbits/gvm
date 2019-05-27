@@ -6,23 +6,22 @@
 
 ; Jump table for interrupt handlers. Each address is for a specific interrupt.
 interrupt_table:
-    jmp reset_handler     ; Reset
-    ret                   ; Oneshot timer handler
-    jmp input_handler     ; Input handler
-    jmp recurring_handler ; Recurring timer handler
+    jmp reset_handler     ; Reset. Handler will take care of registering kernel default
+						  ; handlers.
 
 .org 0x100
 .section data
 ; ===== Kernel function table.
-malloc:    .int _malloc
-free:      .int _free
-getkey:    .int _getkey
-text_putc: .int _text_putc
-putc:	   .int _putc
-puts:      .int _puts
-memcpy:    .int _memcpy
-memcpy2:   .int _memcpy2
-memcpy32:  .int _memcpy32
+register_interrupt: .int _register_interrupt
+malloc:             .int _malloc
+free:               .int _free
+getkey:             .int _getkey
+text_putc:          .int _text_putc
+putc:	            .int _putc
+puts:               .int _puts
+memcpy:             .int _memcpy
+memcpy2:            .int _memcpy2
+memcpy32:           .int _memcpy32
 
 .org 0x2100
 .section data
@@ -32,8 +31,53 @@ ptr_heap_start: .int heap_start
 
 .section text
 
+; ==== RegIntHandler. Registers a function as an interrupt handler.
+@func _register_interrupt:
+	; r0: Returns 0 on failure, != 0 otherise.
+	; r1: interrupt value.
+	; r2: absolute function address to call on interrupt. Must use <= 26 bits.
+
+	; Interrupt values range from 0-255.
+	jlt r1, invalid_interrupt
+	sub r0, r1, 255
+	jgt r0, invalid_interrupt
+
+	; We have a valid interrupt. Write the function pointer to the
+	; interrupt vector.
+	lsl r1, r1, 2  ; Each value in the vector is 4 bytes long.
+	sub r2, r2, r1 ; We subtract the vector value because jmp is pc relative.
+	lsl r2, r2, 6  ; Make space for jump instruction
+	orr r2, r2, 21 ; jmp instruction
+	str [r1], r2
+	mov r0, 1
+	ret
+
+invalid_interrupt:
+	mov r0, 0
+	ret
+@endf _register_interrupt
+
 ; ==== Reset interrupt handler.
 reset_handler:
+	; Clear the interrupt vector and set the kernel defined ones.
+	mov r1, 0
+	mov r2, 64
+	mov r3, 30  ; This is the ret instruction.
+	call memset32
+
+	; Now, register the kernel handlers.
+	mov r1, 0
+	mov r2, reset_handler
+	call _register_interrupt
+
+	mov r1, 2
+	mov r2, input_handler
+	call _register_interrupt
+
+	mov r1, 3
+	mov r2, recurring_handler
+	call _register_interrupt
+
 	; We initialize the first two words of the heap to zero. This corresponds
 	; to the header fields size and next.
 	ldr r0, [ptr_heap_start]
