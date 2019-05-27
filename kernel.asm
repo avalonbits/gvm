@@ -1269,6 +1269,7 @@ allocated:
     mov r1, 0
     mov r2, 2
     call console_set_cursor
+	ldr r0, [console_addr]
     mov r6, ready
     call console_puts
 
@@ -1277,6 +1278,7 @@ allocated:
     mov r1, 0
     mov r2, 3
     call console_set_cursor
+	ldr r0, [console_addr]
     call console_print_cursor
 
     ; Install our display updater.
@@ -1317,6 +1319,7 @@ process_input:
     ; Advance cursor.
     ldr r0, [console_addr]
     call console_next_cursor
+	ldr r0, [console_addr]
     call console_print_cursor
 
 done:
@@ -1341,7 +1344,9 @@ backspace:
     ; Erase cursor at current position.
     ldr r0, [console_addr]
     call console_erase_cursor
+	ldr r0, [console_addr]
     call console_prev_cursor
+	ldr r0, [console_addr]
     call console_print_cursor
     mov r0, 0
     ret
@@ -1350,7 +1355,9 @@ enter:
     ; Erase cursor at current position
     ldr r0, [console_addr]
     call console_erase_cursor
+	ldr r0, [console_addr]
     call console_nextline_cursor
+	ldr r0, [console_addr]
     call console_print_cursor
     mov r0, 0
     ret
