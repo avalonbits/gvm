@@ -14,9 +14,10 @@ interrupt_table:
 .org 0x80
 .section data
 ; ===== Kernel function table.
-malloc: .int _malloc
-free:   .int _free
-getkey: .int _getkey
+malloc:    .int _malloc
+free:      .int _free
+getkey:    .int _getkey
+text_putc: .int _text_putc
 
 .org 0x2000
 .section data
@@ -706,7 +707,7 @@ background_color:
 
 ; ==== TextPutC: Prints a charcater on the screen in text mode.
 .section text
-@func text_putc:
+@func _text_putc:
     ; r1: x-pos
     ; r2: y-pos
     ; r3 foreground color
@@ -735,7 +736,7 @@ background_color:
 
     str [r5], r6
     ret
-@endf text_putc
+@endf _text_putc
 
 ; ==== PutC: Prints a character on the screen.
 @func putc:
@@ -1029,7 +1030,8 @@ done:
     ldri r3, [r0, console_fcolor]
     ldri r4, [r0, console_bcolor]
     mov r5, frame_buffer
-    call text_putc
+	ldr r0, [text_putc]
+    call r0
     ret
 @endf console_putc
 
@@ -1039,7 +1041,7 @@ done:
     ldri r3, [r0, console_fcolor]
     ldri r4, [r0, console_bcolor]
 	mov r5, frame_buffer
-    mov r7, text_putc
+    ldr r7, [text_putc]
     call puts
     ret
 @endf console_puts
@@ -1051,7 +1053,8 @@ done:
     ldri r3, [r0, console_fcolor]
     ldri r4, [r0, console_bcolor]
     mov r5, frame_buffer
-    call text_putc
+    ldr r0, [text_putc]
+	call r0
     ret
 @endf console_print_cursor
 
@@ -1062,7 +1065,8 @@ done:
     ldri r3, [r0, console_bcolor]
     ldri r4, [r0, console_bcolor]
     mov r5, frame_buffer
-    call text_putc
+	ldr r0, [text_putc]
+	call r0
     ret
 @endf console_erase_cursor
 
