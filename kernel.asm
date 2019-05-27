@@ -19,6 +19,7 @@ free:      .int _free
 getkey:    .int _getkey
 text_putc: .int _text_putc
 putc:	   .int _putc
+puts:      .int _puts
 
 .org 0x2000
 .section data
@@ -607,7 +608,7 @@ line:
 .section text
 
 ; ==== PutS: Prints a string on the screen.
-@func puts:
+@func _puts:
     ; r1: x-pos start.
     ; r2: y-pos start.
     ; r3: foreground color.
@@ -664,7 +665,7 @@ loop:
 
 done:
     ret
-@endf puts
+@endf _puts
 
 
 ; ==== IncXY: Given an (x,y) position, moves to the next position respecting
@@ -1043,7 +1044,8 @@ done:
     ldri r4, [r0, console_bcolor]
 	mov r5, frame_buffer
     ldr r7, [text_putc]
-    call puts
+	ldr r0, [puts]
+    call r0
     ret
 @endf console_puts
 
