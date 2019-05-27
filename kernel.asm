@@ -18,6 +18,7 @@ malloc:    .int _malloc
 free:      .int _free
 getkey:    .int _getkey
 text_putc: .int _text_putc
+putc:	   .int _putc
 
 .org 0x2000
 .section data
@@ -739,7 +740,7 @@ background_color:
 @endf _text_putc
 
 ; ==== PutC: Prints a character on the screen.
-@func putc:
+@func _putc:
     ; r1: Character unicode value
     ; r2: x-pos
     ; r3: y-pos
@@ -840,7 +841,7 @@ main_loop:
     jne r6, main_loop
 
     ret
-@endf putc
+@endf _putc
 
 ; ==== Fill816: Fills an 8x16 pixels block with the same value.
 @func fill816:
