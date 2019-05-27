@@ -68,7 +68,7 @@ input_buffer_addr: .int input_buffer
 	stppi [sp, -8], r1, r3
 
 	; Load input buffer.
-	ldr r0, [input_buffer_addr]
+	mov r0, input_buffer
 
     ; Load the buffer tail and write.
 	ldri r1, [r0, ib_tail]

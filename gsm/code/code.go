@@ -202,11 +202,17 @@ func convertOperand(instr string, instrAddr uint32, block parser.Block, labelMap
 		switch instr {
 		case "jmp", "jne", "jeq", "jlt", "jle", "jge", "jgt", "call":
 			value -= instrAddr
-		case "ldr", "str":
+		case "ldr", "str", "mov":
 			value -= instrAddr
 			v := int32(value)
-			if v > (1<<20)-1 || v < -(1<<20) {
-				return fmt.Errorf("Operand is out of range.")
+			if instr == "ldr" || instr == "str" {
+				if v > (1<<20)-1 || v < -(1<<20) {
+					return fmt.Errorf("Operand is out of range.")
+				}
+			} else {
+				if v > (1<<15)-1 || v < -(1<<15) {
+					return fmt.Errorf("Operand is out of range.")
+				}
 			}
 			op.Type = parser.OP_DIFF
 		}
@@ -342,7 +348,7 @@ func encode(i parser.Instruction) (parser.Word, error) {
 	case "wfi":
 		return Wfi(), nil
 	case "mov":
-		return encode2op(i, MovRR, MovRI)
+		return encodeMov(i)
 	case "ldr":
 		return encodeLoad(i)
 	case "ldri":
@@ -442,6 +448,23 @@ func encode2op(i parser.Instruction, rr, ri _2op) (parser.Word, error) {
 		return rr(rToI(i.Op1.Op), rToI(i.Op2.Op)), nil
 	} else {
 		return ri(rToI(i.Op1.Op), toNum(i.Op2.Op)), nil
+	}
+}
+
+func encodeMov(i parser.Instruction) (parser.Word, error) {
+	if i.Op1.Type != parser.OP_REG {
+		return parser.Word(0), fmt.Errorf("%q: first operand must be a register.", i)
+	}
+	if i.Op2.Type == parser.OP_LABEL {
+		return parser.Word(0),
+			fmt.Errorf("%q: label substitution was not performed.", i)
+	}
+	if i.Op2.Type == parser.OP_REG {
+		return MovRR(rToI(i.Op1.Op), rToI(i.Op2.Op)), nil
+	} else if i.Op2.Type == parser.OP_NUMBER {
+		return MovRI(rToI(i.Op1.Op), toNum(i.Op2.Op)), nil
+	} else {
+		return AddRI(rToI(i.Op1.Op), 29, toNum(i.Op2.Op)), nil
 	}
 }
 
