@@ -31,7 +31,7 @@ reset_handler:
     str [r1], rZ
 
 	; Reset input buffer
-	ldr r0, [input_buffer_addr]
+	mov r0, input_buffer
 	stri [r0, ib_head], rZ
 	stri [r0, ib_tail], rZ
 
@@ -46,7 +46,6 @@ input_value_addr: .int 0x1200404
 	.equ ib_tail        132
 	.equ ib_struct_size 136
 input_buffer: .array 136
-input_buffer_addr: .int input_buffer
 
 .section text
 ; ==== Input handler
@@ -108,7 +107,7 @@ quit:
 	; The first thing to do is to get ib_tail. This way, if an interrupt
     ; happens while we are in this function, we will reduce the chance of
 	; buffer overwrite.
-	ldr r0, [input_buffer_addr]
+	mov r0, input_buffer
 	ldri r2, [r0, ib_tail]
 	ldri r1, [r0, ib_head]
 
@@ -699,8 +698,6 @@ background_color:
 @endf wpixel
 
 ; ==== TextPutC: Prints a charcater on the screen in text mode.
-.section data
-text_putc_addr: .int text_putc
 .section text
 @func text_putc:
     ; r1: x-pos
@@ -711,7 +708,7 @@ text_putc_addr: .int text_putc
     ; r6: Character unicode value.
 
     ; We calculate position in framebuffer using the formula
-    ; pos(x,y) x*4 + fb_addr + y * 96 * 4
+    ; pos(x,y) x*4 + frame_buffer + y * 96 * 4
     lsl r1, r1, 2
     lsl r2, r2, 7
     mul r2, r2, 3
@@ -1024,7 +1021,7 @@ done:
     ldri r2, [r0, console_cursor_y]
     ldri r3, [r0, console_fcolor]
     ldri r4, [r0, console_bcolor]
-    ldr r5, [fb_addr]
+    mov r5, frame_buffer
     call text_putc
     ret
 @endf console_putc
@@ -1034,8 +1031,8 @@ done:
     ldri r2, [r0, console_cursor_y]
     ldri r3, [r0, console_fcolor]
     ldri r4, [r0, console_bcolor]
-    ldr r5, [fb_addr]
-    ldr r7, [text_putc_addr]
+	mov r5, frame_buffer
+    mov r7, text_putc
     call puts
     ret
 @endf console_puts
@@ -1046,7 +1043,7 @@ done:
     ldri r2, [r0, console_cursor_y]
     ldri r3, [r0, console_fcolor]
     ldri r4, [r0, console_bcolor]
-    ldr r5, [fb_addr]
+    mov r5, frame_buffer
     call text_putc
     ret
 @endf console_print_cursor
@@ -1057,7 +1054,7 @@ done:
     ldri r2, [r0, console_cursor_y]
     ldri r3, [r0, console_bcolor]
     ldri r4, [r0, console_bcolor]
-    ldr r5, [fb_addr]
+    mov r5, frame_buffer
     call text_putc
     ret
 @endf console_erase_cursor
@@ -1149,13 +1146,9 @@ done:
 
 .section data
 gvm: .str "GVM Virtual Machine Version 0.1987"
-gvm_addr: .int gvm
 ready: .str "READY."
-ready_addr: .int ready
 recurring_reg: .int 0x1200410
-UI_addr: .int USER_INTERFACE
 frame_buffer: .array 10368
-fb_addr: .int frame_buffer
 
 .section text
 
@@ -1172,7 +1165,7 @@ allocated:
     str [console_addr], r0
 
     ; Initialize console.
-    ldr r1,  [fb_addr]
+    mov r1,  frame_buffer
     mov r2, 384    ; 96 x 4 (size of text line in bytes.)
     mul r2, r2, 27 ; 27 (number of lines)
     add r2, r2, r1
@@ -1186,7 +1179,7 @@ allocated:
     mov r2, 0
     call console_set_cursor
 
-    ldr r6, [gvm_addr]
+    mov r6, gvm
     call console_puts
 
     ; Change text color to white.
@@ -1199,7 +1192,7 @@ allocated:
     mov r1, 0
     mov r2, 2
     call console_set_cursor
-    ldr r6, [ready_addr]
+    mov r6, ready
     call console_puts
 
     ; Print cursor
@@ -1210,7 +1203,7 @@ allocated:
     call console_print_cursor
 
     ; Install our display updater.
-    ldr r0, [UI_addr]
+    mov r0, USER_INTERFACE
     str [display_update], r0
 
     ; Set the recurring timer for 60hz. We will call the display_update
