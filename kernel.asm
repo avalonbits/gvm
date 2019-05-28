@@ -33,6 +33,9 @@ vram_reg:   .int 0x1200400
 vram_start: .int 0x101F000
 ptr_heap_start: .int heap_start
 
+.equ JMP 0x15  ; jmp instruction for registering handler.
+.equ RET 0x1e  ; ret instruction for clearing interrupt vector.
+
 .section text
 
 ; ==== RegisterInterrrupt. Registers a function as an interrupt handler.
@@ -51,7 +54,7 @@ ptr_heap_start: .int heap_start
 	lsl r1, r1, 2    ; Each value in the vector is 4 bytes long.
 	sub r2, r2, r1   ; We subtract the vector value because jmp is pc relative.
 	lsl r2, r2, 6	 ; Make space for jump instruction
-	orr r2, r2, 0x15 ; jmp instruction
+	orr r2, r2, JMP  ; jmp instruction
 	str [r1], r2
 	mov r0, 1
 	ret
@@ -86,10 +89,10 @@ invalid_interrupt:
 
 ; ==== Reset interrupt handler.
 reset_handler:
-	; Clear the interrupt vector and set the kernel defined ones.
+	; Clear the interrupt vector.
 	mov r1, 0
 	mov r2, 64
-	mov r3, 0x1e  ; This is the ret instruction.
+	mov r3, RET
 	call memset32
 
 	; Now, register the kernel handlers.
@@ -496,7 +499,7 @@ _memset2:
     ; r3: value to set.
     stpip [r1, 8], r3, r3
     sub r2, r2, 2
-	jgt e2, _memset2
+	jgt r2, _memset2
 	ret
 
 
