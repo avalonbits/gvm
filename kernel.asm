@@ -6,22 +6,108 @@
 
 ; Jump table for interrupt handlers. Each address is for a specific interrupt.
 interrupt_table:
-    jmp reset_handler     ; Reset
-    ret                   ; Oneshot timer handler
-    jmp input_handler     ; Input handler
-    jmp recurring_handler ; Recurring timer handler
+    jmp reset_handler     ; Reset. Handler will take care of registering kernel default
+						  ; handlers.
 
-.org 0x80
+.org 0x100
+.section data
+; ===== Kernel function table.
+register_interrupt: .int _register_interrupt
+get_interrupt:      .int _get_interrupt
+malloc:             .int _malloc
+free:               .int _free
+getkey:             .int _getkey
+text_putc:          .int _text_putc
+putc:				.int _putc
+puts:               .int _puts
+memcpy:             .int _memcpy
+memcpy2:            .int _memcpy2
+memcpy32:           .int _memcpy32
+memset:             .int _memcpy
+memset2:            .int _memset2
+memset32:           .int _memset32
+
+.org 0x2100
 .section data
 vram_reg:   .int 0x1200400
 vram_start: .int 0x101F000
 ptr_heap_start: .int heap_start
 
+.equ JMP 0x15  ; jmp instruction for registering handler.
+.equ RET 0x1e  ; ret instruction for clearing interrupt vector.
+
 .section text
 
+; ==== RegisterInterrrupt. Registers a function as an interrupt handler.
+@func _register_interrupt:
+	; r0: Returns 0 on failure, 1 otherise.
+	; r1: interrupt value.
+	; r2: absolute function address to call on interrupt. Must use <= 26 bits.
+
+	; Interrupt values range from 0-255.
+	jlt r1, invalid_interrupt
+	sub r0, r1, 0xFF
+	jgt r0, invalid_interrupt
+
+	; We have a valid interrupt. Write the function pointer to the
+	; interrupt vector.
+	lsl r1, r1, 2    ; Each value in the vector is 4 bytes long.
+	sub r2, r2, r1   ; We subtract the vector value because jmp is pc relative.
+	lsl r2, r2, 6	 ; Make space for jump instruction
+	orr r2, r2, JMP  ; jmp instruction
+	str [r1], r2
+	mov r0, 1
+	ret
+
+invalid_interrupt:
+	mov r0, 0
+	ret
+@endf _register_interrupt
+
+; ==== GetInterrrupt. Returns the function address registered for interrupt.
+@func _get_interrupt:
+	; r0: Returns 0 on failure, != 0 otherise.
+	; r1: interrupt value.
+
+	; Interrupt values range from 0-255.
+	jlt r1, invalid_interrupt
+	sub r0, r1, 0xFF
+	jgt r0, invalid_interrupt
+
+	; We have a valid interrupt. Get the pc relative funcrtion addreess, make
+	; it absolute and return.
+	lsl r1, r1, 2  ; Each value in the vector is 4 bytes long.
+	ldr r0, [r1]
+	lsr r0, r0, 6  ; Get rid of the jump instruction.
+	add r0, r0, r1 ; Add the vector index offset to get the absolute adress
+	ret
+
+invalid_interrupt:
+	mov r0, 0
+	ret
+@endf _get_interrupt
 
 ; ==== Reset interrupt handler.
 reset_handler:
+	; Clear the interrupt vector.
+	mov r1, 0
+	mov r2, 64
+	mov r3, RET
+	call memset32
+
+	; Now, register the kernel handlers.
+	mov r1, 0
+	mov r2, reset_handler
+	call _register_interrupt
+
+	mov r1, 2
+	mov r2, input_handler
+	call _register_interrupt
+
+	mov r1, 3
+	mov r2, recurring_handler
+	call _register_interrupt
+
 	; We initialize the first two words of the heap to zero. This corresponds
 	; to the header fields size and next.
 	ldr r0, [ptr_heap_start]
@@ -31,44 +117,119 @@ reset_handler:
     ldr r1, [input_value_addr]
     str [r1], rZ
 
-    ; Clear user input vector address.
-    str [input_jump_addr], rZ
+	; Reset input buffer
+	mov r0, input_buffer
+	stri [r0, ib_head], rZ
+	stri [r0, ib_tail], rZ
 
     ; Now jump to main kernel code.
     jmp KERNEL_MAIN
 
 .section data
 input_value_addr: .int 0x1200404
-input_jump_addr:  .int 0
+	; struct input_buffer. Defines 32 key long circular buffer.
+	.equ ib_buffer       0
+	.equ ib_head        128  ; 32 * 4.
+	.equ ib_tail        132
+	.equ ib_struct_size 136
+input_buffer: .array 136
 
 .section text
 ; ==== Input handler
+; The input handler will only add new key inputs to the circular buffer. If the
+; buffer is full, the input buffer is overwritten
 @func input_handler:
-    ; Save the contents of r0 and r1 on the stack so we don't disrupt user code.
-    stppi [sp, -8], r0, r1
+    ; Save the contents of r0 and r2 on the stack so we don't disrupt user code.
+    stppi [sp, -8], r0, r2
 
     ; Read the value from the input.
-    ldr r0, [input_value_addr]
-    ldr r0, [r0]
+    ldr r2, [input_value_addr]
+    ldr r2, [r2]
 
     ; Quit is the value 0xFFFFFFFF so adding 1 should result in 0.
-    add r1, r0, 1
-    jeq r1, quit
+    add r0, r2, 1
+    jeq r0, quit
 
-    ; Load the user jump address. If it's != 0, call it.
-    ldr r1, [input_jump_addr]
-    jeq r1, done
-    call r1
+	; Save r1 and r3 to the stack.
+	stppi [sp, -8], r1, r3
+
+	; Load input buffer.
+	mov r0, input_buffer
+
+    ; Load the buffer tail and write.
+	ldri r1, [r0, ib_tail]
+
+	; Because we operate with words, we need to multiply r1 by 4.
+	lsl r3, r1, 2
+	add r3, r0, r3
+	str [r3], r2
+
+	; Update the tail
+	add r1, r1, 1
+
+	; If it is not 32, then just write it back and be done.
+	sub r3, r1, 32
+	jne r3, done
+
+	; Need to wrap around.
+	mov r1, 0
 
 done:
-    ; Input processing done. Restore restore r1 and r0 and return.
-    ldpip r0, r1, [sp, 8]
+	stri [r0, ib_tail], r1
+
+    ; Input processing done. Restore registers and return.
+	ldpip r1, r3, [sp, 8]
+    ldpip r0, r2, [sp, 8]
     ret
 
 quit:
     ; Quit means we want to turn of the cpu.
     halt
 @endf input_handler
+
+; === GetKey. Reads the next key from the key input buffer.
+@func _getkey:
+	; r0: returns the key read. r0 == 0 means no input available.
+
+	; The first thing to do is to get ib_tail. This way, if an interrupt
+    ; happens while we are in this function, we will reduce the chance of
+	; buffer overwrite.
+	mov r0, input_buffer
+	ldri r2, [r0, ib_tail]
+	ldri r1, [r0, ib_head]
+
+	;  If tail != head then the buffer has keys so we can read it.
+	sub r2, r2, r1
+	jne r2, read_input
+
+	; tail == head means no key in buffer. Return 0.
+	mov r0, 0
+	ret
+
+read_input:
+	; We read the input to r2, update ib_head then move the result to r0 to
+	; return it to caller.
+
+	; Because we operate on words, we need to multiply ib_head by 4.
+	lsl r2, r1, 2
+
+	; Now get the char at buffer[r2]
+	add r2, r0, r2
+	ldr r2, [r2]
+
+	; Update ib_head and wrap if needed.
+	add r1, r1, 1
+	sub r3, r1, 32
+	jne r3, done
+
+	; We need to wrap back to 0.
+	mov r1, rZ
+
+done:
+	stri [r0, ib_head], r1
+	mov r0, r2
+	ret
+@endf _getkey
 
 .section data
 display_update: .int 0x0
@@ -150,7 +311,7 @@ done:
 
 no_memory:
     ; We have crossed a memory limit. Return an error.
-    mov r0, -1
+    mov r0, 0
     ret
 @endf brk
 
@@ -168,7 +329,7 @@ ptr_heap_curr_limit: .int heap_curr_limit
 	.equ memory_page_shift 4  ; Shifting by 4 bits gives 16 bytes per page.
 
 .section text
-@func malloc:
+@func _malloc:
 	; r0 returns address of memory. If < 0 no memory was available.
 	; r1: Size in bytes to allocate.
 
@@ -180,10 +341,10 @@ ptr_heap_curr_limit: .int heap_curr_limit
 
 	call alloc
 	ret
-@endf malloc
+@endf _malloc
 
 
-@func free:
+@func _free:
 	; r0: 0 if it was able to deallocate, -1 otherwise.
 	; r1: heap block to free.
 
@@ -208,10 +369,10 @@ ptr_heap_curr_limit: .int heap_curr_limit
 invalid_memory:
 	mov r0, -1
 	ret
-@endf free
+@endf _free
 
 @infunc alloc:
-    ; r0: returns address of memory. if < 0 not memory was available.
+    ; r0: returns address of memory. if == 0 no memory was available.
     ; r1: Size in bytes to allocate.
     ; r2: pointer to heap break address. Gets updated with the new limit
     ; r3: heap start
@@ -301,7 +462,7 @@ allocate_page:
 	; r0 now has either a valid new memory addres or < 0. If it is < 0 then no
 	; memory was allocated
 
-	jlt r0, no_memory
+	jeq r0, no_memory
 
 	; Ok, we got memory! Setup the header and return the start of the block.
 	stri [r7, mh_bytes], r1
@@ -316,23 +477,34 @@ allocate_page:
 	ret
 
 no_memory:
-    mov r0, -1
+    mov r0, 0
     ret
 
 @endf alloc
 
 ; ==== Memset. Sets a memory region to a specific value.
-memset:
+_memset:
     ; r1: start address
     ; r2: size in words
     ; r3: value to set.
     strip [r1, 4], r3
     sub r2, r2, 1
-    jgt r2, memset
+    jgt r2, _memset
     ret
 
+; ==== Memset2. Same as memset but assumes size is a multiple of 2 words.
+_memset2:
+    ; r1: start address
+    ; r2: size in words. MUST BE A MULTIPLE OF 32.
+    ; r3: value to set.
+    stpip [r1, 8], r3, r3
+    sub r2, r2, 2
+	jgt r2, _memset2
+	ret
+
+
 ; ==== Memset32. Same as memset but assumes size is a multiple of 32 words.
-memset32:
+_memset32:
     ; r1: start address
     ; r2: size in words. MUST BE A MULTIPLE OF 32.
     ; r3: value to set.
@@ -353,12 +525,12 @@ memset32:
     stpip [r1, 8], r3, r3
     stpip [r1, 8], r3, r3
     sub r2, r2, 32
-    jgt r2, memset32
+    jgt r2, _memset32
     ret
 
 ; ==== Memcopy. Copies the contents of one region of memory to another.
 ; Does not handle overlap.
-memcpy:
+_memcpy:
     ; r1: start to-address
     ; r2: start from:address
     ; r3: size in words.
@@ -366,11 +538,25 @@ memcpy:
     ldrip r4, [r2, 4]
     strip [r1, 4], r4
     sub r3, r3, 1
-    jgt r3, memcpy
+    jgt r3, _memcpy
     ret
 
+; ==== Memcopy2. Same as memcpy but assumes size is a multiple of 2 words.
+; Dones not handle overalp.
+_memcpy2:
+	; r1: start to-addres
+	; r2: start from-addres
+	; r3: size in words.
+	; r24, r25: local variable for copying memory.
+	ldpip r24, r25, [r2, 8]
+	stpip [r1, 8], r24, r25
+	sub r3, r3, 2
+	jgt r3, _memcpy2
+	ret
+
 ; ==== Memcopy32. Same as memcpy but assumes size is a multiple of 32 words.
-memcpy32:
+; Does not handle overlap.
+_memcpy32:
     ; r1: start to-address
     ; r2: start from:address
     ; r3: size in words.
@@ -408,7 +594,7 @@ memcpy32:
     ldpip r24, r25, [r2, 8]
     stpip [r1, 8], r24, r25
     sub r3, r3, 32
-    jgt r3, memcpy32
+    jgt r3, _memcpy32
     ret
 
 .section data
@@ -524,7 +710,7 @@ line:
 .section text
 
 ; ==== PutS: Prints a string on the screen.
-@func puts:
+@func _puts:
     ; r1: x-pos start.
     ; r2: y-pos start.
     ; r3: foreground color.
@@ -581,7 +767,7 @@ loop:
 
 done:
     ret
-@endf puts
+@endf _puts
 
 
 ; ==== IncXY: Given an (x,y) position, moves to the next position respecting
@@ -624,10 +810,8 @@ background_color:
 @endf wpixel
 
 ; ==== TextPutC: Prints a charcater on the screen in text mode.
-.section data
-text_putc_addr: .int text_putc
 .section text
-@func text_putc:
+@func _text_putc:
     ; r1: x-pos
     ; r2: y-pos
     ; r3 foreground color
@@ -636,7 +820,7 @@ text_putc_addr: .int text_putc
     ; r6: Character unicode value.
 
     ; We calculate position in framebuffer using the formula
-    ; pos(x,y) x*4 + fb_addr + y * 96 * 4
+    ; pos(x,y) x*4 + frame_buffer + y * 96 * 4
     lsl r1, r1, 2
     lsl r2, r2, 7
     mul r2, r2, 3
@@ -656,10 +840,10 @@ text_putc_addr: .int text_putc
 
     str [r5], r6
     ret
-@endf text_putc
+@endf _text_putc
 
 ; ==== PutC: Prints a character on the screen.
-@func putc:
+@func _putc:
     ; r1: Character unicode value
     ; r2: x-pos
     ; r3: y-pos
@@ -760,7 +944,7 @@ main_loop:
     jne r6, main_loop
 
     ret
-@endf putc
+@endf _putc
 
 ; ==== Fill816: Fills an 8x16 pixels block with the same value.
 @func fill816:
@@ -882,7 +1066,8 @@ loop:
     ldri r2, [r0, sbuf_start]
 
     ; Copy to vram.
-    call memcpy32
+	ldr r24, [memcpy32]
+    call r24
 
     ; Flush using text mode.
     mov r26, 2
@@ -949,8 +1134,9 @@ done:
     ldri r2, [r0, console_cursor_y]
     ldri r3, [r0, console_fcolor]
     ldri r4, [r0, console_bcolor]
-    ldr r5, [fb_addr]
-    call text_putc
+    mov r5, frame_buffer
+	ldr r0, [text_putc]
+    call r0
     ret
 @endf console_putc
 
@@ -959,9 +1145,10 @@ done:
     ldri r2, [r0, console_cursor_y]
     ldri r3, [r0, console_fcolor]
     ldri r4, [r0, console_bcolor]
-    ldr r5, [fb_addr]
-    ldr r7, [text_putc_addr]
-    call puts
+	mov r5, frame_buffer
+    ldr r7, [text_putc]
+	ldr r0, [puts]
+    call r0
     ret
 @endf console_puts
 
@@ -971,8 +1158,9 @@ done:
     ldri r2, [r0, console_cursor_y]
     ldri r3, [r0, console_fcolor]
     ldri r4, [r0, console_bcolor]
-    ldr r5, [fb_addr]
-    call text_putc
+    mov r5, frame_buffer
+    ldr r0, [text_putc]
+	call r0
     ret
 @endf console_print_cursor
 
@@ -982,8 +1170,9 @@ done:
     ldri r2, [r0, console_cursor_y]
     ldri r3, [r0, console_bcolor]
     ldri r4, [r0, console_bcolor]
-    ldr r5, [fb_addr]
-    call text_putc
+    mov r5, frame_buffer
+	ldr r0, [text_putc]
+	call r0
     ret
 @endf console_erase_cursor
 
@@ -1039,7 +1228,8 @@ done:
     lsr r3, r3, 2
 
     ; Copy back skipping the first line.
-    call memcpy32
+	ldr r24, [memcpy32]
+    call r24
 
     ; Erase last line.
     ldri r1, [r0, sbuf_end]
@@ -1073,23 +1263,19 @@ done:
 
 
 .section data
-gvm: .str "GVM Virtual Machine Version 0.01"
-gvm_addr: .int gvm
+gvm: .str "GVM Virtual Machine Version 0.1987"
 ready: .str "READY."
-ready_addr: .int ready
 recurring_reg: .int 0x1200410
-UI_addr: .int USER_INTERFACE
 frame_buffer: .array 10368
-fb_addr: .int frame_buffer
 
 .section text
 
 @func KERNEL_MAIN:
     ; Allocate space for console
 	mov r1, console_size
-	call malloc
+	call _malloc
 
-	jge r0, allocated
+	jne r0, allocated
 	; Not enough memory. Halt the cpu.
 	halt
 
@@ -1097,7 +1283,7 @@ allocated:
     str [console_addr], r0
 
     ; Initialize console.
-    ldr r1,  [fb_addr]
+    mov r1,  frame_buffer
     mov r2, 384    ; 96 x 4 (size of text line in bytes.)
     mul r2, r2, 27 ; 27 (number of lines)
     add r2, r2, r1
@@ -1107,11 +1293,11 @@ allocated:
 
     ; Print machine name
     ldr r0, [console_addr]
-    mov r1, 32
+    mov r1, 30
     mov r2, 0
     call console_set_cursor
 
-    ldr r6, [gvm_addr]
+    mov r6, gvm
     call console_puts
 
     ; Change text color to white.
@@ -1124,7 +1310,8 @@ allocated:
     mov r1, 0
     mov r2, 2
     call console_set_cursor
-    ldr r6, [ready_addr]
+	ldr r0, [console_addr]
+    mov r6, ready
     call console_puts
 
     ; Print cursor
@@ -1132,14 +1319,11 @@ allocated:
     mov r1, 0
     mov r2, 3
     call console_set_cursor
+	ldr r0, [console_addr]
     call console_print_cursor
 
-    ; Install our input handler.
-    ldr r0, [user_input_handler_addr]
-    str [input_jump_addr], r0
-
     ; Install our display updater.
-    ldr r0, [UI_addr]
+    mov r0, USER_INTERFACE
     str [display_update], r0
 
     ; Set the recurring timer for 60hz. We will call the display_update
@@ -1156,14 +1340,15 @@ loop: wfi
 
 ; We wait for a user input and print the value on screen.
 @func USER_INTERFACE:
-    call USER_INTERFACE_getin
-    add r0, r1, 1
+	ldr r0, [getkey]
+	call r0
     jne r0, process_input
     ret
 
 process_input:
     ; check if we have a control char. If we do, update ui accordingly and get next
     ; input.
+	mov r1, r0
     call USER_control_chars
     jeq r0, done
     mov r6, r1
@@ -1175,6 +1360,7 @@ process_input:
     ; Advance cursor.
     ldr r0, [console_addr]
     call console_next_cursor
+	ldr r0, [console_addr]
     call console_print_cursor
 
 done:
@@ -1199,7 +1385,9 @@ backspace:
     ; Erase cursor at current position.
     ldr r0, [console_addr]
     call console_erase_cursor
+	ldr r0, [console_addr]
     call console_prev_cursor
+	ldr r0, [console_addr]
     call console_print_cursor
     mov r0, 0
     ret
@@ -1208,46 +1396,13 @@ enter:
     ; Erase cursor at current position
     ldr r0, [console_addr]
     call console_erase_cursor
+	ldr r0, [console_addr]
     call console_nextline_cursor
+	ldr r0, [console_addr]
     call console_print_cursor
     mov r0, 0
     ret
-
 @endf USER_control_chars
-
-.section data
-wait_input_value: .int 0xFFFFFFFF
-
-.section text
-; ===== UI getc. Pools user input.
-@func USER_INTERFACE_getin:
-    ; r1: returns user input value.
-
-    ; Pool input and return wait_input value if input is not ready.
-    ldr r1, [user_input_value]
-    add r0, r1, 1
-    jeq r0, done
-
-    ; Now set user input to 0 so we don't keep writing stuff over.
-    ldr r0, [wait_input_value]
-    str [user_input_value], r0
-done:
-    ret
-@endf USER_INTERFACE_getin
-
-.section data
-user_input_value: .int 0xFFFFFFFF
-user_input_handler_addr: .int USER_input_handler
-
-.section text
-; This will be called on every input that is not a quit signal.
-USER_input_handler:
-    ; The input value will be stored in r0. We just copy it to a user memory
-    ; location and return. We will deal with the value later.
-    str [user_input_value], r0
-    ret
-
-
 
 ; ============ HEAP START. DO NOT CHANGE THIS
 .section data
