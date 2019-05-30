@@ -27,6 +27,7 @@ memcpy32:           .int _memcpy32
 memset:             .int _memcpy
 memset2:            .int _memset2
 memset32:           .int _memset32
+itoa:               .int _itoa
 
 .org 0x2100
 .section data
@@ -258,6 +259,84 @@ return_no_key:
 done:
 	ret
 @endf _getc
+
+; ==== Itoa: Converts a signed integer to a string.
+@func _itoa:
+	; r0: returns 0 if there was an error, 1 if successful
+	; r1: number to convert
+	; r2: pointer to string. Worst case must be 24 bytes long (22 bytes for digits
+	;     + null terminator and 2 more bytes for memory alignment).
+	mov r4, 0
+	mov r5, 0
+loop:
+	; The algorithm: keep diving by 10 until the div result is 0.
+	div r0, r1, 10
+
+	; Now, multiply the result by ten and subtract from r1 to get mod.
+	mul r3, r0, 10
+	sub r1, r1, r3
+
+	; r1 contains the mod (the current digit) while r0 contains the div
+	; (the next digit). We add 0x30 to the number, mask for the first byte then
+	; write to r4;
+	add r1, r1, 0x30
+	and r1, r1, 0xFF
+	orr r4, r4, r1
+
+	; Increment the digit counter.
+	add r5, r5, 1
+
+	; If this is the last digit, then we are done
+	jne r0, next_digit
+
+	; We are done and only used half the word, so the null terminator is already
+	; in r4. Just write it and jump to swap.
+	strip [r2, 4], r4
+	jmp swap
+
+next_digit:
+	; We not done. Repeat the algorithm for r0.
+	mov r1, r0
+
+	; The algorithm: keep diving by 10 until the div result is 0.
+	div r0, r1, 10
+
+	; Now, multiply the result by ten and subtract from r1 to get mod.
+	mul r3, r0, 10
+	sub r1, r1, r3
+
+	; r1 contains the mod (the current digit) while r0 contains the div
+	; (the next digit). We add 0x30 to the number, mask for the first byte then
+	; write to r4;
+	add r1, r1, 0x30
+	and r1, r1, 0xFF
+
+	; Since this is the second digit in the loop, we need to shift it 16bits
+	; before oring.
+	lsl r1, r1, 16
+	orr r4, r4, r1
+
+	; Increment the digit counter.
+	add r5, r5, 1
+
+	; We have a full word to write. Write it and update the string pointer..
+	strip [r2, 4], r4
+	mov r4, 0
+
+	; If r0 != 0 then we still have numbers to process.
+	mov r1, r0
+	jne r1, loop
+
+	; It is the last digit, so we need to write a null terminator before going
+	; to swap.
+	str [r2], rZ
+
+swap:
+	; TODO(icc): swap the string.
+	ret
+
+	; Now, if this is not the last digit, we need to loop back and start again.
+@endf _itoa
 
 .section data
 display_update: .int 0x0
