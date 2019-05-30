@@ -1186,6 +1186,14 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::ASR_RI:
       ss << "asr r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
+
+    case ISA::DIV_RI:
+      ss << "div r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
+      break;
+    case ISA::DIV_RR:
+      ss << "div r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
+      break;
+ 
     case ISA::MUL_RI:
       ss << "mul r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;

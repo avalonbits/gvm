@@ -262,13 +262,14 @@ done:
 
 ; ==== Itoa: Converts a signed integer to a string.
 @func _itoa:
-	; r0: returns 0 if there was an error, 1 if successful
 	; r1: number to convert
 	; r2: pointer to string. Worst case must be 24 bytes long (22 bytes for digits
 	;     + null terminator and 2 more bytes for memory alignment).
-	mov r4, 0
 	mov r5, 0
 loop:
+	; Buffer to store digits before writing to memory.
+	mov r4, 0
+
 	; The algorithm: keep diving by 10 until the div result is 0.
 	div r0, r1, 10
 
@@ -280,7 +281,6 @@ loop:
 	; (the next digit). We add 0x30 to the number, mask for the first byte then
 	; write to r4;
 	add r1, r1, 0x30
-	and r1, r1, 0xFF
 	orr r4, r4, r1
 
 	; Increment the digit counter.
@@ -309,7 +309,6 @@ next_digit:
 	; (the next digit). We add 0x30 to the number, mask for the first byte then
 	; write to r4;
 	add r1, r1, 0x30
-	and r1, r1, 0xFF
 
 	; Since this is the second digit in the loop, we need to shift it 16bits
 	; before oring.
@@ -321,7 +320,6 @@ next_digit:
 
 	; We have a full word to write. Write it and update the string pointer..
 	strip [r2, 4], r4
-	mov r4, 0
 
 	; If r0 != 0 then we still have numbers to process.
 	mov r1, r0
@@ -1375,10 +1373,17 @@ gvm: .str "GVM Virtual Machine Version 0.1987"
 ready: .str "READY."
 recurring_reg: .int 0x1200410
 frame_buffer: .array 10368
+used_bytes: .array 24
 
 .section text
 
 @func KERNEL_MAIN:
+	; Calculate memory available.
+	mov r1, 127
+	mov r2, used_bytes
+	ldr r0, [itoa]
+	call r0
+
     ; Allocate space for console
 	mov r1, console_size
 	call _malloc
