@@ -231,6 +231,33 @@ done:
 	ret
 @endf _getkey
 
+; ==== GetC: returns the character pressed. Ignores control keys and
+; keyup events.
+@func getc:
+	; r0: Returns the character. Returns 0 in case no character is available,
+	ldr r0, [getkey]
+	call r0
+	jeq r0, done
+
+	; Check if this is a keyup event. If it is, ignore it.
+	lsr r1, r0, 31
+	and r1, r1, 1
+	jne r1, return_no_key
+
+	; Check if this is a control key. If it is, ignore it.
+	lsr r1, r0, 30
+	and r1, r1, 1
+	jne r1, return_no_key
+
+	; We got a charater code. Just return it.
+	jmp done
+
+return_no_key:
+	mov r0, 0
+done:
+	ret
+@endf getc
+
 .section data
 display_update: .int 0x0
 should_update: .int 0x1
