@@ -17,6 +17,7 @@ get_interrupt:      .int _get_interrupt
 malloc:             .int _malloc
 free:               .int _free
 getkey:             .int _getkey
+getc:				.int _getc
 text_putc:          .int _text_putc
 putc:				.int _putc
 puts:               .int _puts
@@ -233,7 +234,7 @@ done:
 
 ; ==== GetC: returns the character pressed. Ignores control keys and
 ; keyup events.
-@func getc:
+@func _getc:
 	; r0: Returns the character. Returns 0 in case no character is available,
 	ldr r0, [getkey]
 	call r0
@@ -256,7 +257,7 @@ return_no_key:
 	mov r0, 0
 done:
 	ret
-@endf getc
+@endf _getc
 
 .section data
 display_update: .int 0x0
@@ -1368,7 +1369,7 @@ loop: wfi
 
 ; We wait for a user input and print the value on screen.
 @func USER_INTERFACE:
-	ldr r0, [getkey]
+	ldr r0, [getc]
 	call r0
     jne r0, process_input
     ret
