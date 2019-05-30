@@ -93,7 +93,7 @@ reset_handler:
 	mov r1, 0
 	mov r2, 64
 	mov r3, RET
-	call memset32
+	call _memset32
 
 	; Now, register the kernel handlers.
 	mov r1, 0
@@ -1236,7 +1236,8 @@ done:
     sub r1, r1, 384
     mov r2, 96
     ldri r3, [r0, console_bcolor]
-    call memset32
+	ldr r24, [memset32]
+    call r24
 
     ret
 @endf console_scroll_up
