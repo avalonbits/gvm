@@ -293,7 +293,9 @@ loop:
 
 	; We are done and only used half the word, so the null terminator is already
 	; in r4. Just write it and jump to reverse.
-	strip [r6, 4], r4
+	str [r6], r4
+	sub r3, r5, 1
+	jeq r3, done
 	jmp reverse
 
 next_digit:
@@ -329,13 +331,15 @@ next_digit:
 
 	; It is the last digit, so we need to write a null terminator before going
 	; to reverse.
-	str [r2], rZ
+	str [r6], rZ
 
 reverse:
 	; To reverse the string, we have pointers to start and end and then swap the
 	; values until either start == end or start == end - 1.
 	; At this point, r2 has ptr to start of string, r6 is ptr to end of string and
-	; r5 is the number of digits.
+	; r5 is the number of digits. Because we can't modify r2, we store of copy of
+	; r2 into r4 and work with that.
+	mov r4, r2
 
 	; If the number of digits is even, then end starts a word earlier and the
 	; algorithm is different.
@@ -344,6 +348,52 @@ reverse:
 	sub r6, r6, 4
 
 odd_reverse:
+	; In odd reverse, the last word has a digit and a null terminator. this means
+	; we always swap digits matching byte order. We use r0 and r1 to start current
+	; digits and r3 as a temp for swap.
+	ldr r0, [r4]
+	ldr r1, [r6]
+
+	; r3 will now contain the new value of r0
+	lsl r3, r0, 16
+	lsr r3, r3, 16
+	lsr r5, r1, 16
+	lsl r5, r5, 16
+	orr r3, r5, r3
+	strip [r6, -4], r3
+
+	; r0 now needs to be clear in its bottom bits so we can copy the swapped one.
+	lsr r3, r0, 16
+	lsl r3, r3, 16
+	orr r3, r3, r1
+	str [r4], r3
+
+	; r4 and r6 are the same, we are done.
+	sub r3, r6, r4
+	jeq r3, done
+
+	; Still has digits, swap them.
+	ldr r0, [r4]
+	ldr r1, [r6]
+
+	lsr r3, r0, 16
+	lsl r3, r3, 16
+	lsl r5, r1, 16
+	lsr r5, r5, 16
+	orr r3, r5, r3
+	str [r6], r3
+
+	lsr r3, r1, 16
+	lsl r3, r3, 16
+	lsl r5, r0, 16
+	lsr r5, r5, 16
+	orr r3, r5, r3
+	strip [r4, 4], r3
+
+	sub r3, r6, r4
+	jne r3, odd_reverse
+
+done:
 	ret
 @endf _itoa
 
