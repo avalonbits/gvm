@@ -21,6 +21,7 @@ getc:				.int _getc
 text_putc:          .int _text_putc
 putc:				.int _putc
 puts:               .int _puts
+strlen:             .int _strlen
 memcpy:             .int _memcpy
 memcpy2:            .int _memcpy2
 memcpy32:           .int _memcpy32
@@ -702,6 +703,34 @@ _memcpy32:
     jgt r3, _memcpy32
     ret
 
+; ==== StrLen: Returns the length of a string.
+@func _strlen:
+	; r0: returns length of the string.
+	; r1: ptr to start of string.
+	; r2, r3, r4: vars.
+
+	mov r0, 0
+	mov r4, r1
+
+loop:
+	ldr r2, [r4]
+	and r3, r2, 0xFFFF
+	jeq r3, end_half
+
+	lsr r2, r2, 16
+	and r3, r2, 0xFFFF
+	jeq r3, end
+
+	add r0, r0, 2
+	add r4, r4, 4
+	jmp loop
+
+end:
+	add r0, r0, 1
+end_half:
+	ret
+@endf _strlen
+
 .section data
     .equ kLineLength 2560 ; 640 * 4
 
@@ -1369,17 +1398,19 @@ done:
 
 
 .section data
-gvm: .str "GVM Virtual Machine Version 0.1987"
-ready: .str "READY."
-recurring_reg: .int 0x1200410
-frame_buffer: .array 10368
-used_bytes: .array 24
+gvm:            .str "GVM Virtual Machine Version 0.1987"
+ready:			.str "READY."
+mem_av:			.str "Memory available:"
+recurring_reg:  .int 0x1200410
+frame_buffer:   .array 10368
+used_bytes:     .array 24
 
 .section text
 
 @func KERNEL_MAIN:
 	; Calculate memory available.
-	mov r1, 127
+	mov r1, heap_start
+	sub r1, sp, r1
 	mov r2, used_bytes
 	ldr r0, [itoa]
 	call r0
@@ -1413,15 +1444,34 @@ allocated:
     mov r6, gvm
     call console_puts
 
+	; Print memory available string.
+	ldr r0, [console_addr]
+    mov r1, 0
+    mov r2, 1
+    call console_set_cursor
+	ldr r0, [console_addr]
+    mov r6, mem_av
+    call console_puts
+
     ; Change text color to white.
     ldr r0, [console_addr]
     mov r1, 15
     mov r2, 0
     call console_set_color
 
+	; Print actual bytes available
+	ldr r0, [console_addr]
+	mov r1, 18
+	mov r2, 1
+	call console_set_cursor
+	ldr r0, [console_addr]
+	mov r6, used_bytes
+	call console_puts
+
     ; Print ready sign.
+	ldr r0, [console_addr]
     mov r1, 0
-    mov r2, 2
+    mov r2, 3
     call console_set_cursor
 	ldr r0, [console_addr]
     mov r6, ready
@@ -1430,7 +1480,7 @@ allocated:
     ; Print cursor
     ldr r0, [console_addr]
     mov r1, 0
-    mov r2, 3
+    mov r2, 4
     call console_set_cursor
 	ldr r0, [console_addr]
     call console_print_cursor
