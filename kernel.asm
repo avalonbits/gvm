@@ -267,6 +267,7 @@ done:
 	; r2: pointer to string. Worst case must be 24 bytes long (22 bytes for digits
 	;     + null terminator and 2 more bytes for memory alignment).
 	mov r5, 0
+	mov r6, r2
 loop:
 	; Buffer to store digits before writing to memory.
 	mov r4, 0
@@ -291,9 +292,9 @@ loop:
 	jne r0, next_digit
 
 	; We are done and only used half the word, so the null terminator is already
-	; in r4. Just write it and jump to swap.
-	strip [r2, 4], r4
-	jmp swap
+	; in r4. Just write it and jump to reverse.
+	strip [r6, 4], r4
+	jmp reverse
 
 next_digit:
 	; We not done. Repeat the algorithm for r0.
@@ -320,21 +321,30 @@ next_digit:
 	add r5, r5, 1
 
 	; We have a full word to write. Write it and update the string pointer..
-	strip [r2, 4], r4
+	strip [r6, 4], r4
 
 	; If r0 != 0 then we still have numbers to process.
 	mov r1, r0
 	jne r1, loop
 
 	; It is the last digit, so we need to write a null terminator before going
-	; to swap.
+	; to reverse.
 	str [r2], rZ
 
-swap:
-	; TODO(icc): swap the string.
-	ret
+reverse:
+	; To reverse the string, we have pointers to start and end and then swap the
+	; values until either start == end or start == end - 1.
+	; At this point, r2 has ptr to start of string, r6 is ptr to end of string and
+	; r5 is the number of digits.
 
-	; Now, if this is not the last digit, we need to loop back and start again.
+	; If the number of digits is even, then end starts a word earlier and the
+	; algorithm is different.
+	and r0, r5, 0x1
+	jne r0, odd_reverse
+	sub r6, r6, 4
+
+odd_reverse:
+	ret
 @endf _itoa
 
 .section data
@@ -1401,6 +1411,7 @@ done:
 gvm:            .str "GVM Virtual Machine Version 0.1987"
 ready:			.str "READY."
 mem_av:			.str "Memory available:"
+kibytes:        .str "Kilobytes"
 recurring_reg:  .int 0x1200410
 frame_buffer:   .array 10368
 used_bytes:     .array 24
@@ -1408,13 +1419,6 @@ used_bytes:     .array 24
 .section text
 
 @func KERNEL_MAIN:
-	; Calculate memory available.
-	mov r1, heap_start
-	sub r1, sp, r1
-	mov r2, used_bytes
-	ldr r0, [itoa]
-	call r0
-
     ; Allocate space for console
 	mov r1, console_size
 	call _malloc
@@ -1444,6 +1448,15 @@ allocated:
     mov r6, gvm
     call console_puts
 
+	; Calculate memory available.
+	ldr r1, [heap_curr_limit]
+	sub r1, sp, r1
+	; We want the amount in kilo bytes, so divide by 1024.
+	lsr r1, r1, 10
+	mov r2, used_bytes
+	ldr r0, [itoa]
+	call r0
+
 	; Print memory available string.
 	ldr r0, [console_addr]
     mov r1, 0
@@ -1467,6 +1480,22 @@ allocated:
 	ldr r0, [console_addr]
 	mov r6, used_bytes
 	call console_puts
+
+	; Print KiB suffix
+	mov r1, used_bytes
+	ldr r0, [strlen]
+	call r0
+	add r0, r0, 19
+
+	mov r1, r0
+	ldr r0, [console_addr]
+	mov r2, 1
+	call console_set_cursor
+	ldr r0, [console_addr]
+	mov r6, kibytes
+	call console_puts
+
+
 
     ; Print ready sign.
 	ldr r0, [console_addr]
