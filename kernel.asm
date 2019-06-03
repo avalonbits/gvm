@@ -345,7 +345,57 @@ reverse:
 	; algorithm is different.
 	and r0, r5, 0x1
 	jne r0, odd_reverse
+
+	; When number of digits is even, we swap lower bits with high bits.
 	sub r6, r6, 4
+
+even_reverse:
+	ldr r0, [r4]
+
+	; If this is the last word then swapping is done differently.
+	sub r3, r6, r4
+	jeq r3, simple_reverse
+	jlt r3, done
+
+	; Not last word, so let's do the swap.
+	ldr r1, [r6]
+
+	; first digits.
+	lsr r3, r0, 16
+	lsl r3, r3, 16
+	lsr r5, r1, 16
+	orr r5, r3, r5
+	str [r4], r5
+
+	lsl r3, r0, 16
+	lsl r5, r1, 16
+	lsr r5, r5, 16
+	orr r5, r5, r3
+	str [r6], r5
+
+	; second digits
+	ldr r0, [r4]
+	ldr r1, [r6]
+
+	lsr r3, r0, 16
+	lsr r5, r1, 16
+	lsl r5, r5, 16
+	orr r5, r3, r5
+	strip [r6, -4], r5
+
+	lsl r3, r1, 16
+	lsl r5, r0, 16
+	lsr r5, r5, 16
+	orr r5, r3, r5
+	strip [r4, 4], r5
+	jmp even_reverse
+
+simple_reverse:
+	lsr r1, r0, 16
+	lsl r0, r0, 16
+	orr r0, r0, r1
+	str [r4], r0
+	ret
 
 odd_reverse:
 	; In odd reverse, the last word has a digit and a null terminator. this means
@@ -1502,7 +1552,6 @@ allocated:
 	ldr r1, [heap_curr_limit]
 	sub r1, sp, r1
 	; We want the amount in kilo bytes, so divide by 1024.
-	lsr r1, r1, 10
 	mov r2, used_bytes
 	ldr r0, [itoa]
 	call r0
