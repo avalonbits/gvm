@@ -1552,6 +1552,7 @@ allocated:
 	ldr r1, [heap_curr_limit]
 	sub r1, sp, r1
 	; We want the amount in kilo bytes, so divide by 1024.
+	lsr r1, r1, 10
 	mov r2, used_bytes
 	ldr r0, [itoa]
 	call r0
