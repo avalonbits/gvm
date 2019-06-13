@@ -25,14 +25,14 @@ This should give you a program called `gvm`. In order to do anything useful with
 
 ## Compiling and running GSM
 
-GSM is an assembler that can ouput a raw binary rom usable by GVM. The assembler is written in Go and requires Go 1.12 or above. You can compile the assembler as follows:
+GSM is an assembler that can ouput a raw binary rom usable by GVM. The assembler is written in [Go](https://golang.org) and requires [Go 1.12](https://golang.org/dl/) or above. You can compile the assembler as follows:
 
 ```
 $ cd gvm/gsm
 ~/gvm/gsm$ go install
 ```
 
-This should give you a program called `gsm` which you can then use to compile an assembly file. To compile the GVM kernel, do the following:
+This should give you a program called `gsm`, instaled in your $GOPATH/bin directory which you can then use to compile an assembly file. To compile the GVM kernel, do the following:
 
 ```
 $ cd gvm
@@ -46,14 +46,14 @@ $ cd gvm
 ~/gvm$ ./gvm --prgrom=kernel.rom --video_mode=720p
 ```
 
-And now a 1280x720 window should show up with a text mode interface.
+And now a 1280x720 window should show up with a text mode interface. Take a look at `kernel.asm`. It is heavily commented so should be fairly easy to follow. If you have difficulties or find a bug or what to add/update features, send me a pull request!
 
 ### run_kernel.sh
 If you have all the dependencies in place (gcc, libsdl2, scons and go), you can do all the above steps in a single command:
 
 ```
 $ cd gvm
-~/gvm$ ./run_kernel
+~/gvm$ ./run_kernel.sh
 ```
 
 ## Test programs
