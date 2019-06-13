@@ -8,7 +8,7 @@ This sofware is pre-alpha quality and there are many things missing that I want 
 
 ## Compiling GVM
 
-GVM is written in C++14 and has only been tested to work on Linux, both on Armv8 and x86_64 CPUs. I use [gcc](https://gcc.gnu.org/) 7.4 on [armbian](https://armbian.com) on a NanoPI-M4 as my main development machine any gcc version 6.1 and above should work. The CPU emulator uses a gcc extension called ["Labels as Values" or "computed gotos"](https://gcc.gnu.org/onlinedocs/gcc/Labels-as-Values.html) so unless your compiler of choice also supports it, stick with gcc.
+GVM is written in C++14 and has only been tested to work on Linux, both on Armv8 and x86_64 CPUs. I use [gcc](https://gcc.gnu.org/) 7.4 on [armbian](https://armbian.com) on a NanoPI-M4 as my main development machine, but any gcc version 6.1 and above should work. The CPU emulator uses a gcc extension called ["Labels as Values" or "computed gotos"](https://gcc.gnu.org/onlinedocs/gcc/Labels-as-Values.html) so unless your compiler of choice also supports it, stick with gcc.
 
 Besides a c++ compiler, you will also need
   - [libsdl2](https://www.libsdl.org/download-2.0.php) which is used for user input reading and video display.
