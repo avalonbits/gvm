@@ -1033,7 +1033,7 @@ done:
     ; r1: x-pos
     ; r2: y-pos
     add r1, r1, 1
-    sub r21, r1, 96
+    sub r21, r1, 100
     jlt r21, done
 
     mov r1, 0
@@ -1077,10 +1077,9 @@ background_color:
     ; r6: Character unicode value.
 
     ; We calculate position in framebuffer using the formula
-    ; pos(x,y) x*4 + frame_buffer + y * 96 * 4
+    ; pos(x,y) x*4 + frame_buffer + y * 100 * 4
     lsl r1, r1, 2
-    lsl r2, r2, 7
-    mul r2, r2, 3
+    mul r2, r2, 400
     add r5, r5, r1
     add r5, r5, r2
 
@@ -1336,25 +1335,25 @@ loop:
 
 @func console_set_cursor:
     ; if x < 0, set it to 0.
-    jge r1, x_95
+    jge r1, x_99
     mov r1, 0
 
-x_95:
-    ; if x >= 96, set it to 95
-    sub r3, r1, 96
+x_99:
+    ; if x >= 100, set it to 99
+    sub r3, r1, 100
     jlt r3, y
-    mov r3, 95
+    mov r3, 99
 
 y:
     ; if y < 0, set it to 0
-    jge r2, y_26
+    jge r2, y_27
     mov r2, 0
 
-y_26:
-    ; if y >= 27, set it to 26
-    sub r3, r2, 27
+y_27:
+    ; if y >= 28, set it to 27
+    sub r3, r2, 28
     jlt r3, done
-    mov r2, 26
+    mov r2, 27
 
 done:
     stri [r0, console_cursor_x], r1
@@ -1436,7 +1435,7 @@ done:
 @func console_next_cursor:
     ldri r1, [r0, console_cursor_x]
     add r1, r1, 1
-    sub r2, r1, 96
+    sub r2, r1, 100
     jlt r2, done
 
     ; We started a new line. Move to next line.
@@ -1452,13 +1451,13 @@ done:
     mov r1, 0
     ldri r2, [r0, console_cursor_y]
     add r2, r2, 1
-    sub r3, r2, 27
+    sub r3, r2, 28
     jlt r3, done_all
 
     strpi [sp, -4], r1
     call console_scroll_up
     ldrip r1, [sp, 4]
-    mov r2, 26
+    mov r2, 27
 
 done_all:
     stri [r0, console_cursor_y], r2
@@ -1473,7 +1472,7 @@ done:
     ldri r1, [r0, sbuf_start]
 
     ; Skip line.
-    add r2, r1, 384
+    add r2, r1, 400
 
     ; End of framebuffer.
     ldri r3, [r0, sbuf_end]
@@ -1490,8 +1489,8 @@ done:
 
     ; Erase last line.
     ldri r1, [r0, sbuf_end]
-    sub r1, r1, 384
-    mov r2, 96
+    sub r1, r1, 400
+    mov r2, 100
     ldri r3, [r0, console_bcolor]
 	ldr r24, [memset32]
     call r24
@@ -1503,7 +1502,7 @@ done:
     ldri r1, [r0, console_cursor_x]
     sub r1, r1, 1
     jge r1, done
-    mov r1, 95
+    mov r1, 99
 
     ldri r2, [r0, console_cursor_y]
     sub r2, r2, 1
@@ -1526,7 +1525,7 @@ ready:			.str "READY."
 mem_av:			.str "Memory available:"
 kibytes:        .str "Kilobytes"
 recurring_reg:  .int 0x1200410
-frame_buffer:   .array 10368
+frame_buffer:   .array 11200
 used_bytes:     .array 24
 
 .section text
@@ -1545,8 +1544,8 @@ allocated:
 
     ; Initialize console.
     mov r1,  frame_buffer
-    mov r2, 384    ; 96 x 4 (size of text line in bytes.)
-    mul r2, r2, 27 ; 27 (number of lines)
+    mov r2, 400    ; 100 x 4 (size of text line in bytes.)
+    mul r2, r2, 28 ; 28 (number of lines)
     add r2, r2, r1
     mov r3, 11
     mov r4, 0
@@ -1554,7 +1553,7 @@ allocated:
 
     ; Print machine name
     ldr r0, [console_addr]
-    mov r1, 30
+    mov r1, 32
     mov r2, 0
     call console_set_cursor
 

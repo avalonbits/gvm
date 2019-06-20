@@ -35,10 +35,12 @@ SDL2VideoDisplay::SDL2VideoDisplay(
     int width, int height, const bool fullscreen, const std::string force_driver)
   : texture_(nullptr) {
 
-  // The text buffer is 96x27 chars wide, with each char uisng 4 bytes (2 for
+  // The text buffer is 100x28 chars wide, with each char uisng 4 bytes (2 for
   // char, 1 for fgcolor, 1 for bg color.
-  text_vram_buffer_ = new uint32_t[96*27];
-  text_pixels_ = new uint32_t[768*432];
+  text_vram_buffer_ = new uint32_t[100*28];
+  text_pixels_ = new uint32_t[800*450];
+  memset(text_vram_buffer_, 0, sizeof(uint32_t)*100*28);
+  memset(text_pixels_, 0, sizeof(uint32_t)*800*450);
 
   const auto flags = fullscreen
       ? SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_FULLSCREEN
@@ -100,7 +102,7 @@ void SDL2VideoDisplay::SetFramebufferSize(int fWidth, int fHeight, int bpp) {
       renderer_, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, fWidth, fHeight);
   assert(texture_ != nullptr);
   text_texture_ = SDL_CreateTexture(
-      renderer_, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, 768, 432);
+      renderer_, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, 800, 450);
   assert(text_texture_ != nullptr);
 }
 
@@ -116,7 +118,7 @@ void SDL2VideoDisplay::CopyBuffer(uint32_t* mem, uint32_t mode) {
     std::memcpy(pixels, mem, pitch * fHeight_);
     SDL_UnlockTexture(texture_);
   } else if (mode == 2) {
-    std::memcpy(text_vram_buffer_, mem, sizeof(uint32_t)*96*27);
+    std::memcpy(text_vram_buffer_, mem, sizeof(uint32_t)*100*28);
   }
 }
 
@@ -146,7 +148,7 @@ void SDL2VideoDisplay::GraphicsRender() {
 static void renderChar(
     uint32_t ch, uint32_t fg, uint32_t bg, int x, int y,
     uint32_t* text_rom,  uint32_t* vram_pixels) {
-    const uint32_t line_size = 768;
+    const uint32_t line_size = 800;
     const uint32_t char_width = 8;
     uint32_t* char_word = &text_rom[ch << 2];
     uint32_t idx = y * line_size * 16 + x * char_width - line_size;
@@ -163,9 +165,9 @@ static void renderChar(
 }
 
 void SDL2VideoDisplay::TextRender() {
-  for (int y = 0; y < 27; ++y) {
-    for (int x = 0; x < 96; ++x) {
-      const auto i = y*96 + x;
+  for (int y = 0; y < 28; ++y) {
+    for (int x = 0; x < 100; ++x) {
+      const auto i = y*100 + x;
       const auto ch = text_vram_buffer_[i] & 0xFFFF;
       const auto fg = color_table_[(text_vram_buffer_[i] >> 16) & 0xFF];
       const auto bg = color_table_[(text_vram_buffer_[i] >> 24) & 0xFF];
@@ -180,7 +182,7 @@ void SDL2VideoDisplay::TextRender() {
     assert(false);
   }
   assert(pixels != nullptr);
-  std::memcpy(pixels, text_pixels_, pitch * 432);
+  std::memcpy(pixels, text_pixels_, pitch * 450);
   SDL_UnlockTexture(text_texture_);
 
   if (SDL_RenderCopy(renderer_, text_texture_, nullptr, nullptr) != 0) {
