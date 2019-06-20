@@ -32,7 +32,9 @@
 #include "sdl2_video_display.h"
 
 gvm::VideoDisplay* CreateSDL2Display(const std::string& mode) {
-  if (mode == "480p") {
+  if (mode == "450p") {
+    return new gvm::SDL2VideoDisplay(800, 450);
+  } else if (mode == "480p") {
     return new gvm::SDL2VideoDisplay(854, 480);
   } else if (mode == "540p") {
     return new gvm::SDL2VideoDisplay(960, 540);
