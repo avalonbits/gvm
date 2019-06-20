@@ -49,6 +49,15 @@ SDL2VideoDisplay::SDL2VideoDisplay(
     std::cerr << SDL_GetError() << std::endl;
     assert(false);
   }
+  if (fullscreen) {
+    SDL_DisplayMode dm;
+    if (SDL_GetDesktopDisplayMode(0, &dm) != 0) {
+      SDL_Log("SDL_GetDesktopDisplayMode failed: %s", SDL_GetError());
+    } else {
+      width = dm.w;
+      height = dm.h;
+    }
+  }
   window_ = SDL_CreateWindow("GVM", SDL_WINDOWPOS_UNDEFINED,  SDL_WINDOWPOS_UNDEFINED,
       width, height, flags);
   assert(window_ != nullptr);
