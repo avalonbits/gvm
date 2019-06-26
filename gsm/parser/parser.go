@@ -19,6 +19,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -183,12 +184,17 @@ type Tokenizer interface {
 	NextToken() lexer.Token
 	PeakToken() lexer.Token
 	IgnoreWhiteSpace(ignore bool)
+	Line() int
 }
 
 type Parser struct {
 	tokenizer Tokenizer
 	err       error
 	Ast       *AST
+}
+
+func (p *Parser) Errorf(format string, a ...interface{}) error {
+	return errors.New(fmt.Sprintf("line %d: %s", p.tokenizer.Line(), fmt.Sprintf(format, a...)))
 }
 
 func New(t Tokenizer) *Parser {
@@ -259,7 +265,7 @@ func (p *Parser) skipCommentsAndWhitespace(next state) state {
 func (p *Parser) org() state {
 	tok := p.tokenizer.NextToken()
 	if tok.Type != lexer.ORG && tok.Type != lexer.PIC {
-		p.err = fmt.Errorf("expected .org or .pic, got %q", tok.Literal)
+		p.err = p.Errorf("expected .org or .pic, got %q", tok.Literal)
 		return ERROR
 	}
 	pic := tok.Type == lexer.PIC
@@ -269,7 +275,7 @@ func (p *Parser) org() state {
 			// We are already in a pic file. Just return.
 			return SECTION
 		} else {
-			p.err = fmt.Errorf("cannot mix .pic and .org.")
+			p.err = p.Errorf("cannot mix .pic and .org.")
 			return ERROR
 		}
 	}
@@ -277,16 +283,16 @@ func (p *Parser) org() state {
 
 	if !pic {
 		if oLen > 0 && p.Ast.Orgs[oLen-1].PIC {
-			p.err = fmt.Errorf("cannot mix .pic and .org.")
+			p.err = p.Errorf("cannot mix .pic and .org.")
 			return ERROR
 		}
 		tok = p.tokenizer.NextToken()
 		if tok.Type != lexer.NUMBER {
-			p.err = fmt.Errorf("expected an address constant, got %q\n", tok.Literal)
+			p.err = p.Errorf("expected an address constant, got %q\n", tok.Literal)
 			return ERROR
 		}
 
-		n, err := ParseNumber(tok.Literal)
+		n, err := p.parseNumber(tok.Literal)
 		if err != nil {
 			p.err = err
 			return ERROR
@@ -300,7 +306,7 @@ func (p *Parser) org() state {
 func (p *Parser) section() state {
 	tok := p.tokenizer.PeakToken()
 	if tok.Type != lexer.SECTION && tok.Type != lexer.EMBED && tok.Type != lexer.INCLUDE {
-		p.err = fmt.Errorf("expected .section, got %q", tok.Literal)
+		p.err = p.Errorf("expected .section, got %q", tok.Literal)
 		return ERROR
 	}
 
@@ -315,7 +321,7 @@ func (p *Parser) section() state {
 
 	tok = p.tokenizer.NextToken()
 	if tok.Type != lexer.S_DATA && tok.Type != lexer.S_TEXT {
-		p.err = fmt.Errorf("expected dat, embed a or text, got %q", tok.Literal)
+		p.err = p.Errorf("expected dat, embed a or text, got %q", tok.Literal)
 		return ERROR
 	}
 
@@ -337,13 +343,13 @@ func (p *Parser) section() state {
 func (p *Parser) embed() state {
 	tok := p.tokenizer.NextToken()
 	if tok.Type != lexer.EMBED {
-		p.err = fmt.Errorf("expected .embed, got %q", tok.Literal)
+		p.err = p.Errorf("expected .embed, got %q", tok.Literal)
 		return ERROR
 	}
 
 	tok = p.tokenizer.NextToken()
 	if tok.Type != lexer.D_QUOTE {
-		p.err = fmt.Errorf("expected a double quote (\"), got %q", tok.Literal)
+		p.err = p.Errorf("expected a double quote (\"), got %q", tok.Literal)
 		return ERROR
 	}
 
@@ -351,7 +357,7 @@ func (p *Parser) embed() state {
 	for {
 		tok = p.tokenizer.NextToken()
 		if tok.Type == lexer.NEWLINE {
-			p.err = fmt.Errorf("expected a double quote(\"), got a new line")
+			p.err = p.Errorf("expected a double quote(\"), got a new line")
 			return ERROR
 		}
 		if tok.Type == lexer.D_QUOTE {
@@ -369,13 +375,13 @@ func (p *Parser) embed() state {
 func (p *Parser) include() state {
 	tok := p.tokenizer.NextToken()
 	if tok.Type != lexer.INCLUDE {
-		p.err = fmt.Errorf("expected .include, got %q", tok.Literal)
+		p.err = p.Errorf("expected .include, got %q", tok.Literal)
 		return ERROR
 	}
 
 	tok = p.tokenizer.NextToken()
 	if tok.Type != lexer.D_QUOTE {
-		p.err = fmt.Errorf("expected a double quote (\"), got %q", tok.Literal)
+		p.err = p.Errorf("expected a double quote (\"), got %q", tok.Literal)
 		return ERROR
 	}
 
@@ -383,7 +389,7 @@ func (p *Parser) include() state {
 	for {
 		tok = p.tokenizer.NextToken()
 		if tok.Type == lexer.NEWLINE {
-			p.err = fmt.Errorf("expected a double quote(\"), got a new line")
+			p.err = p.Errorf("expected a double quote(\"), got a new line")
 			return ERROR
 		}
 		if tok.Type == lexer.D_QUOTE {
@@ -394,13 +400,13 @@ func (p *Parser) include() state {
 
 	tok = p.tokenizer.NextToken()
 	if tok.Type != lexer.AS {
-		p.err = fmt.Errorf("expected as, got %q", tok.Literal)
+		p.err = p.Errorf("expected as, got %q", tok.Literal)
 		return ERROR
 	}
 
 	tok = p.tokenizer.NextToken()
 	if tok.Type != lexer.IDENT {
-		p.err = fmt.Errorf("expected an identifier, got %q", tok.Literal)
+		p.err = p.Errorf("expected an identifier, got %q", tok.Literal)
 		return ERROR
 	}
 
@@ -441,7 +447,7 @@ func (p *Parser) data_block(cur state) state {
 		label := tok.Literal
 		tok = p.tokenizer.NextToken()
 		if tok.Type != lexer.COLON {
-			p.err = fmt.Errorf("expected \"%s:\", got \"%s%s\"",
+			p.err = p.Errorf("expected \"%s:\", got \"%s%s\"",
 				label, label, tok.Literal)
 			return ERROR
 		}
@@ -456,10 +462,10 @@ func (p *Parser) data_block(cur state) state {
 	case lexer.ARRAY_TYPE:
 		tok = p.tokenizer.NextToken()
 		if tok.Type != lexer.NUMBER {
-			p.err = fmt.Errorf("expected a number, got %q", tok.Literal)
+			p.err = p.Errorf("expected a number, got %q", tok.Literal)
 			return ERROR
 		}
-		n, err := ParseNumber(tok.Literal)
+		n, err := p.parseNumber(tok.Literal)
 		if err != nil {
 			p.err = err
 			return ERROR
@@ -474,7 +480,7 @@ func (p *Parser) data_block(cur state) state {
 	case lexer.STRING_TYPE:
 		tok = p.tokenizer.NextToken()
 		if tok.Type != lexer.D_QUOTE {
-			p.err = fmt.Errorf("expected '\"', got %q", tok.Literal)
+			p.err = p.Errorf("expected '\"', got %q", tok.Literal)
 			return ERROR
 		}
 
@@ -485,7 +491,7 @@ func (p *Parser) data_block(cur state) state {
 		for {
 			tok = p.tokenizer.NextToken()
 			if tok.Type == lexer.NEWLINE {
-				p.err = fmt.Errorf("epxected '\"', got a new line.")
+				p.err = p.Errorf("epxected '\"', got a new line.")
 				return ERROR
 			}
 			if tok.Type == lexer.D_QUOTE {
@@ -504,7 +510,7 @@ func (p *Parser) data_block(cur state) state {
 			return DATA_BLOCK
 		}
 
-		n, err := ParseNumber(tok.Literal)
+		n, err := p.parseNumber(tok.Literal)
 		if err != nil {
 			p.err = err
 			return ERROR
@@ -515,25 +521,25 @@ func (p *Parser) data_block(cur state) state {
 	case lexer.EQUATE:
 		tok = p.tokenizer.NextToken()
 		if tok.Type != lexer.IDENT {
-			p.err = fmt.Errorf("expected an identifier, got %q", tok.Literal)
+			p.err = p.Errorf("expected an identifier, got %q", tok.Literal)
 			return ERROR
 		}
 		constant := tok.Literal
 		if _, ok := p.Ast.Consts[constant]; ok {
-			p.err = fmt.Errorf("constant %q was previously defined.", constant)
+			p.err = p.Errorf("constant %q was previously defined.", constant)
 			return ERROR
 		}
 
 		tok = p.tokenizer.NextToken()
 		if tok.Type != lexer.NUMBER {
-			p.err = fmt.Errorf("epxected a number, got %q", tok.Literal)
+			p.err = p.Errorf("epxected a number, got %q", tok.Literal)
 			return ERROR
 		}
 		p.Ast.Consts[constant] = tok.Literal
 
 		return DATA_BLOCK
 	default:
-		p.err = fmt.Errorf("expected either a label or a constant definition, got %q", tok.Literal)
+		p.err = p.Errorf("expected either a label or a constant definition, got %q", tok.Literal)
 		return ERROR
 	}
 }
@@ -547,7 +553,7 @@ func (p *Parser) text_block(cur state) state {
 	tok := p.tokenizer.PeakToken()
 	if tok.Type == lexer.ORG || tok.Type == lexer.PIC {
 		if aBlock.inFunc {
-			p.err = fmt.Errorf(
+			p.err = p.Errorf(
 				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
 			return ERROR
 		}
@@ -555,7 +561,7 @@ func (p *Parser) text_block(cur state) state {
 	}
 	if tok.Type == lexer.SECTION {
 		if aBlock.inFunc {
-			p.err = fmt.Errorf(
+			p.err = p.Errorf(
 				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
 			return ERROR
 		}
@@ -564,7 +570,7 @@ func (p *Parser) text_block(cur state) state {
 	}
 	if tok.Type == lexer.EMBED || tok.Type == lexer.INCLUDE {
 		if aBlock.inFunc {
-			p.err = fmt.Errorf(
+			p.err = p.Errorf(
 				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
 			return ERROR
 		}
@@ -582,7 +588,7 @@ func (p *Parser) text_block(cur state) state {
 	if tok.Type == lexer.FUNC_START || tok.Type == lexer.INFUNC_START {
 		tok = p.tokenizer.NextToken()
 		if inFunc {
-			p.err = fmt.Errorf("expected function end for %q, got function start for %q",
+			p.err = p.Errorf("expected function end for %q, got function start for %q",
 				aBlock.funcName, tok.Literal)
 			return ERROR
 		}
@@ -590,7 +596,7 @@ func (p *Parser) text_block(cur state) state {
 	} else if tok.Type == lexer.FUNC_END {
 		tok = p.tokenizer.NextToken()
 		if !aBlock.inFunc {
-			p.err = fmt.Errorf(
+			p.err = p.Errorf(
 				"found @endf for %q, but %q is not @func.", tok.Literal, tok.Literal)
 			return ERROR
 		}
@@ -601,7 +607,7 @@ func (p *Parser) text_block(cur state) state {
 		label := tok.Literal
 		if !inFunc && aBlock.inFunc {
 			if label != aBlock.funcName {
-				p.err = fmt.Errorf("expected @endf %v, got @endf %v", aBlock.funcName, label)
+				p.err = p.Errorf("expected @endf %v, got @endf %v", aBlock.funcName, label)
 				return ERROR
 			}
 
@@ -613,7 +619,7 @@ func (p *Parser) text_block(cur state) state {
 
 		tok = p.tokenizer.NextToken()
 		if tok.Type != lexer.COLON {
-			p.err = fmt.Errorf("expected \"%s:\", got \"%s%s\"",
+			p.err = p.Errorf("expected \"%s:\", got \"%s%s\"",
 				label, label, tok.Literal)
 			return ERROR
 		}
@@ -640,12 +646,12 @@ func (p *Parser) text_block(cur state) state {
 		}
 		return TEXT_BLOCK
 	} else if inFuncScope {
-		p.err = fmt.Errorf("Expected an identifier for func, got %q", tok.Literal)
+		p.err = p.Errorf("Expected an identifier for func, got %q", tok.Literal)
 		return ERROR
 	}
 
 	if tok.Type != lexer.INSTRUCTION {
-		p.err = fmt.Errorf("expected an instruction, got %q", tok.Literal)
+		p.err = p.Errorf("expected an instruction, got %q", tok.Literal)
 		return ERROR
 	}
 	return p.parseInstruction(aBlock, tok)
@@ -666,6 +672,14 @@ func ParseNumber(lit string) (uint32, error) {
 	}
 
 	return uint32(mul * n), nil
+}
+
+func (p *Parser) parseNumber(lit string) (uint32, error) {
+	n, err := ParseNumber(lit)
+	if err != nil {
+		return n, p.Errorf(err.Error())
+	}
+	return n, nil
 }
 
 var (
@@ -715,7 +729,7 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 	instr := &Instruction{Name: tok.Literal}
 	opCount, ok := operands[instr.Name]
 	if !ok {
-		p.err = fmt.Errorf("instruction not present in operand table: %q", instr.Name)
+		p.err = p.Errorf("instruction not present in operand table: %q", instr.Name)
 		return ERROR
 	}
 
@@ -786,7 +800,7 @@ func (p *Parser) parseOperand(comma bool) (Operand, error) {
 	op := Operand{}
 	tok := p.tokenizer.NextToken()
 	if tok.Type != lexer.REGISTER && tok.Type != lexer.IDENT && tok.Type != lexer.NUMBER {
-		return op, fmt.Errorf("expected a register, a number or a label, got %q",
+		return op, p.Errorf("expected a register, a number or a label, got %q",
 			tok.Literal)
 	}
 	op.Type = OP_REG
@@ -799,7 +813,7 @@ func (p *Parser) parseOperand(comma bool) (Operand, error) {
 	if comma {
 		tok = p.tokenizer.NextToken()
 		if tok.Type != lexer.COMMA {
-			return op, fmt.Errorf("expected a comma ',', got %q", tok.Literal)
+			return op, p.Errorf("expected a comma ',', got %q", tok.Literal)
 		}
 	}
 	return op, nil
@@ -809,7 +823,7 @@ func (p *Parser) parseOperand(comma bool) (Operand, error) {
 func (p *Parser) parseAddressOperand(comma bool) (Operand, error) {
 	tok := p.tokenizer.NextToken()
 	if tok.Type != lexer.L_BRACKET {
-		return Operand{}, fmt.Errorf("expected a left bracket '[', got %q", tok.Literal)
+		return Operand{}, p.Errorf("expected a left bracket '[', got %q", tok.Literal)
 	}
 
 	op, err := p.parseOperand(false)
@@ -819,12 +833,12 @@ func (p *Parser) parseAddressOperand(comma bool) (Operand, error) {
 
 	tok = p.tokenizer.NextToken()
 	if tok.Type != lexer.R_BRACKET {
-		return op, fmt.Errorf("expected a right bracket ']', got %q", tok.Literal)
+		return op, p.Errorf("expected a right bracket ']', got %q", tok.Literal)
 	}
 	if comma {
 		tok = p.tokenizer.NextToken()
 		if tok.Type != lexer.COMMA {
-			return op, fmt.Errorf("expected a comma ',', got %q", tok.Literal)
+			return op, p.Errorf("expected a comma ',', got %q", tok.Literal)
 		}
 	}
 	return op, nil
@@ -834,7 +848,7 @@ func (p *Parser) parseIndexOperand(comma bool) (Operand, Operand, error) {
 	tok := p.tokenizer.NextToken()
 	if tok.Type != lexer.L_BRACKET {
 		return Operand{}, Operand{},
-			fmt.Errorf("expected a left bracket '[', got %q", tok.Literal)
+			p.Errorf("expected a left bracket '[', got %q", tok.Literal)
 	}
 
 	op1, err := p.parseOperand(true)
@@ -850,13 +864,13 @@ func (p *Parser) parseIndexOperand(comma bool) (Operand, Operand, error) {
 	tok = p.tokenizer.NextToken()
 	if tok.Type != lexer.R_BRACKET {
 		return Operand{}, Operand{},
-			fmt.Errorf("expected a right bracket ']', got %q", tok.Literal)
+			p.Errorf("expected a right bracket ']', got %q", tok.Literal)
 	}
 	if comma {
 		tok = p.tokenizer.NextToken()
 		if tok.Type != lexer.COMMA {
 			return Operand{}, Operand{},
-				fmt.Errorf("expected a comma ',', got %q", tok.Literal)
+				p.Errorf("expected a comma ',', got %q", tok.Literal)
 		}
 	}
 	return op1, op2, nil

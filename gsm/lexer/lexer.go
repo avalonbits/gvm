@@ -169,10 +169,19 @@ type Lexer struct {
 	r        rune
 	tok      *Token
 	ignoreWS bool
+	line     int
+}
+
+func (l *Lexer) Line() int {
+	return l.line
 }
 
 func New(r io.Reader) *Lexer {
-	return &Lexer{buf: bufio.NewReader(r), ignoreWS: true}
+	return &Lexer{
+		buf:      bufio.NewReader(r),
+		ignoreWS: true,
+		line:     1,
+	}
 }
 
 func (l *Lexer) IgnoreWhiteSpace(ignore bool) {
@@ -221,6 +230,7 @@ func (l *Lexer) nextToken() *Token {
 	case ']':
 		return newTok(R_BRACKET, ch)
 	case '\n':
+		l.line++
 		return newTok(NEWLINE, ch)
 	case '/':
 		return newTok(F_SLASH, ch)
