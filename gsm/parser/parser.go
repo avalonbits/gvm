@@ -54,6 +54,7 @@ type Statement struct {
 	Label     string
 	ArraySize int
 	Str       string
+	LineNum   int
 }
 
 func (s Statement) WordCount() int {
@@ -474,7 +475,10 @@ func (p *Parser) data_block(cur state) state {
 			n += (4 - (n % 4))
 		}
 
-		aBlock.Statements = append(aBlock.Statements, Statement{ArraySize: int(n)})
+		aBlock.Statements = append(aBlock.Statements, Statement{
+			ArraySize: int(n),
+			LineNum:   p.tokenizer.Line(),
+		})
 		return DATA_BLOCK
 
 	case lexer.STRING_TYPE:
@@ -499,14 +503,20 @@ func (p *Parser) data_block(cur state) state {
 			}
 			sb.WriteString(tok.Literal)
 		}
-		aBlock.Statements = append(aBlock.Statements, Statement{Str: sb.String()})
+		aBlock.Statements = append(aBlock.Statements, Statement{
+			Str:     sb.String(),
+			LineNum: p.tokenizer.Line(),
+		})
 		return DATA_BLOCK
 
 	case lexer.INT_TYPE:
 		tok = p.tokenizer.NextToken()
 		if tok.Type == lexer.IDENT {
 			// This is likely a label the user wants to store the adress from.
-			aBlock.Statements = append(aBlock.Statements, Statement{Label: tok.Literal})
+			aBlock.Statements = append(aBlock.Statements, Statement{
+				Label:   tok.Literal,
+				LineNum: p.tokenizer.Line(),
+			})
 			return DATA_BLOCK
 		}
 
@@ -516,7 +526,10 @@ func (p *Parser) data_block(cur state) state {
 			return ERROR
 		}
 
-		aBlock.Statements = append(aBlock.Statements, Statement{Value: n})
+		aBlock.Statements = append(aBlock.Statements, Statement{
+			Value:   n,
+			LineNum: p.tokenizer.Line(),
+		})
 		return DATA_BLOCK
 	case lexer.EQUATE:
 		tok = p.tokenizer.NextToken()
@@ -733,7 +746,7 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 		return ERROR
 	}
 
-	s := Statement{Instr: *instr}
+	s := Statement{Instr: *instr, LineNum: p.tokenizer.Line()}
 	block.Statements = append(block.Statements, s)
 
 	if opCount == 0 {
