@@ -1,3 +1,4 @@
+![GVM Logo](gvmlogo.png?raw=true)
 # The GVM Virtual Machine
 
 GVM is a software computer that I created as a way to learn assembly. It emulates a made up 32bit RISC(-ish) CPU with 32 registers and a small instruction set (ISA). The ISA was inspired by different CPUs (Armv7, MIPS, RISC-V) but was created with ease of use and understanding as the main objective.
