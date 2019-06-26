@@ -54,7 +54,11 @@ type Statement struct {
 	Label     string
 	ArraySize int
 	Str       string
-	LineNum   int
+	lineNum   int
+}
+
+func (s Statement) Errorf(format string, a ...interface{}) error {
+	return errors.New(fmt.Sprintf("line %d: %s", s.lineNum, fmt.Sprintf(format, a...)))
 }
 
 func (s Statement) WordCount() int {
@@ -138,6 +142,13 @@ type Block struct {
 	inFunc     bool
 	funcName   string
 	Statements []Statement
+}
+
+func (b Block) Errorf(format string, a ...interface{}) error {
+	if len(b.Statements) > 0 {
+		return b.Statements[0].Errorf(format, a...)
+	}
+	return fmt.Errorf(format, a...)
 }
 
 func (b Block) LabelName() string {
@@ -477,7 +488,7 @@ func (p *Parser) data_block(cur state) state {
 
 		aBlock.Statements = append(aBlock.Statements, Statement{
 			ArraySize: int(n),
-			LineNum:   p.tokenizer.Line(),
+			lineNum:   p.tokenizer.Line(),
 		})
 		return DATA_BLOCK
 
@@ -505,7 +516,7 @@ func (p *Parser) data_block(cur state) state {
 		}
 		aBlock.Statements = append(aBlock.Statements, Statement{
 			Str:     sb.String(),
-			LineNum: p.tokenizer.Line(),
+			lineNum: p.tokenizer.Line(),
 		})
 		return DATA_BLOCK
 
@@ -515,7 +526,7 @@ func (p *Parser) data_block(cur state) state {
 			// This is likely a label the user wants to store the adress from.
 			aBlock.Statements = append(aBlock.Statements, Statement{
 				Label:   tok.Literal,
-				LineNum: p.tokenizer.Line(),
+				lineNum: p.tokenizer.Line(),
 			})
 			return DATA_BLOCK
 		}
@@ -528,7 +539,7 @@ func (p *Parser) data_block(cur state) state {
 
 		aBlock.Statements = append(aBlock.Statements, Statement{
 			Value:   n,
-			LineNum: p.tokenizer.Line(),
+			lineNum: p.tokenizer.Line(),
 		})
 		return DATA_BLOCK
 	case lexer.EQUATE:
@@ -746,7 +757,7 @@ func (p *Parser) parseInstruction(block *Block, tok lexer.Token) state {
 		return ERROR
 	}
 
-	s := Statement{Instr: *instr, LineNum: p.tokenizer.Line()}
+	s := Statement{Instr: *instr, lineNum: p.tokenizer.Line()}
 	block.Statements = append(block.Statements, s)
 
 	if opCount == 0 {
