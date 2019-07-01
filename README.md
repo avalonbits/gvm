@@ -1,4 +1,4 @@
-# The GVM Virtual Machine
+# The GVM Virtual Machine <img align="left" width="48" height="48" src="https://github.com/avalonbits/gvm/blob/master/gvmlogo.png">
 
 GVM is a software computer that I created as a way to learn assembly. It emulates a made up 32bit RISC(-ish) CPU with 32 registers and a small instruction set (ISA). The ISA was inspired by different CPUs (Armv7, MIPS, RISC-V) but was created with ease of use and understanding as the main objective.
 
@@ -45,10 +45,10 @@ This should give you a binary called `kernel.rom`. To use it with GSM:
 
 ```
 $ cd gvm
-~/gvm$ ./gvm --prgrom=kernel.rom --video_mode=720p
+~/gvm$ ./gvm --prgrom=kernel.rom --video_mode=450p
 ```
 
-And now a 1280x720 window should show up with a text mode interface. Take a look at `kernel.asm`. It is heavily commented so should be fairly easy to follow. If you have difficulties or find a bug or what to add/update features, send me a pull request!
+And now a 800x450 window should show up with a text mode interface. Take a look at `kernel.asm`. It is heavily commented so should be fairly easy to follow. If you have difficulties or find a bug or what to add/update features, send me a pull request!
 
 ### run_kernel.sh
 If you have all the dependencies in place (gcc, libsdl2, scons and go), you can do all the above steps in a single command:
@@ -69,7 +69,7 @@ $ cd gvm
 This should run the program and output a few stats about it. For example, running the `gvm/perf/array32.asm` program on my NanoPI-M4 I get the following:
 
 ```
-~/gvm$ BENCH=perf/array32.asm ./run_bench.sh 
+~/gvm$ BENCH=perf/array32.asm ./run_bench.sh
 gvm: no process found
 scons: Reading SConscript files ...
 scons: done reading SConscript files.

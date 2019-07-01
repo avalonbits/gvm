@@ -145,10 +145,10 @@ func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 			for _, block := range section.Blocks {
 				if block.LabelName() != "" {
 					if _, ok := labelMap[block.LabelName()]; ok {
-						return fmt.Errorf("label redefinition: %q", block.Label)
+						return block.Errorf("label redefinition: %q", block.Label)
 					}
 					if _, ok := ast.Consts[block.LabelName()]; ok {
-						return fmt.Errorf("label redefinition: %q was defined as a const",
+						return block.Errorf("label redefinition: %q was defined as a const",
 							block.Label)
 					}
 					labelMap[block.LabelName()] = baseAddr + (wordCount * 4)
@@ -180,7 +180,7 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 								statement.Instr.Name, addr, block,
 								labelMap, ast.Consts, op)
 							if err != nil {
-								return fmt.Errorf("error processing instruction %q: %v",
+								return statement.Errorf("error processing instruction %q: %v",
 									statement.Instr, err)
 							}
 						}
@@ -191,7 +191,7 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 						// This is a data entry with a label. Get the address of the label and set it to the statement value.
 						addr, ok := labelMap[statement.Label]
 						if !ok {
-							return fmt.Errorf("label does not exist: %q", statement.Label)
+							return statement.Errorf("label does not exist: %q", statement.Label)
 						}
 						statement.Label = ""
 						statement.Value = addr
@@ -324,7 +324,7 @@ func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
 					}
 					w, err := encode(statement.Instr)
 					if err != nil {
-						return err
+						return statement.Errorf(err.Error())
 					}
 					binary.LittleEndian.PutUint32(word, uint32(w))
 					if _, err := buf.Write(word); err != nil {
