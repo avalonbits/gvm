@@ -46,7 +46,7 @@ itoa:               .int _itoa
 .org 0x2100
 .section data
 vram_reg:   .int 0x1200400
-vram_start: .int 0x101F000
+vram_start: .int 0x1000000
 ptr_heap_start: .int heap_start
 
 .equ JMP 0x15  ; jmp instruction for registering handler.
