@@ -69,12 +69,18 @@ const (
 	FUNC_START
 	INFUNC_START
 	FUNC_END
+	BIN_FILE
+	PROGRAM_FILE
+	LIBRARY_FILE
 )
 
 var keywords = map[string]TokenType{
 	"@func":    FUNC_START,
 	"@infunc":  INFUNC_START,
 	"@endf":    FUNC_END,
+	".bin":     BIN_FILE,
+	".program": PROGRAM_FILE,
+	".library": LIBRARY_FILE,
 	".section": SECTION,
 	".embed":   EMBED,
 	".include": INCLUDE,
