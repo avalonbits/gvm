@@ -297,46 +297,35 @@ func (p *Parser) mode() state {
 		}
 		p.Entry = tok.Literal
 	}
+
+	// For library and program, we create a single PIC org before moving to section parser.
+	o := Org{PIC: true, Addr: 0}
+	p.Ast.Orgs = append(p.Ast.Orgs, o)
 	return SECTION
 }
 
 func (p *Parser) org() state {
-	tok := p.tokenizer.NextToken()
-	if tok.Type != lexer.ORG && tok.Type != lexer.PIC {
-		p.err = p.Errorf("expected .org or .pic, got %q", tok.Literal)
+	if !p.Bin {
+		p.err = p.Errorf(".org directives are only allowed in .bin files.")
 		return ERROR
 	}
-	pic := tok.Type == lexer.PIC
-	oLen := len(p.Ast.Orgs)
-	if pic && oLen > 0 {
-		if p.Ast.Orgs[oLen-1].PIC {
-			// We are already in a pic file. Just return.
-			return SECTION
-		} else {
-			p.err = p.Errorf("cannot mix .pic and .org.")
-			return ERROR
-		}
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.ORG {
+		p.err = p.Errorf("expected .org got %q", tok.Literal)
+		return ERROR
 	}
-	o := Org{PIC: pic, Addr: 0}
-
-	if !pic {
-		if oLen > 0 && p.Ast.Orgs[oLen-1].PIC {
-			p.err = p.Errorf("cannot mix .pic and .org.")
-			return ERROR
-		}
-		tok = p.tokenizer.NextToken()
-		if tok.Type != lexer.NUMBER {
-			p.err = p.Errorf("expected an address constant, got %q\n", tok.Literal)
-			return ERROR
-		}
-
-		n, err := p.parseNumber(tok.Literal)
-		if err != nil {
-			p.err = err
-			return ERROR
-		}
-		o.Addr = n
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.NUMBER {
+		p.err = p.Errorf("expected an address constant, got %q\n", tok.Literal)
+		return ERROR
 	}
+
+	n, err := p.parseNumber(tok.Literal)
+	if err != nil {
+		p.err = err
+		return ERROR
+	}
+	o := Org{PIC: false, Addr: n}
 	p.Ast.Orgs = append(p.Ast.Orgs, o)
 	return SECTION
 }
@@ -460,7 +449,7 @@ func (p *Parser) include() state {
 
 func (p *Parser) data_block(cur state) state {
 	tok := p.tokenizer.PeakToken()
-	if tok.Type == lexer.ORG || tok.Type == lexer.PIC {
+	if tok.Type == lexer.ORG {
 		return ORG
 	}
 	if tok.Type == lexer.SECTION {
@@ -601,7 +590,7 @@ func (p *Parser) text_block(cur state) state {
 	aBlock := &aSection.Blocks[len(aSection.Blocks)-1]
 
 	tok := p.tokenizer.PeakToken()
-	if tok.Type == lexer.ORG || tok.Type == lexer.PIC {
+	if tok.Type == lexer.ORG {
 		if aBlock.inFunc {
 			p.err = p.Errorf(
 				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)

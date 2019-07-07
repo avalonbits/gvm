@@ -57,7 +57,6 @@ const (
 	S_DATA
 	S_TEXT
 	ORG
-	PIC
 	LABEL
 	INT_TYPE
 	ARRAY_TYPE
@@ -88,7 +87,6 @@ var keywords = map[string]TokenType{
 	"as":       AS,
 	"data":     S_DATA,
 	"text":     S_TEXT,
-	".pic":     PIC,
 	".org":     ORG,
 	".int":     INT_TYPE,
 	".array":   ARRAY_TYPE,
