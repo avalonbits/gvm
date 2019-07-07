@@ -203,6 +203,8 @@ type Parser struct {
 	tokenizer Tokenizer
 	err       error
 	Ast       *AST
+	Entry     string
+	Bin       bool
 }
 
 func (p *Parser) Errorf(format string, a ...interface{}) error {
@@ -220,6 +222,7 @@ type state int
 
 const (
 	START state = iota
+	ORG
 	SECTION
 	EMBED_STATEMENT
 	INCLUDE_STATEMENT
@@ -234,6 +237,8 @@ func (p *Parser) Parse() error {
 	for ; st != END; st = p.skipCommentsAndWhitespace(st) {
 		switch st {
 		case START:
+			st = p.mode()
+		case ORG:
 			st = p.org()
 		case SECTION:
 			st = p.section()
@@ -272,6 +277,27 @@ func (p *Parser) skipCommentsAndWhitespace(next state) state {
 			p.tokenizer.NextToken()
 		}
 	}
+}
+
+func (p *Parser) mode() state {
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.BIN_FILE && tok.Type != lexer.PROGRAM_FILE && tok.Type != lexer.LIBRARY_FILE {
+		p.err = p.Errorf("expected .bin, .program or .library, got %q", tok.Literal)
+		return ERROR
+	}
+	p.Bin = tok.Type == lexer.BIN_FILE
+	if p.Bin {
+		return ORG
+	}
+	if tok.Type == lexer.PROGRAM_FILE {
+		tok = p.tokenizer.NextToken()
+		if tok.Type != lexer.IDENT {
+			p.err = p.Errorf("expected an entry point, got %q", tok.Literal)
+			return ERROR
+		}
+		p.Entry = tok.Literal
+	}
+	return SECTION
 }
 
 func (p *Parser) org() state {
@@ -435,7 +461,7 @@ func (p *Parser) include() state {
 func (p *Parser) data_block(cur state) state {
 	tok := p.tokenizer.PeakToken()
 	if tok.Type == lexer.ORG || tok.Type == lexer.PIC {
-		return START
+		return ORG
 	}
 	if tok.Type == lexer.SECTION {
 		return SECTION
@@ -581,7 +607,7 @@ func (p *Parser) text_block(cur state) state {
 				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
 			return ERROR
 		}
-		return START
+		return ORG
 	}
 	if tok.Type == lexer.SECTION {
 		if aBlock.inFunc {
