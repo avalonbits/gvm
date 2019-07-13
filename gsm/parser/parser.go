@@ -30,8 +30,9 @@ import (
 
 type Word uint32
 type AST struct {
-	Orgs   []Org
-	Consts map[string]string
+	Orgs     []Org
+	Consts   map[string]string
+	Includes map[string]string
 }
 
 type Org struct {
@@ -214,7 +215,8 @@ func (p *Parser) Errorf(format string, a ...interface{}) error {
 func New(t Tokenizer) *Parser {
 	t.IgnoreWhiteSpace(true)
 	return &Parser{tokenizer: t, Ast: &AST{
-		Consts: make(map[string]string),
+		Consts:   make(map[string]string),
+		Includes: make(map[string]string),
 	}}
 }
 
@@ -287,7 +289,7 @@ func (p *Parser) mode() state {
 	}
 	p.Bin = tok.Type == lexer.BIN_FILE
 	if p.Bin {
-		return ORG
+		return INCLUDE_STATEMENT
 	}
 	if tok.Type == lexer.PROGRAM_FILE {
 		tok = p.tokenizer.NextToken()
@@ -301,7 +303,8 @@ func (p *Parser) mode() state {
 	// For library and program, we create a single PIC org before moving to section parser.
 	o := Org{PIC: true, Addr: 0}
 	p.Ast.Orgs = append(p.Ast.Orgs, o)
-	return SECTION
+
+	return INCLUDE_STATEMENT
 }
 
 func (p *Parser) org() state {
@@ -400,50 +403,55 @@ func (p *Parser) embed() state {
 }
 
 func (p *Parser) include() state {
-	tok := p.tokenizer.NextToken()
-	if tok.Type != lexer.INCLUDE {
-		p.err = p.Errorf("expected .include, got %q", tok.Literal)
-		return ERROR
-	}
-
-	tok = p.tokenizer.NextToken()
-	if tok.Type != lexer.D_QUOTE {
-		p.err = p.Errorf("expected a double quote (\"), got %q", tok.Literal)
-		return ERROR
-	}
-
-	var sb strings.Builder
 	for {
+		tok := p.tokenizer.PeakToken()
+		if tok.Type != lexer.INCLUDE {
+			if p.Bin {
+				return ORG
+			}
+			return SECTION
+		}
+
+		// We know we are processing an include. We can skip it now.
+		p.tokenizer.NextToken()
+
 		tok = p.tokenizer.NextToken()
-		if tok.Type == lexer.NEWLINE {
-			p.err = p.Errorf("expected a double quote(\"), got a new line")
+		if tok.Type != lexer.D_QUOTE {
+			p.err = p.Errorf("expected a double quote (\"), got %q", tok.Literal)
 			return ERROR
 		}
-		if tok.Type == lexer.D_QUOTE {
-			break
+
+		var sb strings.Builder
+		for {
+			tok = p.tokenizer.NextToken()
+			if tok.Type == lexer.NEWLINE {
+				p.err = p.Errorf("expected a double quote(\"), got a new line")
+				return ERROR
+			}
+			if tok.Type == lexer.D_QUOTE {
+				break
+			}
+			sb.WriteString(tok.Literal)
 		}
-		sb.WriteString(tok.Literal)
-	}
 
-	tok = p.tokenizer.NextToken()
-	if tok.Type != lexer.AS {
-		p.err = p.Errorf("expected as, got %q", tok.Literal)
-		return ERROR
-	}
+		tok = p.tokenizer.NextToken()
+		if tok.Type != lexer.AS {
+			p.err = p.Errorf("expected as, got %q", tok.Literal)
+			return ERROR
+		}
 
-	tok = p.tokenizer.NextToken()
-	if tok.Type != lexer.IDENT {
-		p.err = p.Errorf("expected an identifier, got %q", tok.Literal)
-		return ERROR
-	}
+		tok = p.tokenizer.NextToken()
+		if tok.Type != lexer.IDENT {
+			p.err = p.Errorf("expected an identifier, got %q", tok.Literal)
+			return ERROR
+		}
 
-	s := Section{
-		Type:        INCLUDE_FILE,
-		IncludeFile: sb.String(),
-		IncludeName: tok.Literal,
+		if _, ok := p.Ast.Includes[tok.Literal]; ok {
+			p.err = p.Errorf("include name %q was already defined.", tok.Literal)
+			return ERROR
+		}
+		p.Ast.Includes[tok.Literal] = sb.String()
 	}
-	o := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
-	o.Sections = append(o.Sections, s)
 	return SECTION
 }
 
@@ -458,9 +466,6 @@ func (p *Parser) data_block(cur state) state {
 
 	if tok.Type == lexer.EMBED {
 		return EMBED_STATEMENT
-	}
-	if tok.Type == lexer.INCLUDE {
-		return INCLUDE_STATEMENT
 	}
 
 	// Get the active block.
@@ -607,16 +612,13 @@ func (p *Parser) text_block(cur state) state {
 
 		return SECTION
 	}
-	if tok.Type == lexer.EMBED || tok.Type == lexer.INCLUDE {
+	if tok.Type == lexer.EMBED {
 		if aBlock.inFunc {
 			p.err = p.Errorf(
 				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
 			return ERROR
 		}
-		if tok.Type == lexer.EMBED {
-			return EMBED_STATEMENT
-		}
-		return INCLUDE_STATEMENT
+		return EMBED_STATEMENT
 	}
 
 	inFunc := aBlock.inFunc
