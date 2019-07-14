@@ -46,11 +46,12 @@ func Generate(ast *parser.AST, buf *bufio.Writer) error {
 	if err := embedFile(ast); err != nil {
 		return err
 	}
-	if err := includeFile(ast); err != nil {
+	labelMap := map[string]uint32{}
+	includeMap := map[string]*parser.AST{}
+	if err := includeFile(labelMap, includeMap, ast); err != nil {
 		return err
 	}
 
-	labelMap := map[string]uint32{}
 	if err := assignAddresses(labelMap, ast); err != nil {
 	}
 	if err := convertNames(labelMap, ast); err != nil {
@@ -121,18 +122,30 @@ func embedFile(ast *parser.AST) error {
 	return nil
 }
 
-func includeFile(ast *parser.AST) error {
-	for _, org := range ast.Orgs {
-		for i := range org.Sections {
-			section := &org.Sections[i]
-			if section.Type != parser.INCLUDE_FILE {
-				continue
-			}
-
-			// Ok, we need to parse this file and then merge it with the current
-			// section.
-
+func includeFile(labelMap map[string]uint32, includeMap map[string]*parser.AST, ast *parser.AST) error {
+	for incl := range ast.Includes {
+		if _, ok := labelMap[incl]; ok {
+			return fmt.Errorf("include redefinition: %q was defined as a label")
 		}
+		if _, ok := ast.Consts[incl]; ok {
+			return fmt.Errorf("include redefinition: %q was defined as a contant")
+		}
+
+		// Ok, we have an include. Try to read the file.
+		in, err := os.Open(ast.Includes[incl])
+		if err != nil {
+			return err
+		}
+		defer in.Close()
+
+		// Parse the file, producing an AST.
+		ast, err := Parse(in)
+		if err != nil {
+			return err
+		}
+
+		// Alright! Add the AST to the include map and we are ready to process the next.
+		includeMap[incl] = ast
 	}
 	return nil
 }
@@ -149,6 +162,10 @@ func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 					}
 					if _, ok := ast.Consts[block.LabelName()]; ok {
 						return block.Errorf("label redefinition: %q was defined as a const",
+							block.Label)
+					}
+					if _, ok := ast.Includes[block.LabelName()]; ok {
+						return block.Errorf("label redefinition: %q was defined as an include",
 							block.Label)
 					}
 					labelMap[block.LabelName()] = baseAddr + (wordCount * 4)

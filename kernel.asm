@@ -16,6 +16,8 @@
 
 .bin
 
+.include "./includes/memory.asm" as memory
+
 .org 0x0
 .section text
 
