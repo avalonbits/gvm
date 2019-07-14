@@ -275,7 +275,7 @@ func convertOperand(instr string, instrAddr uint32, block parser.Block, labelMap
 		return nil
 	}
 
-	return fmt.Errorf("operando %q is not a label or a constant", op.Op)
+	return fmt.Errorf("operand %q is not a label or a constant", op.Op)
 }
 
 func rewriteInstructions(ast *parser.AST) error {

@@ -47,7 +47,7 @@ iter: .int 300
     ldr r2, [size_words]
     mov r3, 0xF
 
-    call memory.memset32
+    call memory.set32
 
 loop:
 
@@ -55,7 +55,7 @@ loop:
     ldr r2, [faddr]
     ldr r3, [size_words]
 
-    call memory.memcpy32
+    call memory.copy32
     sub r0, r0, 1
     jne r0, loop
 

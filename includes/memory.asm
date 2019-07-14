@@ -21,29 +21,29 @@
 .section text
 
 ; ==== Memset. Sets a memory region to a specific value.
-@func memset:
+@func set:
     ; r1: start address
     ; r2: size in words
     ; r3: value to set.
     strip [r1, 4], r3
     sub r2, r2, 1
-    jgt r2, _memset
+    jgt r2, _set
     ret
-@endf memset
+@endf set
 
-; ==== Memset2. Same as memset but assumes size is a multiple of 2 words.
-@func memset2:
+; ==== Memset2. Same as set but assumes size is a multiple of 2 words.
+@func set2:
     ; r1: start address
     ; r2: size in words. MUST BE A MULTIPLE OF 2 WORDS.
     ; r3: value to set.
     stpip [r1, 8], r3, r3
     sub r2, r2, 2
-	jgt r2, _memset2
+	jgt r2, _set2
 	ret
-@endf memset2
+@endf set2
 
-; ==== Memset32. Same as memset but assumes size is a multiple of 32 words.
-@func memset32:
+; ==== Memset32. Same as set but assumes size is a multiple of 32 words.
+@func set32:
     ; r1: start address
     ; r2: size in words. MUST BE A MULTIPLE OF 32 WORDS.
     ; r3: value to set.
@@ -64,13 +64,13 @@
     stpip [r1, 8], r3, r3
     stpip [r1, 8], r3, r3
     sub r2, r2, 32
-    jgt r2, _memset32
+    jgt r2, _set32
 	ret
-@endf memset32
+@endf set32
 
 ; ==== Memcopy. Copies the contents of one region of memory to another.
 ; Does not handle overlap.
-@func memcpy:
+@func copy:
     ; r1: start to-address
     ; r2: start from:address
     ; r3: size in words.
@@ -78,13 +78,13 @@
     ldrip r4, [r2, 4]
     strip [r1, 4], r4
     sub r3, r3, 1
-    jgt r3, _memcpy
+    jgt r3, _copy
     ret
-@endf memcpy
+@endf copy
 
-; ==== Memcopy2. Same as memcpy but assumes size is a multiple of 2 words.
+; ==== Memcopy2. Same as copy but assumes size is a multiple of 2 words.
 ; Dones not handle overalp.
-@func memcpy2:
+@func copy2:
 	; r1: start to-addres
 	; r2: start from-addres
 	; r3: size in words.
@@ -92,13 +92,13 @@
 	ldpip r24, r25, [r2, 8]
 	stpip [r1, 8], r24, r25
 	sub r3, r3, 2
-	jgt r3, _memcpy2
+	jgt r3, _copy2
 	ret
-@endf memcpy2
+@endf copy2
 
-; ==== Memcopy32. Same as memcpy but assumes size is a multiple of 32 words.
+; ==== Memcopy32. Same as copy but assumes size is a multiple of 32 words.
 ; Does not handle overlap.
-@func memcpy32:
+@func copy32:
     ; r1: start to-address
     ; r2: start from:address
     ; r3: size in words.
@@ -136,7 +136,7 @@
     ldpip r24, r25, [r2, 8]
     stpip [r1, 8], r24, r25
     sub r3, r3, 32
-    jgt r3, _memcpy32
+    jgt r3, _copy32
     ret
-@endf memcpy32
+@endf copy32
 
