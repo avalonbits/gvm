@@ -31,10 +31,10 @@ import (
 	"github.com/avalonbits/gsm/parser"
 )
 
-func Parse(in io.Reader) (*parser.AST, error) {
+func Parse(in io.Reader, requireLibrary bool) (*parser.AST, error) {
 	lex := lexer.New(in)
 	p := parser.New(lex)
-	if err := p.Parse(); err != nil {
+	if err := p.Parse(requireLibrary); err != nil {
 		return nil, err
 	}
 	return p.Ast, nil
@@ -139,7 +139,7 @@ func includeFile(labelMap map[string]uint32, includeMap map[string]*parser.AST, 
 		defer in.Close()
 
 		// Parse the file, producing an AST.
-		ast, err := Parse(in)
+		ast, err := Parse(in, true)
 		if err != nil {
 			return err
 		}

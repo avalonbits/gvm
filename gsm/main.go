@@ -42,7 +42,7 @@ func main() {
 	}
 	defer in.Close()
 
-	ast, err := code.Parse(in)
+	ast, err := code.Parse(in, false)
 	if err != nil {
 		panic(err)
 	}

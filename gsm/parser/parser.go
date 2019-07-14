@@ -234,12 +234,12 @@ const (
 	END
 )
 
-func (p *Parser) Parse() error {
+func (p *Parser) Parse(requireLibrary bool) error {
 	st := p.skipCommentsAndWhitespace(START)
 	for ; st != END; st = p.skipCommentsAndWhitespace(st) {
 		switch st {
 		case START:
-			st = p.mode()
+			st = p.mode(requireLibrary)
 		case ORG:
 			st = p.org()
 		case SECTION:
@@ -281,10 +281,14 @@ func (p *Parser) skipCommentsAndWhitespace(next state) state {
 	}
 }
 
-func (p *Parser) mode() state {
+func (p *Parser) mode(requireLibrary bool) state {
 	tok := p.tokenizer.NextToken()
 	if tok.Type != lexer.BIN_FILE && tok.Type != lexer.PROGRAM_FILE && tok.Type != lexer.LIBRARY_FILE {
 		p.err = p.Errorf("expected .bin, .program or .library, got %q", tok.Literal)
+		return ERROR
+	}
+	if requireLibrary && tok.Type != lexer.LIBRARY_FILE {
+		p.err = p.Errorf("this file is being included by another, so it must be a .library")
 		return ERROR
 	}
 	p.Bin = tok.Type == lexer.BIN_FILE
