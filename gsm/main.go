@@ -22,6 +22,7 @@ import (
 	"bufio"
 	"flag"
 	"os"
+	"path/filepath"
 
 	"github.com/avalonbits/gsm/code"
 )
@@ -41,6 +42,12 @@ func main() {
 		panic(err)
 	}
 	defer in.Close()
+
+	// Change the current working directory the the directory of the file.
+	dir, _ := filepath.Split(flag.Arg(0))
+	if err := os.Chdir(dir); err != nil {
+		panic(err)
+	}
 
 	ast, err := code.Parse(in, false)
 	if err != nil {

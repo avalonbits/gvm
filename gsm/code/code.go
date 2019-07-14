@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"unicode/utf8"
 
@@ -123,6 +124,10 @@ func embedFile(ast *parser.AST) error {
 }
 
 func includeFile(labelMap map[string]uint32, includeMap map[string]*parser.AST, ast *parser.AST) error {
+	curWD, err := os.Getwd()
+	if err != nil {
+		return err
+	}
 	for incl := range ast.Includes {
 		if _, ok := labelMap[incl]; ok {
 			return fmt.Errorf("include redefinition: %q was defined as a label")
@@ -138,6 +143,11 @@ func includeFile(labelMap map[string]uint32, includeMap map[string]*parser.AST, 
 		}
 		defer in.Close()
 
+		dir, _ := filepath.Split(ast.Includes[incl])
+		if err := os.Chdir(dir); err != nil {
+			panic(err)
+		}
+
 		// Parse the file, producing an AST.
 		ast, err := Parse(in, true)
 		if err != nil {
@@ -147,7 +157,8 @@ func includeFile(labelMap map[string]uint32, includeMap map[string]*parser.AST, 
 		// Alright! Add the AST to the include map and we are ready to process the next.
 		includeMap[incl] = ast
 	}
-	return nil
+	// Return to the saved working directory.
+	return os.Chdir(curWD)
 }
 
 func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
