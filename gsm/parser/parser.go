@@ -634,13 +634,13 @@ func (p *Parser) text_block(cur state) state {
 		tok.Type == lexer.FUNC_START || tok.Type == lexer.INFUNC_START ||
 			tok.Type == lexer.FUNC_END
 	if tok.Type == lexer.FUNC_START || tok.Type == lexer.INFUNC_START {
+		exported = tok.Type == lexer.FUNC_START
 		tok = p.tokenizer.NextToken()
 		if inFunc {
 			p.err = p.Errorf("expected function end for %q, got function start for %q",
 				aBlock.funcName, tok.Literal)
 			return ERROR
 		}
-		exported = tok.Type == lexer.FUNC_START
 		inFunc = true
 	} else if tok.Type == lexer.FUNC_END {
 		tok = p.tokenizer.NextToken()
@@ -693,7 +693,7 @@ func (p *Parser) text_block(cur state) state {
 			}
 			aSection.Blocks = append(aSection.Blocks, b)
 		}
-		if inFunc && exported {
+		if inFuncScope && exported {
 			p.Ast.Exported[label] = struct{}{}
 		}
 		return TEXT_BLOCK
