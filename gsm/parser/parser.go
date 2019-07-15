@@ -33,6 +33,7 @@ type AST struct {
 	Orgs     []Org
 	Consts   map[string]string
 	Includes map[string]string
+	Exported map[string]struct{}
 }
 
 type Org struct {
@@ -217,6 +218,7 @@ func New(t Tokenizer) *Parser {
 	return &Parser{tokenizer: t, Ast: &AST{
 		Consts:   make(map[string]string),
 		Includes: make(map[string]string),
+		Exported: make(map[string]struct{}),
 	}}
 }
 
@@ -626,6 +628,7 @@ func (p *Parser) text_block(cur state) state {
 	}
 
 	inFunc := aBlock.inFunc
+	exported := false
 	tok = p.tokenizer.NextToken()
 	inFuncScope :=
 		tok.Type == lexer.FUNC_START || tok.Type == lexer.INFUNC_START ||
@@ -637,6 +640,7 @@ func (p *Parser) text_block(cur state) state {
 				aBlock.funcName, tok.Literal)
 			return ERROR
 		}
+		exported = tok.Type == lexer.FUNC_START
 		inFunc = true
 	} else if tok.Type == lexer.FUNC_END {
 		tok = p.tokenizer.NextToken()
@@ -688,6 +692,9 @@ func (p *Parser) text_block(cur state) state {
 				b.Label = label
 			}
 			aSection.Blocks = append(aSection.Blocks, b)
+		}
+		if inFunc && exported {
+			p.Ast.Exported[label] = struct{}{}
 		}
 		return TEXT_BLOCK
 	} else if inFuncScope {
