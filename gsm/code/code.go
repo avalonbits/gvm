@@ -144,6 +144,10 @@ func includeFile(labelMap map[string]uint32, includeMap map[string]*parser.AST, 
 		defer in.Close()
 
 		dir, _ := filepath.Split(ast.Includes[incl])
+		if dir == "" {
+			continue
+		}
+
 		if err := os.Chdir(dir); err != nil {
 			panic(err)
 		}

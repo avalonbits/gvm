@@ -45,8 +45,10 @@ func main() {
 
 	// Change the current working directory the the directory of the file.
 	dir, _ := filepath.Split(flag.Arg(0))
-	if err := os.Chdir(dir); err != nil {
-		panic(err)
+	if dir != "" {
+		if err := os.Chdir(dir); err != nil {
+			panic(err)
+		}
 	}
 
 	ast, err := code.Parse(in, false)
