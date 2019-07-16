@@ -204,6 +204,20 @@ func linkIncludes(includeMap map[string]*parser.AST, ast *parser.AST) error {
 }
 
 func injectIncludes(useMap map[string]int, includeMap map[string]*parser.AST, ast *parser.AST) error {
+	for incl, orgIdx := range useMap {
+		o := &ast.Orgs[orgIdx]
+		iOrg := includeMap[incl].Orgs[0]
+		for ; orgIdx+1 < len(ast.Orgs); orgIdx++ {
+			no := &ast.Orgs[orgIdx+1]
+			if o.RelSize(*no) >= iOrg.WordCount() {
+				break
+			}
+			o = no
+		}
+
+		// We've found an org that can fit our include!
+		o.Sections = append(o.Sections, iOrg.Sections...)
+	}
 	return nil
 }
 
