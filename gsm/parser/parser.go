@@ -50,6 +50,14 @@ func (o Org) WordCount() int {
 	return count
 }
 
+func (o Org) RelSize(org Org) int {
+	sz := org.WordCount() - o.WordCount()
+	if sz < 0 {
+		sz = -sz
+	}
+	return sz
+}
+
 type Statement struct {
 	Value     uint32
 	Instr     Instruction

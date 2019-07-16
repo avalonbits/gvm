@@ -26,6 +26,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/avalonbits/gsm/lexer"
@@ -47,12 +48,17 @@ func Generate(ast *parser.AST, buf *bufio.Writer) error {
 	if err := embedFile(ast); err != nil {
 		return err
 	}
-	labelMap := map[string]uint32{}
+
 	includeMap := map[string]*parser.AST{}
-	if err := includeFile(labelMap, includeMap, ast); err != nil {
+	if err := includeFile(includeMap, ast); err != nil {
 		return err
 	}
 
+	if err := linkIncludes(includeMap, ast); err != nil {
+		return err
+	}
+
+	labelMap := map[string]uint32{}
 	if err := assignAddresses(labelMap, ast); err != nil {
 	}
 	if err := convertNames(labelMap, ast); err != nil {
@@ -119,15 +125,12 @@ func embedFile(ast *parser.AST) error {
 	return nil
 }
 
-func includeFile(labelMap map[string]uint32, includeMap map[string]*parser.AST, ast *parser.AST) error {
+func includeFile(includeMap map[string]*parser.AST, ast *parser.AST) error {
 	curWD, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 	for incl := range ast.Includes {
-		if _, ok := labelMap[incl]; ok {
-			return fmt.Errorf("include redefinition: %q was defined as a label")
-		}
 		if _, ok := ast.Consts[incl]; ok {
 			return fmt.Errorf("include redefinition: %q was defined as a contant")
 		}
@@ -159,6 +162,49 @@ func includeFile(labelMap map[string]uint32, includeMap map[string]*parser.AST, 
 	}
 	// Return to the saved working directory.
 	return os.Chdir(curWD)
+}
+
+func linkIncludes(includeMap map[string]*parser.AST, ast *parser.AST) error {
+	useMap := map[string]int{}
+
+	for i, org := range ast.Orgs {
+		for _, section := range org.Sections {
+			for _, block := range section.Blocks {
+				for _, statement := range block.Statements {
+					if statement.Instr.Name != "call" || statement.Instr.Op1.Type != parser.OP_LABEL {
+						continue
+					}
+
+					// If this is using an include, the label will be include.something.
+					label := strings.Split(statement.Instr.Op1.Op, ".")
+					if len(label) != 2 {
+						continue
+					}
+					iAST, ok := includeMap[label[0]]
+					if !ok {
+						return block.Errorf("%q is not an include", label[0])
+					}
+					if _, ok := iAST.Exported[label[1]]; !ok {
+						return block.Errorf("%q was not exported from include %q", label[1], label[0])
+					}
+
+					// Found a use of the include. Add it to the useMap if it is the first
+					// reference.
+					if _, ok := useMap[label[0]]; !ok {
+						useMap[label[0]] = i
+					}
+				}
+			}
+		}
+	}
+	if len(useMap) > 0 {
+		return injectIncludes(useMap, includeMap, ast)
+	}
+	return nil
+}
+
+func injectIncludes(useMap map[string]int, includeMap map[string]*parser.AST, ast *parser.AST) error {
+	return nil
 }
 
 func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
