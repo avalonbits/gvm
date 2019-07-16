@@ -23,6 +23,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -157,6 +158,13 @@ func includeFile(includeMap map[string]*parser.AST, ast *parser.AST) error {
 			return err
 		}
 
+		// Set the include name on each section.
+		for o := range ast.Orgs {
+			for s := range ast.Orgs[o].Sections {
+				ast.Orgs[o].Sections[s].IncludeName = incl
+			}
+		}
+
 		// Alright! Add the AST to the include map and we are ready to process the next.
 		includeMap[incl] = ast
 	}
@@ -228,23 +236,28 @@ func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 		for _, section := range org.Sections {
 			for _, block := range section.Blocks {
 				if block.LabelName() != "" {
-					if _, ok := labelMap[block.LabelName()]; ok {
+					label := block.LabelName()
+					if section.IncludeName != "" {
+						label = section.IncludeName + "." + label
+					}
+					if _, ok := labelMap[label]; ok {
 						return block.Errorf("label redefinition: %q", block.Label)
 					}
-					if _, ok := ast.Consts[block.LabelName()]; ok {
+					if _, ok := ast.Consts[label]; ok {
 						return block.Errorf("label redefinition: %q was defined as a const",
 							block.Label)
 					}
-					if _, ok := ast.Includes[block.LabelName()]; ok {
+					if _, ok := ast.Includes[label]; ok {
 						return block.Errorf("label redefinition: %q was defined as an include",
 							block.Label)
 					}
-					labelMap[block.LabelName()] = baseAddr + (wordCount * 4)
+					labelMap[label] = baseAddr + (wordCount * 4)
 				}
 				wordCount += uint32(block.WordCount())
 			}
 		}
 	}
+	log.Println(labelMap)
 	return nil
 }
 
