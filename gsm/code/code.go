@@ -58,10 +58,6 @@ func Generate(ast *parser.AST, buf *bufio.Writer) error {
 	if err := convertNames(labelMap, ast); err != nil {
 		return err
 	}
-	if err := rewriteInstructions(ast); err != nil {
-		return err
-	}
-
 	if ast.Orgs[0].PIC {
 		if len(ast.Orgs) > 1 {
 			return fmt.Errorf("For PIC code we expect a single org, got %d", len(ast.Orgs))
@@ -281,35 +277,6 @@ func convertOperand(instr string, instrAddr uint32, block parser.Block, labelMap
 
 	return fmt.Errorf("operand %q is not a label or a constant", op.Op)
 }
-
-func rewriteInstructions(ast *parser.AST) error {
-	for _, org := range ast.Orgs {
-		for _, section := range org.Sections {
-			for _, block := range section.Blocks {
-				for _, statement := range block.Statements {
-					if statement.Instr.Name == "" {
-						continue
-					}
-				}
-			}
-		}
-	}
-	return nil
-}
-
-/*
-func convertInstructions(ast *parser.AST) error {
-	for _, org := range ast.Orgs {
-		for _, section := range org.Sections {
-			for _, block := range section.Blocks {
-				for _, statement := range block.Statements {
-				}
-			}
-		}
-	}
-	return nil
-}
-*/
 
 func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
 	word := make([]byte, 4)
