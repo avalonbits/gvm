@@ -171,6 +171,14 @@ func includeFile(includeMap map[string]*parser.AST, ast *parser.AST) error {
 	return os.Chdir(curWD)
 }
 
+func isJmpInstr(instr string) bool {
+	switch instr {
+	case "call", "jmp", "jgt", "jge", "jlt", "jle", "jeq", "jne":
+		return true
+	}
+	return false
+}
+
 func linkIncludes(includeMap map[string]*parser.AST, ast *parser.AST) error {
 	useMap := map[string]int{}
 
@@ -178,7 +186,7 @@ func linkIncludes(includeMap map[string]*parser.AST, ast *parser.AST) error {
 		for _, section := range org.Sections {
 			for _, block := range section.Blocks {
 				for _, statement := range block.Statements {
-					if statement.Instr.Name != "call" || statement.Instr.Op1.Type != parser.OP_LABEL {
+					if !isJmpInstr(statement.Instr.Name) || statement.Instr.Op1.Type != parser.OP_LABEL {
 						continue
 					}
 

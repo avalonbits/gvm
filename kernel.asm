@@ -39,12 +39,14 @@ text_putc:          .int _text_putc
 putc:				.int _putc
 puts:               .int _puts
 strlen:             .int _strlen
-memcpy:             .int _memcpy
-memcpy2:            .int _memcpy2
-memcpy32:           .int _memcpy32
-memset:             .int _memcpy
-memset2:            .int _memset2
-memset32:           .int _memset32
+.section text
+memcpy:             jmp memory.copy
+memcpy2:            jmp memory.copy2
+memcpy32:           jmp memory.copy32
+memset:             jmp memory.set
+memset2:            jmp memory.set2
+memset32:           jmp memory.set32
+.section data
 itoa:               .int _itoa
 
 .org 0x2100
@@ -1326,8 +1328,7 @@ loop:
     ldri r2, [r0, sbuf_start]
 
     ; Copy to vram.
-	ldr r24, [memcpy32]
-    call r24
+	call memcpy32
 
     ; Flush using text mode.
     mov r26, 2
@@ -1488,8 +1489,7 @@ done:
     lsr r3, r3, 2
 
     ; Copy back skipping the first line.
-	ldr r24, [memcpy32]
-    call r24
+	call memcpy32
 
     ; Erase last line.
     ldri r1, [r0, sbuf_end]
