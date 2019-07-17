@@ -23,7 +23,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -222,7 +221,6 @@ func injectIncludes(useMap map[string]int, includeMap map[string]*parser.AST, as
 			}
 			o = no
 		}
-
 		// We've found an org that can fit our include!
 		o.Sections = append(o.Sections, iOrg.Sections...)
 	}
@@ -254,7 +252,6 @@ func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 			}
 		}
 	}
-	log.Println(labelMap)
 	return nil
 }
 
@@ -358,7 +355,6 @@ func convertOperand(instr string, instrAddr uint32, block parser.Block, inclName
 }
 
 func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
-	log.Println("Writing to file.")
 	word := make([]byte, 4)
 	for _, org := range ast.Orgs {
 		binary.LittleEndian.PutUint32(word, org.Addr)
