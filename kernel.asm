@@ -39,12 +39,12 @@ text_putc:          .int _text_putc
 putc:				.int _putc
 puts:               .int _puts
 strlen:             .int _strlen
-memcpy:             .int _memcpy
-memcpy2:            .int _memcpy2
+memcpy:             .int memory.copy
+memcpy2:            .int memory.copy2
 memcpy32:           .int memory.copy32
-memset:             .int _memcpy
-memset2:            .int _memset2
-memset32:           .int _memset32
+memset:             .int memory.set
+memset2:            .int memory.set2
+memset32:           .int memory.set32
 itoa:               .int _itoa
 
 .org 0x2100
@@ -113,7 +113,7 @@ reset_handler:
 	mov r1, 0
 	mov r2, 64
 	mov r3, RET
-	call _memset32
+	call memory.copy32
 
 	; Now, register the kernel handlers.
 	mov r1, 0
@@ -714,121 +714,6 @@ no_memory:
     ret
 
 @endf alloc
-
-; ==== Memset. Sets a memory region to a specific value.
-_memset:
-    ; r1: start address
-    ; r2: size in words
-    ; r3: value to set.
-    strip [r1, 4], r3
-    sub r2, r2, 1
-    jgt r2, _memset
-    ret
-
-; ==== Memset2. Same as memset but assumes size is a multiple of 2 words.
-_memset2:
-    ; r1: start address
-    ; r2: size in words. MUST BE A MULTIPLE OF 32.
-    ; r3: value to set.
-    stpip [r1, 8], r3, r3
-    sub r2, r2, 2
-	jgt r2, _memset2
-	ret
-
-
-; ==== Memset32. Same as memset but assumes size is a multiple of 32 words.
-_memset32:
-    ; r1: start address
-    ; r2: size in words. MUST BE A MULTIPLE OF 32.
-    ; r3: value to set.
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    stpip [r1, 8], r3, r3
-    sub r2, r2, 32
-    jgt r2, _memset32
-    ret
-
-; ==== Memcopy. Copies the contents of one region of memory to another.
-; Does not handle overlap.
-_memcpy:
-    ; r1: start to-address
-    ; r2: start from:address
-    ; r3: size in words.
-    ; r4: local variable for copying memory.
-    ldrip r4, [r2, 4]
-    strip [r1, 4], r4
-    sub r3, r3, 1
-    jgt r3, _memcpy
-    ret
-
-; ==== Memcopy2. Same as memcpy but assumes size is a multiple of 2 words.
-; Dones not handle overalp.
-_memcpy2:
-	; r1: start to-addres
-	; r2: start from-addres
-	; r3: size in words.
-	; r24, r25: local variable for copying memory.
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	sub r3, r3, 2
-	jgt r3, _memcpy2
-	ret
-
-; ==== Memcopy32. Same as memcpy but assumes size is a multiple of 32 words.
-; Does not handle overlap.
-_memcpy32:
-    ; r1: start to-address
-    ; r2: start from:address
-    ; r3: size in words.
-    ; r24, r25: local variable for copying memory.
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    ldpip r24, r25, [r2, 8]
-    stpip [r1, 8], r24, r25
-    sub r3, r3, 32
-    jgt r3, _memcpy32
-    ret
 
 ; ==== StrLen: Returns the length of a string.
 @func _strlen:
