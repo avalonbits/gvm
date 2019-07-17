@@ -37,6 +37,12 @@ func main() {
 		panic("Missing asm file.")
 	}
 
+	out, err := os.Create(*outFile)
+	if err != nil {
+		panic(err)
+	}
+	defer out.Close()
+
 	in, err := os.Open(flag.Arg(0))
 	if err != nil {
 		panic(err)
@@ -55,12 +61,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	out, err := os.Create(*outFile)
-	if err != nil {
-		panic(err)
-	}
-	defer out.Close()
 
 	if err := code.Generate(ast, bufio.NewWriter(out)); err != nil {
 		panic(err)

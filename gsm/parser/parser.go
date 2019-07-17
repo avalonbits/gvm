@@ -161,12 +161,18 @@ func (b Block) Errorf(format string, a ...interface{}) error {
 	return fmt.Errorf(format, a...)
 }
 
-func (b Block) LabelName() string {
-	return b.funcName + b.Label
+func (b Block) LabelName(incl string) string {
+	if incl == "" {
+		return b.funcName + b.Label
+	}
+	return incl + "." + b.funcName + b.Label
 }
 
-func (b Block) JumpName(label string) string {
-	return b.funcName + label
+func (b Block) JumpName(incl, label string) string {
+	if incl == "" {
+		return b.funcName + label
+	}
+	return incl + "." + b.funcName + label
 }
 
 func (b Block) WordCount() int {

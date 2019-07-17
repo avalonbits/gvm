@@ -27,7 +27,7 @@
     ; r3: value to set.
     strip [r1, 4], r3
     sub r2, r2, 1
-    jgt r2, _set
+    jgt r2, set
     ret
 @endf set
 
@@ -38,7 +38,7 @@
     ; r3: value to set.
     stpip [r1, 8], r3, r3
     sub r2, r2, 2
-	jgt r2, _set2
+	jgt r2, set2
 	ret
 @endf set2
 
@@ -64,7 +64,7 @@
     stpip [r1, 8], r3, r3
     stpip [r1, 8], r3, r3
     sub r2, r2, 32
-    jgt r2, _set32
+    jgt r2, set32
 	ret
 @endf set32
 
@@ -78,7 +78,7 @@
     ldrip r4, [r2, 4]
     strip [r1, 4], r4
     sub r3, r3, 1
-    jgt r3, _copy
+    jgt r3, copy
     ret
 @endf copy
 
@@ -92,7 +92,7 @@
 	ldpip r24, r25, [r2, 8]
 	stpip [r1, 8], r24, r25
 	sub r3, r3, 2
-	jgt r3, _copy2
+	jgt r3, copy2
 	ret
 @endf copy2
 
@@ -136,7 +136,7 @@
     ldpip r24, r25, [r2, 8]
     stpip [r1, 8], r24, r25
     sub r3, r3, 32
-    jgt r3, _copy32
+    jgt r3, copy32
     ret
 @endf copy32
 

@@ -235,11 +235,8 @@ func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 		wordCount := uint32(0)
 		for _, section := range org.Sections {
 			for _, block := range section.Blocks {
-				if block.LabelName() != "" {
-					label := block.LabelName()
-					if section.IncludeName != "" {
-						label = section.IncludeName + "." + label
-					}
+				if block.LabelName(section.IncludeName) != section.IncludeName {
+					label := block.LabelName(section.IncludeName)
 					if _, ok := labelMap[label]; ok {
 						return block.Errorf("label redefinition: %q", block.Label)
 					}
@@ -275,11 +272,11 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 							&statement.Instr.Op2,
 							&statement.Instr.Op3,
 						}
-						addr := labelMap[block.LabelName()] + uint32(i*4)
+						addr := labelMap[block.LabelName(section.IncludeName)] + uint32(i*4)
 						for _, op := range ops {
 							err := convertOperand(
 								statement.Instr.Name, addr, block,
-								labelMap, ast.Consts, op)
+								section.IncludeName, labelMap, ast.Consts, op)
 							if err != nil {
 								return statement.Errorf("error processing instruction %q: %v",
 									statement.Instr, err)
@@ -304,7 +301,7 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 	return nil
 }
 
-func convertOperand(instr string, instrAddr uint32, block parser.Block, labelMap map[string]uint32, consts map[string]string, op *parser.Operand) error {
+func convertOperand(instr string, instrAddr uint32, block parser.Block, inclName string, labelMap map[string]uint32, consts map[string]string, op *parser.Operand) error {
 	if op.Type != parser.OP_LABEL {
 		return nil
 	}
@@ -313,9 +310,18 @@ func convertOperand(instr string, instrAddr uint32, block parser.Block, labelMap
 		op.Type = parser.OP_NUMBER
 		return nil
 	}
-	value, ok := labelMap[block.JumpName(op.Op)]
+	var jumpName string
+	if strings.Index(op.Op, ".") == -1 {
+		jumpName = block.JumpName(inclName, op.Op)
+	} else {
+		jumpName = block.JumpName("", op.Op)
+	}
+	value, ok := labelMap[jumpName]
 	if !ok {
-		value, ok = labelMap[op.Op]
+		value, ok = labelMap[inclName+"."+op.Op]
+		if !ok {
+			value, ok = labelMap[op.Op]
+		}
 	}
 	if ok {
 		switch instr {
@@ -352,6 +358,7 @@ func convertOperand(instr string, instrAddr uint32, block parser.Block, labelMap
 }
 
 func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
+	log.Println("Writing to file.")
 	word := make([]byte, 4)
 	for _, org := range ast.Orgs {
 		binary.LittleEndian.PutUint32(word, org.Addr)
