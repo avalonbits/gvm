@@ -16,6 +16,8 @@
 
 .bin
 
+.include "../includes/memory.asm" as memory
+
 .org 0x0
 .section text
 
@@ -36,30 +38,6 @@ iter: .int 300
 
 .section text
 
-; ==== Memcopy. Copies the contents of one region of memory to another.
-; Does not handle overlap.
-memcpy:
-    ; r1: start to-address
-    ; r2: start from:address
-    ; r3: size in words.
-    ; r4: local variable for copying memory.
-    ldrip r4, [r2, 4]
-    strip [r1, 4], r4
-    sub r3, r3, 1
-    jgt r3, memcpy
-    ret
-
-; ==== Memset. Sets a memory region to a specific value.
-memset:
-    ; r1: start address
-    ; r2: size in words
-    ; r3: value to set.
-    strip [r1, 4], r3
-    sub r2, r2, 1
-    jgt r2, memset
-    ret
-
-
 ; ===== The acutal benchmark function.
 @infunc benchmark:
     ldr r0, [iter]
@@ -68,14 +46,14 @@ memset:
     ldr r2, [size_words]
     mov r3, 0xF
 
-    call memset
+    call memory.set
 
 loop:
     ldr r1, [taddr]
     ldr r2, [faddr]
     ldr r3, [size_words]
 
-    call memcpy
+    call memory.copy
     sub r0, r0, 1
     jne r0, loop
 
