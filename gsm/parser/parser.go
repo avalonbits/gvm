@@ -423,56 +423,54 @@ func (p *Parser) embed() state {
 }
 
 func (p *Parser) include() state {
-	for {
-		tok := p.tokenizer.PeakToken()
-		if tok.Type != lexer.INCLUDE {
-			if p.Bin {
-				return ORG
-			}
-			return SECTION
+	tok := p.tokenizer.PeakToken()
+	if tok.Type != lexer.INCLUDE {
+		if p.Bin {
+			return ORG
 		}
-
-		// We know we are processing an include. We can skip it now.
-		p.tokenizer.NextToken()
-
-		tok = p.tokenizer.NextToken()
-		if tok.Type != lexer.D_QUOTE {
-			p.err = p.Errorf("expected a double quote (\"), got %q", tok.Literal)
-			return ERROR
-		}
-
-		var sb strings.Builder
-		for {
-			tok = p.tokenizer.NextToken()
-			if tok.Type == lexer.NEWLINE {
-				p.err = p.Errorf("expected a double quote(\"), got a new line")
-				return ERROR
-			}
-			if tok.Type == lexer.D_QUOTE {
-				break
-			}
-			sb.WriteString(tok.Literal)
-		}
-
-		tok = p.tokenizer.NextToken()
-		if tok.Type != lexer.AS {
-			p.err = p.Errorf("expected as, got %q", tok.Literal)
-			return ERROR
-		}
-
-		tok = p.tokenizer.NextToken()
-		if tok.Type != lexer.IDENT {
-			p.err = p.Errorf("expected an identifier, got %q", tok.Literal)
-			return ERROR
-		}
-
-		if _, ok := p.Ast.Includes[tok.Literal]; ok {
-			p.err = p.Errorf("include name %q was already defined.", tok.Literal)
-			return ERROR
-		}
-		p.Ast.Includes[tok.Literal] = sb.String()
+		return SECTION
 	}
-	return SECTION
+
+	// We know we are processing an include. We can skip it now.
+	p.tokenizer.NextToken()
+
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.D_QUOTE {
+		p.err = p.Errorf("expected a double quote (\"), got %q", tok.Literal)
+		return ERROR
+	}
+
+	var sb strings.Builder
+	for {
+		tok = p.tokenizer.NextToken()
+		if tok.Type == lexer.NEWLINE {
+			p.err = p.Errorf("expected a double quote(\"), got a new line")
+			return ERROR
+		}
+		if tok.Type == lexer.D_QUOTE {
+			break
+		}
+		sb.WriteString(tok.Literal)
+	}
+
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.AS {
+		p.err = p.Errorf("expected as, got %q", tok.Literal)
+		return ERROR
+	}
+
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.IDENT {
+		p.err = p.Errorf("expected an identifier, got %q", tok.Literal)
+		return ERROR
+	}
+
+	if _, ok := p.Ast.Includes[tok.Literal]; ok {
+		p.err = p.Errorf("include name %q was already defined.", tok.Literal)
+		return ERROR
+	}
+	p.Ast.Includes[tok.Literal] = sb.String()
+	return INCLUDE_STATEMENT
 }
 
 func (p *Parser) data_block(cur state) state {

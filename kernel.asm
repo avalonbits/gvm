@@ -17,6 +17,7 @@
 .bin
 
 .include "./includes/memory.asm" as memory
+.include "./includes/strings.asm" as strings
 
 .org 0x0
 .section text
@@ -38,7 +39,7 @@ getc:				.int _getc
 text_putc:          .int _text_putc
 putc:				.int _putc
 puts:               .int _puts
-strlen:             .int _strlen
+strlen:             .int strings.length
 memcpy:             .int memory.copy
 memcpy2:            .int memory.copy2
 memcpy32:           .int memory.copy32
@@ -714,34 +715,6 @@ no_memory:
     ret
 
 @endf alloc
-
-; ==== StrLen: Returns the length of a string.
-@func _strlen:
-	; r0: returns length of the string.
-	; r1: ptr to start of string.
-	; r2, r3, r4: vars.
-
-	mov r0, 0
-	mov r4, r1
-
-loop:
-	ldr r2, [r4]
-	and r3, r2, 0xFFFF
-	jeq r3, end_half
-
-	lsr r2, r2, 16
-	and r3, r2, 0xFFFF
-	jeq r3, end
-
-	add r0, r0, 2
-	add r4, r4, 4
-	jmp loop
-
-end:
-	add r0, r0, 1
-end_half:
-	ret
-@endf _strlen
 
 .section data
     .equ kLineLength 2560 ; 640 * 4

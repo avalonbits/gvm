@@ -166,9 +166,14 @@ func includeFile(includeMap map[string]*parser.AST, ast *parser.AST) error {
 
 		// Alright! Add the AST to the include map and we are ready to process the next.
 		includeMap[incl] = ast
+
+		// Restore the current working directory.
+		if err := os.Chdir(curWD); err != nil {
+			return err
+		}
 	}
 	// Return to the saved working directory.
-	return os.Chdir(curWD)
+	return nil
 }
 
 func isJmpInstr(instr string) bool {
