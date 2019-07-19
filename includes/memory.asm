@@ -42,6 +42,19 @@
 	ret
 @endf set2
 
+; ==== Memset4. Same as set but assumes size is a multiple of 4 words.
+@func set4:
+    ; r1: start address
+    ; r2: size in words. MUST BE A MULTIPLE OF 2 WORDS.
+    ; r3: value to set.
+    stpip [r1, 8], r3, r3
+    stpip [r1, 8], r3, r3
+    sub r2, r2, 4
+	jgt r2, set4
+	ret
+@endf set4
+
+
 ; ==== Memset32. Same as set but assumes size is a multiple of 32 words.
 @func set32:
     ; r1: start address
@@ -95,6 +108,22 @@
 	jgt r3, copy2
 	ret
 @endf copy2
+
+; ==== Memcopy4. Same as copy but assumes size is a multiple of 2 words.
+; Dones not handle overalp.
+@func copy4:
+	; r1: start to-addres
+	; r2: start from-addres
+	; r3: size in words.
+	; r24, r25: local variable for copying memory.
+	ldpip r24, r25, [r2, 8]
+	stpip [r1, 8], r24, r25
+	ldpip r24, r25, [r2, 8]
+	stpip [r1, 8], r24, r25
+	sub r3, r3, 4
+	jgt r3, copy4
+	ret
+@endf copy4
 
 ; ==== Memcopy32. Same as copy but assumes size is a multiple of 32 words.
 ; Does not handle overlap.
