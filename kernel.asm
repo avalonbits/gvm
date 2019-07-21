@@ -18,6 +18,7 @@
 
 .include "./includes/memory.asm" as memory
 .include "./includes/strings.asm" as strings
+.include "./includes/textmode.asm" as textmode
 
 .org 0x0
 .section text
@@ -36,7 +37,7 @@ malloc:             .int _malloc
 free:               .int _free
 getkey:             .int _getkey
 getc:				.int _getc
-text_putc:          .int _text_putc
+text_putc:          .int textmode.putc
 putc:				.int _putc
 puts:               .int _puts
 strlen:             .int strings.length
@@ -353,11 +354,6 @@ ptr_heap_curr_limit: .int heap_curr_limit
 	ret
 @endf _free
 
-.section data
-    .equ kLineLength 2560 ; 640 * 4
-
-.section text
-
 ; ====== Text mode functions and data.
 
 .section text
@@ -462,37 +458,11 @@ background_color:
     ret
 @endf wpixel
 
-; ==== TextPutC: Prints a charcater on the screen in text mode.
+.section data
+    .equ kLineLength 2560 ; 640 * 4
+
 .section text
-@func _text_putc:
-    ; r1: x-pos
-    ; r2: y-pos
-    ; r3 foreground color
-    ; r4: background color
-    ; r5: framebuffer start.
-    ; r6: Character unicode value.
 
-    ; We calculate position in framebuffer using the formula
-    ; pos(x,y) x*4 + frame_buffer + y * 100 * 4
-    lsl r1, r1, 2
-    mul r2, r2, 400
-    add r5, r5, r1
-    add r5, r5, r2
-
-    ; In text mode, we write a word with 2 bytes for char, 1 byte for fcolor
-    ; and 1 byte for bcolor. char is in r1, so we just need to write the colors.
-    and r6, r6, 0xFFFF
-    and r3, r3, 0xFF
-    lsl r3, r3, 16
-    orr r6, r6, r3
-
-    and r4, r4, 0xFF;
-    lsl r3, r3, 24
-    orr r6, r6, r4
-
-    str [r5], r6
-    ret
-@endf _text_putc
 
 ; ==== PutC: Prints a character on the screen.
 @func _putc:
