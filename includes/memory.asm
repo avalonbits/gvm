@@ -327,3 +327,29 @@ no_memory:
     ret
 @endf brk
 
+@func free:
+	; r0: 0 if it was able to deallocate, -1 otherwise.
+	; r1: heap block to free.
+	; r2: heap start address.
+
+	; If the memory address is within the heap limits, we assume it is a valid
+	; address and proceed.
+	sub r2, r1, r2
+	jlt r2, invalid_memory
+
+	sub r2, sp, r1
+	jlt r2, invalid_memory
+
+	; Ok, both limits are valid. Mark the block as free and be gone.
+	; The memory block is right after the header and the number of bytes of the block
+	; is the first field. So, we want to go to that field and make it negative.
+	sub r1, r1, mh_size
+	ldr r2, [r1]
+	mul r2, r2, -1
+	str [r1], r2
+	ret
+
+invalid_memory:
+	mov r0, -1
+	ret
+@endf free
