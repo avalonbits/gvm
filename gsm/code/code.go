@@ -184,16 +184,24 @@ func isJmpInstr(instr string) bool {
 	return false
 }
 
+type firstUse struct {
+	org     int
+	section int
+}
+
 func linkIncludes(includeMap map[string]*parser.AST, ast *parser.AST) error {
-	useMap := map[string]int{}
+	useMap := map[string]firstUse{}
 
 	for i, org := range ast.Orgs {
-		for _, section := range org.Sections {
+		for j, section := range org.Sections {
 			for _, block := range section.Blocks {
 				for _, statement := range block.Statements {
 					var target string
 					if isJmpInstr(statement.Instr.Name) && statement.Instr.Op1.Type == parser.OP_LABEL {
 						target = statement.Instr.Op1.Op
+					} else if isJmpInstr(statement.Instr.Name) &&
+						statement.Instr.Op2.Type == parser.OP_LABEL {
+						target = statement.Instr.Op2.Op
 					} else if statement.Label != "" {
 						target = statement.Label
 					} else {
@@ -216,7 +224,10 @@ func linkIncludes(includeMap map[string]*parser.AST, ast *parser.AST) error {
 					// Found a use of the include. Add it to the useMap if it is the first
 					// reference.
 					if _, ok := useMap[label[0]]; !ok {
-						useMap[label[0]] = i
+						useMap[label[0]] = firstUse{
+							org:     i,
+							section: j,
+						}
 					}
 				}
 			}
@@ -228,19 +239,28 @@ func linkIncludes(includeMap map[string]*parser.AST, ast *parser.AST) error {
 	return nil
 }
 
-func injectIncludes(useMap map[string]int, includeMap map[string]*parser.AST, ast *parser.AST) error {
-	for incl, orgIdx := range useMap {
-		o := &ast.Orgs[orgIdx]
+func injectIncludes(useMap map[string]firstUse, includeMap map[string]*parser.AST, ast *parser.AST) error {
+	for incl, use := range useMap {
+		o := &ast.Orgs[use.org]
 		iOrg := includeMap[incl].Orgs[0]
-		for ; orgIdx+1 < len(ast.Orgs); orgIdx++ {
-			no := &ast.Orgs[orgIdx+1]
+		idx := use.org
+		for ; idx+1 < len(ast.Orgs); idx++ {
+			no := &ast.Orgs[idx+1]
 			if o.RelSize(*no) >= iOrg.WordCount() {
 				break
 			}
 			o = no
 		}
-		// We've found an org that can fit our include!
-		o.Sections = append(o.Sections, iOrg.Sections...)
+		if idx != use.org {
+			o.Sections = append(iOrg.Sections, o.Sections...)
+		} else {
+			// We've found an org that can fit our include! Add the code right after the section
+			// where it was first used.
+			sections := make([]parser.Section, 0, len(o.Sections)+len(iOrg.Sections))
+			sections = append(sections, o.Sections[:use.section+1]...)
+			sections = append(sections, iOrg.Sections...)
+			o.Sections = append(sections, o.Sections[use.section+1:]...)
+		}
 	}
 	return nil
 }

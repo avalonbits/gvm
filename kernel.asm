@@ -49,7 +49,7 @@ memset2:            .int memory.set2
 memset32:           .int memory.set32
 itoa:               .int strings.itoa
 
-.org 0x2100
+.org 0x56C
 .section data
 vram_reg:   .int 0x1200400
 vram_start: .int 0x1000000
@@ -115,7 +115,7 @@ reset_handler:
 	mov r1, 0
 	mov r2, 64
 	mov r3, RET
-	call memory.copy32
+	call memory.set32
 
 	; Now, register the kernel handlers.
 	mov r1, 0
@@ -1075,7 +1075,6 @@ enter:
 @endf USER_control_chars
 
 ; ============ HEAP START. DO NOT CHANGE THIS
-.org 0x100000
 .section data
 heap_start: .int 0x0
 

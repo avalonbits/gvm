@@ -51,12 +51,9 @@ func (o Org) WordCount() int {
 }
 
 func (o Org) RelSize(org Org) int {
-	sz := o.Addr + uint32(o.WordCount()) - org.Addr
-
-	if sz < 0 {
-		sz = -sz
-	}
-	return int(sz)
+	sz := o.Addr + uint32(o.WordCount())
+	wc := uint32(org.Addr)
+	return int(wc - sz)
 }
 
 type Statement struct {

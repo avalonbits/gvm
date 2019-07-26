@@ -21,6 +21,7 @@ package main
 import (
 	"bufio"
 	"flag"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -36,6 +37,8 @@ func main() {
 	if flag.NArg() < 1 {
 		panic("Missing asm file.")
 	}
+
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	out, err := os.Create(*outFile)
 	if err != nil {
