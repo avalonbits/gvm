@@ -50,9 +50,9 @@ func (o Org) WordCount() int {
 	return count
 }
 
-func (o Org) RelSize(org Org) int {
-	sz := o.Addr + uint32(o.WordCount())
-	wc := uint32(org.Addr)
+func (o Org) RelSizeWords(org Org) int {
+	sz := o.Addr/4 + uint32(o.WordCount())
+	wc := uint32(org.Addr / 4)
 	return int(wc - sz)
 }
 

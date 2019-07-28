@@ -246,7 +246,7 @@ func injectIncludes(useMap map[string]firstUse, includeMap map[string]*parser.AS
 		idx := use.org
 		for ; idx+1 < len(ast.Orgs); idx++ {
 			no := &ast.Orgs[idx+1]
-			if o.RelSize(*no) >= iOrg.WordCount() {
+			if o.RelSizeWords(*no) >= iOrg.WordCount() {
 				break
 			}
 			o = no

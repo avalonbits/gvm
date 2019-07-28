@@ -49,7 +49,6 @@ memset2:            .int memory.set2
 memset32:           .int memory.set32
 itoa:               .int strings.itoa
 
-.org 0x56C
 .section data
 vram_reg:   .int 0x1200400
 vram_start: .int 0x1000000
