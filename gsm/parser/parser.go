@@ -332,101 +332,6 @@ func (p *Parser) mode(requireLibrary bool) state {
 	return INCLUDE_STATEMENT
 }
 
-func (p *Parser) org() state {
-	if !p.Bin {
-		p.err = p.Errorf(".org directives are only allowed in .bin files.")
-		return ERROR
-	}
-	tok := p.tokenizer.NextToken()
-	if tok.Type != lexer.ORG {
-		p.err = p.Errorf("expected .org got %q", tok.Literal)
-		return ERROR
-	}
-	tok = p.tokenizer.NextToken()
-	if tok.Type != lexer.NUMBER {
-		p.err = p.Errorf("expected an address constant, got %q\n", tok.Literal)
-		return ERROR
-	}
-
-	n, err := p.parseNumber(tok.Literal)
-	if err != nil {
-		p.err = err
-		return ERROR
-	}
-	o := Org{PIC: false, Addr: n}
-	p.Ast.Orgs = append(p.Ast.Orgs, o)
-	return SECTION
-}
-
-func (p *Parser) section() state {
-	tok := p.tokenizer.PeakToken()
-	if tok.Type != lexer.SECTION && tok.Type != lexer.EMBED && tok.Type != lexer.INCLUDE {
-		p.err = p.Errorf("expected .section, got %q", tok.Literal)
-		return ERROR
-	}
-
-	if tok.Type == lexer.EMBED {
-		return EMBED_STATEMENT
-	}
-
-	if tok.Type == lexer.INCLUDE {
-		return INCLUDE_STATEMENT
-	}
-	p.tokenizer.NextToken()
-
-	tok = p.tokenizer.NextToken()
-	if tok.Type != lexer.S_DATA && tok.Type != lexer.S_TEXT {
-		p.err = p.Errorf("expected dat, embed a or text, got %q", tok.Literal)
-		return ERROR
-	}
-
-	s := Section{Blocks: make([]Block, 1, 4)}
-	var next state
-	if tok.Type == lexer.S_DATA {
-		s.Type = DATA_SECTION
-		next = DATA_BLOCK
-	} else {
-		s.Type = TEXT_SECTION
-		next = TEXT_BLOCK
-	}
-
-	o := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
-	o.Sections = append(o.Sections, s)
-	return next
-}
-
-func (p *Parser) embed() state {
-	tok := p.tokenizer.NextToken()
-	if tok.Type != lexer.EMBED {
-		p.err = p.Errorf("expected .embed, got %q", tok.Literal)
-		return ERROR
-	}
-
-	tok = p.tokenizer.NextToken()
-	if tok.Type != lexer.D_QUOTE {
-		p.err = p.Errorf("expected a double quote (\"), got %q", tok.Literal)
-		return ERROR
-	}
-
-	var sb strings.Builder
-	for {
-		tok = p.tokenizer.NextToken()
-		if tok.Type == lexer.NEWLINE {
-			p.err = p.Errorf("expected a double quote(\"), got a new line")
-			return ERROR
-		}
-		if tok.Type == lexer.D_QUOTE {
-			break
-		}
-		sb.WriteString(tok.Literal)
-	}
-
-	s := Section{Type: EMBED_FILE, EmbedFile: sb.String()}
-	o := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
-	o.Sections = append(o.Sections, s)
-	return SECTION
-}
-
 func (p *Parser) include() state {
 	tok := p.tokenizer.PeakToken()
 	if tok.Type != lexer.INCLUDE {
@@ -478,6 +383,98 @@ func (p *Parser) include() state {
 	return INCLUDE_STATEMENT
 }
 
+func (p *Parser) org() state {
+	if !p.Bin {
+		p.err = p.Errorf(".org directives are only allowed in .bin files.")
+		return ERROR
+	}
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.ORG {
+		p.err = p.Errorf("expected .org got %q", tok.Literal)
+		return ERROR
+	}
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.NUMBER {
+		p.err = p.Errorf("expected an address constant, got %q\n", tok.Literal)
+		return ERROR
+	}
+
+	n, err := p.parseNumber(tok.Literal)
+	if err != nil {
+		p.err = err
+		return ERROR
+	}
+	o := Org{PIC: false, Addr: n}
+	p.Ast.Orgs = append(p.Ast.Orgs, o)
+	return SECTION
+}
+
+func (p *Parser) section() state {
+	tok := p.tokenizer.PeakToken()
+	if tok.Type != lexer.SECTION && tok.Type != lexer.EMBED {
+		p.err = p.Errorf("expected .section, got %q", tok.Literal)
+		return ERROR
+	}
+
+	if tok.Type == lexer.EMBED {
+		return EMBED_STATEMENT
+	}
+
+	p.tokenizer.NextToken()
+
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.S_DATA && tok.Type != lexer.S_TEXT {
+		p.err = p.Errorf("expected data, embed or text, got %q", tok.Literal)
+		return ERROR
+	}
+
+	s := Section{Blocks: make([]Block, 1, 4)}
+	var next state
+	if tok.Type == lexer.S_DATA {
+		s.Type = DATA_SECTION
+		next = DATA_BLOCK
+	} else {
+		s.Type = TEXT_SECTION
+		next = TEXT_BLOCK
+	}
+
+	o := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
+	o.Sections = append(o.Sections, s)
+	return next
+}
+
+func (p *Parser) embed() state {
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.EMBED {
+		p.err = p.Errorf("expected .embed, got %q", tok.Literal)
+		return ERROR
+	}
+
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.D_QUOTE {
+		p.err = p.Errorf("expected a double quote (\"), got %q", tok.Literal)
+		return ERROR
+	}
+
+	var sb strings.Builder
+	for {
+		tok = p.tokenizer.NextToken()
+		if tok.Type == lexer.NEWLINE {
+			p.err = p.Errorf("expected a double quote(\"), got a new line")
+			return ERROR
+		}
+		if tok.Type == lexer.D_QUOTE {
+			break
+		}
+		sb.WriteString(tok.Literal)
+	}
+
+	s := Section{Type: EMBED_FILE, EmbedFile: sb.String()}
+	o := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
+	o.Sections = append(o.Sections, s)
+	return SECTION
+}
+
 func (p *Parser) data_block(cur state) state {
 	tok := p.tokenizer.PeakToken()
 	if tok.Type == lexer.ORG {
@@ -525,8 +522,9 @@ func (p *Parser) data_block(cur state) state {
 			p.err = err
 			return ERROR
 		}
-		if n > 0 && n%4 != 0 {
-			n += (4 - (n % 4))
+		if n <= 0 {
+			p.err = p.Errorf("expected array with positive value, got %d", n)
+			return ERROR
 		}
 
 		aBlock.Statements = append(aBlock.Statements, Statement{
