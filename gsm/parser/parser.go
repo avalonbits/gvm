@@ -71,7 +71,11 @@ func (s Statement) Errorf(format string, a ...interface{}) error {
 
 func (s Statement) WordCount() int {
 	if s.ArraySize > 0 {
-		return s.ArraySize / 4
+		sz := s.ArraySize / 4
+		if s.ArraySize%4 != 0 {
+			sz += 1
+		}
+		return sz
 	} else if len(s.Str) > 0 {
 		sz := utf8.RuneCountInString(s.Str) + 1
 		sz *= 2
