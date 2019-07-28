@@ -76,7 +76,9 @@ func (s Statement) WordCount() int {
 			sz += 1
 		}
 		return sz
-	} else if len(s.Str) > 0 {
+	}
+
+	if len(s.Str) > 0 {
 		sz := utf8.RuneCountInString(s.Str) + 1
 		sz *= 2
 		if sz%4 != 0 {
@@ -84,13 +86,14 @@ func (s Statement) WordCount() int {
 		}
 		return sz / 4
 	}
+
 	return 1
 }
 
 type OpType int
 
 const (
-	OP_REG = iota
+	OP_REG OpType = iota
 	OP_NUMBER
 	OP_DIFF
 	OP_LABEL
