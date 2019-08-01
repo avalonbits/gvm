@@ -16,6 +16,7 @@
 
 .bin
 
+.include "./includes/interrupts.asm" as interrupts
 .include "./includes/memory.asm" as memory
 .include "./includes/strings.asm" as strings
 .include "./includes/textmode.asm" as textmode
@@ -36,23 +37,23 @@ interrupt_table:
 .org 0x400
 .section data
 ; ===== Kernel function table.
-register_interrupt: .int _register_interrupt
-get_interrupt:      .int _get_interrupt
-malloc:             .int _malloc
-free:               .int _free
-getkey:             .int _getkey
-getc:				.int _getc
-text_putc:          .int textmode.putc
-putc:				.int _putc
-puts:               .int _puts
-strlen:             .int strings.length
-memcpy:             .int memory.copy
-memcpy2:            .int memory.copy2
-memcpy32:           .int memory.copy32
-memset:             .int memory.set
-memset2:            .int memory.set2
-memset32:           .int memory.set32
-itoa:               .int strings.itoa
+register_int_handler: .int interrupts.register_handler
+get_int_handler:      .int interrupts.get_handler
+malloc:               .int _malloc
+free:                 .int _free
+getkey:               .int _getkey
+getc:				  .int _getc
+text_putc:            .int textmode.putc
+putc:				  .int _putc
+puts:                 .int _puts
+strlen:               .int strings.length
+memcpy:               .int memory.copy
+memcpy2:              .int memory.copy2
+memcpy32:             .int memory.copy32
+memset:               .int memory.set
+memset2:              .int memory.set2
+memset32:             .int memory.set32
+itoa:                 .int strings.itoa
 
 .org 0x2400
 .section data
@@ -60,59 +61,7 @@ vram_reg:   .int 0x1200400
 vram_start: .int 0x1000000
 ptr_heap_start: .int heap_start
 
-.equ JMP 0x15  ; jmp instruction for registering handler.
-.equ RET 0x1e  ; ret instruction for clearing interrupt vector.
-
 .section text
-
-; ==== RegisterInterrrupt. Registers a function as an interrupt handler.
-@func _register_interrupt:
-	; r0: Returns 0 on failure, 1 otherise.
-	; r1: interrupt value.
-	; r2: absolute function address to call on interrupt. Must use <= 26 bits.
-
-	; Interrupt values range from 0-255.
-	jlt r1, invalid_interrupt
-	sub r0, r1, 0xFF
-	jgt r0, invalid_interrupt
-
-	; We have a valid interrupt. Write the function pointer to the
-	; interrupt vector.
-	lsl r1, r1, 2    ; Each value in the vector is 4 bytes long.
-	sub r2, r2, r1   ; We subtract the vector value because jmp is pc relative.
-	lsl r2, r2, 6	 ; Make space for jump instruction
-	orr r2, r2, JMP  ; jmp instruction
-	str [r1], r2
-	mov r0, 1
-	ret
-
-invalid_interrupt:
-	mov r0, 0
-	ret
-@endf _register_interrupt
-
-; ==== GetInterrrupt. Returns the function address registered for interrupt.
-@func _get_interrupt:
-	; r0: Returns 0 on failure, != 0 otherise.
-	; r1: interrupt value.
-
-	; Interrupt values range from 0-255.
-	jlt r1, invalid_interrupt
-	sub r0, r1, 0xFF
-	jgt r0, invalid_interrupt
-
-	; We have a valid interrupt. Get the pc relative funcrtion addreess, make
-	; it absolute and return.
-	lsl r1, r1, 2  ; Each value in the vector is 4 bytes long.
-	ldr r0, [r1]
-	lsr r0, r0, 6  ; Get rid of the jump instruction.
-	add r0, r0, r1 ; Add the vector index offset to get the absolute adress
-	ret
-
-invalid_interrupt:
-	mov r0, 0
-	ret
-@endf _get_interrupt
 
 ; ==== Reset interrupt handler.
 reset_handler:
