@@ -23,12 +23,17 @@
 .org 0x0
 .section text
 
-; Jump table for interrupt handlers. Each address is for a specific interrupt.
+; Jump table for interrupt handlers. Each address is for a specific interrupt. There are 256
+; possible interrupts. If no handler is available, we use a RET instruction so that the
+; interrupt is ignored. The reset handler takes care of setting the other RET instructions
+; to avoid writing a huge list of values.
 interrupt_table:
-    jmp reset_handler     ; Reset. Handler will take care of registering kernel default
-						  ; handlers.
+    jmp reset_handler
+	ret
+	jmp input_handler
+	jmp recurring_handler
 
-.org 0x100
+.org 0x400
 .section data
 ; ===== Kernel function table.
 register_interrupt: .int _register_interrupt
@@ -49,7 +54,7 @@ memset2:            .int memory.set2
 memset32:           .int memory.set32
 itoa:               .int strings.itoa
 
-.org 0x2100
+.org 0x2400
 .section data
 vram_reg:   .int 0x1200400
 vram_start: .int 0x1000000
@@ -111,24 +116,11 @@ invalid_interrupt:
 
 ; ==== Reset interrupt handler.
 reset_handler:
-	; Clear the interrupt vector.
-	mov r1, 0
-	mov r2, 64
+	; Set the interrupt vector starting from the 5th interrupt with RET instruction.
+	mov r1, 0x10
+	mov r2, 0xFC
 	mov r3, RET
-	call memory.set32
-
-	; Now, register the kernel handlers.
-	mov r1, 0
-	mov r2, reset_handler
-	call _register_interrupt
-
-	mov r1, 2
-	mov r2, input_handler
-	call _register_interrupt
-
-	mov r1, 3
-	mov r2, recurring_handler
-	call _register_interrupt
+	call memory.set4
 
 	; We initialize the first two words of the heap to zero. This corresponds
 	; to the header fields size and next.

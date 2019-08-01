@@ -28,7 +28,7 @@ interrupt_table:
     jmp reset_handler     ; Reset. Handler will take care of registering kernel default
 						  ; handlers.
 
-.org 0x100
+.org 0x400
 .section data
 ; ===== Kernel function table.
 register_interrupt: .int _register_interrupt
@@ -49,7 +49,7 @@ memset2:            .int memory.set2
 memset32:           .int memory.set32
 itoa:               .int strings.itoa
 
-.org 0x2100
+.org 0x2400
 .section data
 vram_reg:   .int 0x1200400
 vram_start: .int 0x1000000
