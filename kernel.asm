@@ -321,13 +321,6 @@ heap_lower_limit: .int heap_start
 heap_curr_limit: .int heap_start
 ptr_heap_curr_limit: .int heap_curr_limit
 
-    ; struct memory_header
-    .equ mh_bytes 0
-	.equ mh_next  4
-	.equ mh_size  8
-
-	.equ memory_page_shift 4  ; Shifting by 4 bits gives 16 bytes per page.
-
 .section text
 @func _malloc:
 	; r0 returns address of memory. If < 0 no memory was available.

@@ -169,6 +169,16 @@
     ret
 @endf copy32
 
+.section data
+    ; struct memory_header
+    .equ mh_bytes 0
+	.equ mh_next  4
+	.equ mh_size  8
+
+	.equ memory_page_shift 4  ; Shifting by 4 bits gives 16 bytes per page.
+
+.section text
+
 @func alloc:
     ; r0: returns address of memory. if == 0 no memory was available.
     ; r1: Size in bytes to allocate.
@@ -277,7 +287,6 @@ allocate_page:
 no_memory:
     mov r0, 0
     ret
-
 @endf alloc
 
 ; ==== Brk. Adjustes heap break limit.
