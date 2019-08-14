@@ -167,10 +167,7 @@ func (b Block) Errorf(format string, a ...interface{}) error {
 }
 
 func (b Block) LabelName(incl string) string {
-	if incl == "" {
-		return b.funcName + b.Label
-	}
-	return incl + "." + b.funcName + b.Label
+	return b.JumpName(incl, b.Label)
 }
 
 func (b Block) JumpName(incl, label string) string {

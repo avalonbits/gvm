@@ -196,18 +196,18 @@ func linkIncludes(includeMap map[string]*parser.AST, ast *parser.AST) error {
 		for j, section := range org.Sections {
 			for _, block := range section.Blocks {
 				for _, statement := range block.Statements {
+					if statement.Instr.Name == "" {
+						continue
+					}
 					var target string
 					if isJmpInstr(statement.Instr.Name) && statement.Instr.Op1.Type == parser.OP_LABEL {
 						target = statement.Instr.Op1.Op
 					} else if isJmpInstr(statement.Instr.Name) &&
 						statement.Instr.Op2.Type == parser.OP_LABEL {
 						target = statement.Instr.Op2.Op
-					} else if statement.Label != "" {
-						target = statement.Label
 					} else {
 						continue
 					}
-
 					// If this is using an include, the label will be include.something.
 					label := strings.Split(target, ".")
 					if len(label) != 2 {
@@ -234,12 +234,12 @@ func linkIncludes(includeMap map[string]*parser.AST, ast *parser.AST) error {
 		}
 	}
 	if len(useMap) > 0 {
-		return injectIncludes(useMap, includeMap, ast)
+		injectIncludes(useMap, includeMap, ast)
 	}
 	return nil
 }
 
-func injectIncludes(useMap map[string]firstUse, includeMap map[string]*parser.AST, ast *parser.AST) error {
+func injectIncludes(useMap map[string]firstUse, includeMap map[string]*parser.AST, ast *parser.AST) {
 	for incl, use := range useMap {
 		o := &ast.Orgs[use.org]
 		iOrg := includeMap[incl].Orgs[0]
@@ -262,7 +262,6 @@ func injectIncludes(useMap map[string]firstUse, includeMap map[string]*parser.AS
 			o.Sections = append(sections, o.Sections[use.section+1:]...)
 		}
 	}
-	return nil
 }
 
 func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
