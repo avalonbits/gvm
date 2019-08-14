@@ -196,15 +196,14 @@ func linkIncludes(includeMap map[string]*parser.AST, ast *parser.AST) error {
 		for j, section := range org.Sections {
 			for _, block := range section.Blocks {
 				for _, statement := range block.Statements {
-					if statement.Instr.Name == "" {
-						continue
-					}
 					var target string
 					if isJmpInstr(statement.Instr.Name) && statement.Instr.Op1.Type == parser.OP_LABEL {
 						target = statement.Instr.Op1.Op
 					} else if isJmpInstr(statement.Instr.Name) &&
 						statement.Instr.Op2.Type == parser.OP_LABEL {
 						target = statement.Instr.Op2.Op
+					} else if statement.Label != "" {
+						target = statement.Label
 					} else {
 						continue
 					}
