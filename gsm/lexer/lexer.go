@@ -20,7 +20,10 @@ package lexer
 
 import (
 	"bufio"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
+	"hash"
 	"io"
 	"strings"
 	"unicode"
@@ -174,6 +177,7 @@ type Lexer struct {
 	tok      *Token
 	ignoreWS bool
 	line     int
+	hasher   hash.Hash
 }
 
 func (l *Lexer) Line() int {
@@ -181,15 +185,22 @@ func (l *Lexer) Line() int {
 }
 
 func New(r io.Reader) *Lexer {
+	hasher := md5.New()
+	tee := io.TeeReader(r, hasher)
 	return &Lexer{
-		buf:      bufio.NewReader(r),
+		buf:      bufio.NewReader(tee),
 		ignoreWS: true,
 		line:     1,
+		hasher:   hasher,
 	}
 }
 
 func (l *Lexer) IgnoreWhiteSpace(ignore bool) {
 	l.ignoreWS = ignore
+}
+
+func (l *Lexer) Hash() string {
+	return hex.EncodeToString(l.hasher.Sum(nil))
 }
 
 func (l *Lexer) readRune() {

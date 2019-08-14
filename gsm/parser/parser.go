@@ -34,6 +34,7 @@ type AST struct {
 	Consts   map[string]string
 	Includes map[string]string
 	Exported map[string]struct{}
+	Hash     string
 }
 
 type Org struct {

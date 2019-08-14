@@ -39,6 +39,7 @@ func Parse(in io.Reader, requireLibrary bool) (*parser.AST, error) {
 	if err := p.Parse(requireLibrary); err != nil {
 		return nil, err
 	}
+	p.Ast.Hash = lex.Hash()
 	return p.Ast, nil
 }
 
