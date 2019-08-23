@@ -24,6 +24,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -45,10 +46,11 @@ func Parse(in io.Reader, requireLibrary bool) (*parser.AST, error) {
 }
 
 type object struct {
-	hash     string
-	code     map[int32][]byte
-	exported map[string]int32
-	unref    map[string]int32
+	hash      string
+	code      map[uint32][]byte
+	exported  map[string]uint32
+	unrefCode map[string]uint32
+	unrefData map[string]uint32
 }
 
 func generateObject(ast *parser.AST, name string) (map[string]*object, error) {
@@ -443,6 +445,7 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) error {
 					if statement.Label != "" {
 						if strings.Index(statement.Label, ".") != -1 {
 							// This is an included label. We can't do anything here yet, let's skip it.
+							statement.Value = 0 // just in case it was set to something else.
 							continue
 						}
 
@@ -627,18 +630,15 @@ func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
 
 func writeObject(ast *parser.AST, buf *bufio.ReadWriter) (*object, error) {
 	obj := &object{
-		hash: ast.Hash,
+		hash:      ast.Hash,
+		code:      map[uint32][]byte{},
+		exported:  map[string]uint32{},
+		unrefCode: map[string]uint32{},
+		unrefData: map[string]uint32{},
 	}
 	word := make([]byte, 4)
 	for _, org := range ast.Orgs {
-		binary.LittleEndian.PutUint32(word, org.Addr)
-		if _, err := buf.Write(word); err != nil {
-			return nil, err
-		}
-		binary.LittleEndian.PutUint32(word, uint32(org.WordCount()))
-		if _, err := buf.Write(word); err != nil {
-			return nil, err
-		}
+		var nb uint32
 		for _, section := range org.Sections {
 			for _, block := range section.Blocks {
 				for _, statement := range block.Statements {
@@ -648,6 +648,7 @@ func writeObject(ast *parser.AST, buf *bufio.ReadWriter) (*object, error) {
 							if _, err := buf.Write(bytes); err != nil {
 								return nil, err
 							}
+							nb += uint32(statement.ArraySize)
 						} else if len(statement.Str) > 0 {
 							sz := utf8.RuneCountInString(statement.Str) + 1
 							sz *= 2
@@ -663,11 +664,19 @@ func writeObject(ast *parser.AST, buf *bufio.ReadWriter) (*object, error) {
 							if _, err := buf.Write(bytes); err != nil {
 								return nil, err
 							}
+							nb += uint32(len(bytes))
 						} else {
+							if statement.Label != "" {
+								// This is an external label that hasn't been resolved. We need to
+								// save the point in the code where the address starts so we can
+								// update it later. We will store 0 as the address value for now.
+								obj.unrefData[statement.Label] = nb
+							}
 							binary.LittleEndian.PutUint32(word, statement.Value)
 							if _, err := buf.Write(word); err != nil {
 								return nil, err
 							}
+							nb += 4
 						}
 						continue
 					}
@@ -679,9 +688,19 @@ func writeObject(ast *parser.AST, buf *bufio.ReadWriter) (*object, error) {
 					if _, err := buf.Write(word); err != nil {
 						return nil, err
 					}
+					nb += 4
 				}
 			}
 		}
+		if err := buf.Flush(); err != nil {
+			return nil, err
+		}
+		bin, err := ioutil.ReadAll(buf)
+		if err != nil {
+			return nil, err
+		}
+		obj.code[org.Addr] = bin
+
 	}
 	return obj, nil
 }
