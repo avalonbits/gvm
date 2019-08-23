@@ -98,6 +98,7 @@ const (
 	OP_NUMBER
 	OP_DIFF
 	OP_LABEL
+	OP_EXTERNAL_LABEL
 )
 
 type Operand struct {
@@ -165,6 +166,10 @@ func (b Block) Errorf(format string, a ...interface{}) error {
 		return b.Statements[0].Errorf(format, a...)
 	}
 	return fmt.Errorf(format, a...)
+}
+
+func (b Block) LocalLabelName() string {
+	return b.JumpName("", b.Label)
 }
 
 func (b Block) LabelName(incl string) string {

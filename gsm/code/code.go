@@ -20,6 +20,7 @@ package code
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -41,6 +42,55 @@ func Parse(in io.Reader, requireLibrary bool) (*parser.AST, error) {
 	}
 	p.Ast.Hash = lex.Hash()
 	return p.Ast, nil
+}
+
+type object struct {
+	hash     string
+	code     map[int32][]byte
+	exported map[string]int32
+	unref    map[string]int32
+}
+
+func generateObject(ast *parser.AST, name string) (map[string]*object, error) {
+	var err error
+	if err = embedFile(ast); err != nil {
+		return nil, err
+	}
+
+	includeMap := map[string]*parser.AST{}
+	if err = includeFile(includeMap, ast); err != nil {
+		return nil, err
+	}
+
+	hashInclude := map[string]string{}
+	allObjs := map[string]*object{}
+	for k, iAST := range includeMap {
+		hashInclude[k] = iAST.Hash
+		objs, err := generateObject(iAST, k)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range objs {
+			allObjs[k] = v
+		}
+	}
+
+	// At this point we either handled all the includes or this is a leaf file.
+	localLabelMap := map[string]uint32{}
+	if err := assignLocalAddresses(localLabelMap, ast); err != nil {
+	}
+	if err := convertLocalNames(localLabelMap, ast); err != nil {
+		return nil, err
+	}
+
+	var b bytes.Buffer
+
+	obj, err := writeObject(ast, bufio.NewReadWriter(bufio.NewReader(&b), bufio.NewWriter(&b)))
+	if err != nil {
+		return nil, err
+	}
+	allObjs[name] = obj
+	return allObjs, nil
 }
 
 func Generate(ast *parser.AST, buf *bufio.Writer) error {
@@ -292,6 +342,34 @@ func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 	return nil
 }
 
+func assignLocalAddresses(labelMap map[string]uint32, ast *parser.AST) error {
+	for _, org := range ast.Orgs {
+		baseAddr := org.Addr
+		wordCount := uint32(0)
+		for _, section := range org.Sections {
+			for _, block := range section.Blocks {
+				if block.LocalLabelName() != "" {
+					label := block.LocalLabelName()
+					if _, ok := labelMap[label]; ok {
+						return block.Errorf("label redefinition: %q", block.Label)
+					}
+					if _, ok := ast.Consts[label]; ok {
+						return block.Errorf("label redefinition: %q was defined as a const",
+							block.Label)
+					}
+					if _, ok := ast.Includes[label]; ok {
+						return block.Errorf("label redefinition: %q was defined as an include",
+							block.Label)
+					}
+					labelMap[label] = baseAddr + (wordCount * 4)
+				}
+				wordCount += uint32(block.WordCount())
+			}
+		}
+	}
+	return nil
+}
+
 func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 	for _, org := range ast.Orgs {
 		for _, section := range org.Sections {
@@ -322,6 +400,54 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 					if statement.Label != "" {
 						// This is a data entry with a label. Get the address of the label and set it to the statement value.
 						addr, ok := labelMap[statement.Label]
+						if !ok {
+							return statement.Errorf("label does not exist: %q", statement.Label)
+						}
+						statement.Label = ""
+						statement.Value = addr
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) error {
+	for _, org := range ast.Orgs {
+		for _, section := range org.Sections {
+			for _, block := range section.Blocks {
+				for i := range block.Statements {
+					statement := &block.Statements[i]
+
+					if statement.Instr.Name != "" {
+						// Processing an instruction.
+						ops := []*parser.Operand{
+							&statement.Instr.Op1,
+							&statement.Instr.Op2,
+							&statement.Instr.Op3,
+						}
+						addr := localLabelMap[block.LocalLabelName()] + uint32(i*4)
+						for _, op := range ops {
+							err := convertLocalOperand(
+								statement.Instr.Name, addr, block,
+								section.IncludeName, localLabelMap, ast.Consts, op)
+							if err != nil {
+								return statement.Errorf("error processing instruction %q: %v",
+									statement.Instr, err)
+							}
+						}
+						continue
+					}
+
+					if statement.Label != "" {
+						if strings.Index(statement.Label, ".") != -1 {
+							// This is an included label. We can't do anything here yet, let's skip it.
+							continue
+						}
+
+						// This is a data entry with a label. Get the address if it is a local label.
+						addr, ok := localLabelMap[statement.Label]
 						if !ok {
 							return statement.Errorf("label does not exist: %q", statement.Label)
 						}
@@ -391,6 +517,56 @@ func convertOperand(instr string, instrAddr uint32, block parser.Block, inclName
 	return fmt.Errorf("operand %q is not a label or a constant", op.Op)
 }
 
+func convertLocalOperand(instr string, instrAddr uint32, block parser.Block, inclName string, labelMap map[string]uint32, consts map[string]string, op *parser.Operand) error {
+	if op.Type != parser.OP_LABEL {
+		return nil
+	}
+	if value, ok := consts[op.Op]; ok {
+		op.Op = value
+		op.Type = parser.OP_NUMBER
+		return nil
+	}
+	var jumpName string
+	if strings.Index(op.Op, ".") != -1 {
+		op.Type = parser.OP_EXTERNAL_LABEL
+		return nil
+	}
+
+	jumpName = block.JumpName("", op.Op)
+	value, ok := labelMap[jumpName]
+	if !ok {
+		return fmt.Errorf("operand %q is not a label or a constant", op.Op)
+	}
+
+	switch instr {
+	case "jmp", "jne", "jeq", "jlt", "jle", "jge", "jgt", "call":
+		value -= instrAddr
+	case "ldr", "str", "mov":
+		if value >= 0x2100 {
+			value -= instrAddr
+			v := int32(value)
+			if instr == "ldr" || instr == "str" {
+				if v > (1<<20)-1 || v < -(1<<20) {
+					return fmt.Errorf("Operand is out of range.")
+				}
+			} else {
+				if v > (1<<15)-1 || v < -(1<<15) {
+					return fmt.Errorf("Operand is out of range.")
+				}
+			}
+			op.Type = parser.OP_DIFF
+		}
+	}
+
+	// We need first to convert from uint32 -> int32 so we can get the value
+	// in the correct range. Then we can convert to int64 which is the required
+	// type for FormatInt.
+	op.Op = strconv.FormatInt(int64(int32(value)), 10)
+	if op.Type != parser.OP_DIFF {
+		op.Type = parser.OP_NUMBER
+	}
+	return nil
+}
 func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
 	word := make([]byte, 4)
 	for _, org := range ast.Orgs {
@@ -447,6 +623,67 @@ func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
 		}
 	}
 	return nil
+}
+
+func writeObject(ast *parser.AST, buf *bufio.ReadWriter) (*object, error) {
+	obj := &object{
+		hash: ast.Hash,
+	}
+	word := make([]byte, 4)
+	for _, org := range ast.Orgs {
+		binary.LittleEndian.PutUint32(word, org.Addr)
+		if _, err := buf.Write(word); err != nil {
+			return nil, err
+		}
+		binary.LittleEndian.PutUint32(word, uint32(org.WordCount()))
+		if _, err := buf.Write(word); err != nil {
+			return nil, err
+		}
+		for _, section := range org.Sections {
+			for _, block := range section.Blocks {
+				for _, statement := range block.Statements {
+					if section.Type == parser.DATA_SECTION {
+						if statement.ArraySize != 0 {
+							bytes := make([]byte, statement.ArraySize)
+							if _, err := buf.Write(bytes); err != nil {
+								return nil, err
+							}
+						} else if len(statement.Str) > 0 {
+							sz := utf8.RuneCountInString(statement.Str) + 1
+							sz *= 2
+							if sz%4 != 0 {
+								sz += 2
+							}
+							bytes := make([]byte, sz)
+							i := 0
+							for _, r := range statement.Str {
+								binary.LittleEndian.PutUint16(bytes[i:i+2], uint16(r&0xFFFF))
+								i += 2
+							}
+							if _, err := buf.Write(bytes); err != nil {
+								return nil, err
+							}
+						} else {
+							binary.LittleEndian.PutUint32(word, statement.Value)
+							if _, err := buf.Write(word); err != nil {
+								return nil, err
+							}
+						}
+						continue
+					}
+					w, err := encode(statement.Instr)
+					if err != nil {
+						return nil, statement.Errorf(err.Error())
+					}
+					binary.LittleEndian.PutUint32(word, uint32(w))
+					if _, err := buf.Write(word); err != nil {
+						return nil, err
+					}
+				}
+			}
+		}
+	}
+	return obj, nil
 }
 
 func rToI(reg string) uint32 {
