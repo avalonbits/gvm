@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -127,6 +128,22 @@ func Generate(ast *parser.AST, buf *bufio.Writer) error {
 	}
 
 	if err := writeToFile(ast, buf); err != nil {
+		return err
+	}
+	return nil
+}
+
+func GenerateFromObject(ast *parser.AST, buf *bufio.Writer) error {
+	defer buf.Flush()
+
+	objs, err := generateObject(ast, "__root")
+	if err != nil {
+		return err
+	}
+
+	// For now, assume this is a .bin program.
+	buf.Write([]byte("s1987gvm"))
+	if err := writeObjectToFile(objs, buf); err != nil {
 		return err
 	}
 	return nil
@@ -392,6 +409,7 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 								statement.Instr.Name, addr, block,
 								section.IncludeName, labelMap, ast.Consts, op)
 							if err != nil {
+								log.Println(labelMap)
 								return statement.Errorf("error processing instruction %q: %v",
 									statement.Instr, err)
 							}
@@ -435,6 +453,7 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) error {
 								statement.Instr.Name, addr, block,
 								section.IncludeName, localLabelMap, ast.Consts, op)
 							if err != nil {
+								log.Println(localLabelMap)
 								return statement.Errorf("error processing instruction %q: %v",
 									statement.Instr, err)
 							}
@@ -535,10 +554,15 @@ func convertLocalOperand(instr string, instrAddr uint32, block parser.Block, inc
 		return nil
 	}
 
+	// First check if this is a local label i.e a label inside a function.
 	jumpName = block.JumpName("", op.Op)
 	value, ok := labelMap[jumpName]
 	if !ok {
-		return fmt.Errorf("operand %q is not a label or a constant", op.Op)
+		// It's not, so let's check if it is a free label.
+		value, ok = labelMap[op.Op]
+		if !ok {
+			return fmt.Errorf("operand %q is not a label or a constant", op.Op)
+		}
 	}
 
 	switch instr {
@@ -622,6 +646,29 @@ func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
 						return err
 					}
 				}
+			}
+		}
+	}
+	return nil
+}
+
+func writeObjectToFile(objs map[string]*object, buf *bufio.Writer) error {
+	word := make([]byte, 4)
+
+	for _, obj := range objs {
+		for addr, code := range obj.code {
+			binary.LittleEndian.PutUint32(word, addr)
+			if _, err := buf.Write(word); err != nil {
+				return err
+			}
+			log.Println(addr)
+			log.Println(code)
+			binary.LittleEndian.PutUint32(word, uint32(len(code)/4))
+			if _, err := buf.Write(word); err != nil {
+				return err
+			}
+			if _, err := buf.Write(code); err != nil {
+				return err
 			}
 		}
 	}
