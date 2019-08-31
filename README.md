@@ -1,8 +1,8 @@
 # The GVM Virtual Machine <img align="left" width="48" height="48" src="https://github.com/avalonbits/gvm/blob/master/gvmlogo.png">
 
-GVM is a software computer that I created as a way to learn assembly. It emulates a made up 32bit RISC(-ish) CPU with 32 registers and a small instruction set (ISA). The ISA was inspired by different CPUs (Armv7, MIPS, RISC-V) but was created with ease of use and understanding as the main objective.
+GVM is a fantasy computer that I created as a way to learn assembly. It emulates a made up 32bit RISC(-ish) CPU with 32 integer registers and a small instruction set (ISA). The ISA was inspired by different CPUs (Armv7, MIPS, RISC-V) but was created with ease of use and understanding as the main objective.
 
-The CPU only supports direct memory access i.e there is no MMU or memory protection so any program can access any part of the memory at any time. This is equivalente to "real mode" memory in x86 or how old 8-bit computers organized their memory access, but now you have 16.5MB of memory available and a 32 bit address space.
+The CPU only supports direct memory access i.e there is no MMU or memory protection so any program can access any part of the memory at any time. This is equivalente to "real mode" memory in x86 or how old 8-bit computers organized their memory access, but now you have 16MiB of memory available and a 32 bit address space.
 
 In order to make the virtual machine useful, I emulated a video controller, video display and have started writing a basic kernel that is currently capable of displaying a text and bitmapped interface. I have also created an assembler called GSM that will output raw binaries for GVM.
 
