@@ -43,9 +43,13 @@ loop:
     halt
 @endf benchmark
 
+.section data
+	.equ val 7
+
+.section text
 @func update:
     stppi [sp, -8], r0, r1
-    add r1, r1, 7
+    add r1, r1, val
     str [mem], r1
     ldpip r0, r1, [sp, 8]
     sub r0, r0, 1
@@ -54,4 +58,4 @@ loop:
 
 .section data
 mem: .int 0x0
-loop_size: .int 0x1000000;FFFFFFF
+loop_size: .int 0x1000000

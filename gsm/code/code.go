@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -409,7 +408,6 @@ func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
 								statement.Instr.Name, addr, block,
 								section.IncludeName, labelMap, ast.Consts, op)
 							if err != nil {
-								log.Println(labelMap)
 								return statement.Errorf("error processing instruction %q: %v",
 									statement.Instr, err)
 							}
@@ -453,7 +451,6 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) error {
 								statement.Instr.Name, addr, block,
 								section.IncludeName, localLabelMap, ast.Consts, op)
 							if err != nil {
-								log.Println(localLabelMap)
 								return statement.Errorf("error processing instruction %q: %v",
 									statement.Instr, err)
 							}
@@ -661,8 +658,6 @@ func writeObjectToFile(objs map[string]*object, buf *bufio.Writer) error {
 			if _, err := buf.Write(word); err != nil {
 				return err
 			}
-			log.Println(addr)
-			log.Println(code)
 			binary.LittleEndian.PutUint32(word, uint32(len(code)/4))
 			if _, err := buf.Write(word); err != nil {
 				return err
