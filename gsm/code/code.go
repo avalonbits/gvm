@@ -95,43 +95,6 @@ func generateObject(ast *parser.AST, name string) (map[string]*object, error) {
 	return allObjs, nil
 }
 
-func Generate(ast *parser.AST, buf *bufio.Writer) error {
-	defer buf.Flush()
-
-	if err := embedFile(ast); err != nil {
-		return err
-	}
-
-	includeMap := map[string]*parser.AST{}
-	if err := includeFile(includeMap, ast); err != nil {
-		return err
-	}
-
-	if err := linkIncludes(includeMap, ast); err != nil {
-		return err
-	}
-
-	labelMap := map[string]uint32{}
-	if err := assignAddresses(labelMap, ast); err != nil {
-	}
-	if err := convertNames(labelMap, ast); err != nil {
-		return err
-	}
-	if ast.Orgs[0].PIC {
-		if len(ast.Orgs) > 1 {
-			return fmt.Errorf("For PIC code we expect a single org, got %d", len(ast.Orgs))
-		}
-		buf.Write([]byte("PIC87gvm"))
-	} else {
-		buf.Write([]byte("s1987gvm"))
-	}
-
-	if err := writeToFile(ast, buf); err != nil {
-		return err
-	}
-	return nil
-}
-
 func GenerateFromObject(ast *parser.AST, buf *bufio.Writer) error {
 	defer buf.Flush()
 
@@ -258,108 +221,6 @@ type firstUse struct {
 	section int
 }
 
-func linkIncludes(includeMap map[string]*parser.AST, ast *parser.AST) error {
-	useMap := map[string]firstUse{}
-
-	for i, org := range ast.Orgs {
-		for j, section := range org.Sections {
-			for _, block := range section.Blocks {
-				for _, statement := range block.Statements {
-					var target string
-					if isJmpInstr(statement.Instr.Name) && statement.Instr.Op1.Type == parser.OP_LABEL {
-						target = statement.Instr.Op1.Op
-					} else if isJmpInstr(statement.Instr.Name) &&
-						statement.Instr.Op2.Type == parser.OP_LABEL {
-						target = statement.Instr.Op2.Op
-					} else if statement.Label != "" {
-						target = statement.Label
-					} else {
-						continue
-					}
-					// If this is using an include, the label will be include.something.
-					label := strings.Split(target, ".")
-					if len(label) != 2 {
-						continue
-					}
-					iAST, ok := includeMap[label[0]]
-					if !ok {
-						return block.Errorf("%q is not an include", label[0])
-					}
-					if _, ok := iAST.Exported[label[1]]; !ok {
-						return block.Errorf("%q was not exported from include %q", label[1], label[0])
-					}
-
-					// Found a use of the include. Add it to the useMap if it is the first
-					// reference.
-					if _, ok := useMap[label[0]]; !ok {
-						useMap[label[0]] = firstUse{
-							org:     i,
-							section: j,
-						}
-					}
-				}
-			}
-		}
-	}
-	if len(useMap) > 0 {
-		injectIncludes(useMap, includeMap, ast)
-	}
-	return nil
-}
-
-func injectIncludes(useMap map[string]firstUse, includeMap map[string]*parser.AST, ast *parser.AST) {
-	for incl, use := range useMap {
-		o := &ast.Orgs[use.org]
-		iOrg := includeMap[incl].Orgs[0]
-		idx := use.org
-		for ; idx+1 < len(ast.Orgs); idx++ {
-			no := &ast.Orgs[idx+1]
-			if o.RelSizeWords(*no) >= iOrg.WordCount() {
-				break
-			}
-			o = no
-		}
-		if idx != use.org {
-			o.Sections = append(iOrg.Sections, o.Sections...)
-		} else {
-			// We've found an org that can fit our include! Add the code right after the section
-			// where it was first used.
-			sections := make([]parser.Section, 0, len(o.Sections)+len(iOrg.Sections))
-			sections = append(sections, o.Sections[:use.section+1]...)
-			sections = append(sections, iOrg.Sections...)
-			o.Sections = append(sections, o.Sections[use.section+1:]...)
-		}
-	}
-}
-
-func assignAddresses(labelMap map[string]uint32, ast *parser.AST) error {
-	for _, org := range ast.Orgs {
-		baseAddr := org.Addr
-		wordCount := uint32(0)
-		for _, section := range org.Sections {
-			for _, block := range section.Blocks {
-				if block.LabelName(section.IncludeName) != section.IncludeName {
-					label := block.LabelName(section.IncludeName)
-					if _, ok := labelMap[label]; ok {
-						return block.Errorf("label redefinition: %q", block.Label)
-					}
-					if _, ok := ast.Consts[label]; ok {
-						return block.Errorf("label redefinition: %q was defined as a const",
-							block.Label)
-					}
-					if _, ok := ast.Includes[label]; ok {
-						return block.Errorf("label redefinition: %q was defined as an include",
-							block.Label)
-					}
-					labelMap[label] = baseAddr + (wordCount * 4)
-				}
-				wordCount += uint32(block.WordCount())
-			}
-		}
-	}
-	return nil
-}
-
 func assignLocalAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 	for _, org := range ast.Orgs {
 		baseAddr := org.Addr
@@ -382,49 +243,6 @@ func assignLocalAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 					labelMap[label] = baseAddr + (wordCount * 4)
 				}
 				wordCount += uint32(block.WordCount())
-			}
-		}
-	}
-	return nil
-}
-
-func convertNames(labelMap map[string]uint32, ast *parser.AST) error {
-	for _, org := range ast.Orgs {
-		for _, section := range org.Sections {
-			for _, block := range section.Blocks {
-				for i := range block.Statements {
-					statement := &block.Statements[i]
-
-					if statement.Instr.Name != "" {
-						// Processing an instruction.
-						ops := []*parser.Operand{
-							&statement.Instr.Op1,
-							&statement.Instr.Op2,
-							&statement.Instr.Op3,
-						}
-						addr := labelMap[block.LabelName(section.IncludeName)] + uint32(i*4)
-						for _, op := range ops {
-							err := convertOperand(
-								statement.Instr.Name, addr, block,
-								section.IncludeName, labelMap, ast.Consts, op)
-							if err != nil {
-								return statement.Errorf("error processing instruction %q: %v",
-									statement.Instr, err)
-							}
-						}
-						continue
-					}
-
-					if statement.Label != "" {
-						// This is a data entry with a label. Get the address of the label and set it to the statement value.
-						addr, ok := labelMap[statement.Label]
-						if !ok {
-							return statement.Errorf("label does not exist: %q", statement.Label)
-						}
-						statement.Label = ""
-						statement.Value = addr
-					}
-				}
 			}
 		}
 	}
@@ -480,62 +298,6 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) error {
 	return nil
 }
 
-func convertOperand(instr string, instrAddr uint32, block parser.Block, inclName string, labelMap map[string]uint32, consts map[string]string, op *parser.Operand) error {
-	if op.Type != parser.OP_LABEL {
-		return nil
-	}
-	if value, ok := consts[op.Op]; ok {
-		op.Op = value
-		op.Type = parser.OP_NUMBER
-		return nil
-	}
-	var jumpName string
-	if strings.Index(op.Op, ".") == -1 {
-		jumpName = block.JumpName(inclName, op.Op)
-	} else {
-		jumpName = block.JumpName("", op.Op)
-	}
-	value, ok := labelMap[jumpName]
-	if !ok {
-		value, ok = labelMap[inclName+"."+op.Op]
-		if !ok {
-			value, ok = labelMap[op.Op]
-		}
-	}
-	if ok {
-		switch instr {
-		case "jmp", "jne", "jeq", "jlt", "jle", "jge", "jgt", "call":
-			value -= instrAddr
-		case "ldr", "str", "mov":
-			if value >= 0x2100 {
-				value -= instrAddr
-				v := int32(value)
-				if instr == "ldr" || instr == "str" {
-					if v > (1<<20)-1 || v < -(1<<20) {
-						return fmt.Errorf("Operand is out of range.")
-					}
-				} else {
-					if v > (1<<15)-1 || v < -(1<<15) {
-						return fmt.Errorf("Operand is out of range.")
-					}
-				}
-				op.Type = parser.OP_DIFF
-			}
-		}
-
-		// We need first to convert from uint32 -> int32 so we can get the value
-		// in the correct range. Then we can convert to int64 which is the required
-		// type for FormatInt.
-		op.Op = strconv.FormatInt(int64(int32(value)), 10)
-		if op.Type != parser.OP_DIFF {
-			op.Type = parser.OP_NUMBER
-		}
-		return nil
-	}
-
-	return fmt.Errorf("operand %q is not a label or a constant", op.Op)
-}
-
 func convertLocalOperand(instr string, instrAddr uint32, block parser.Block, inclName string, labelMap map[string]uint32, consts map[string]string, op *parser.Operand) error {
 	if op.Type != parser.OP_LABEL {
 		return nil
@@ -588,63 +350,6 @@ func convertLocalOperand(instr string, instrAddr uint32, block parser.Block, inc
 	op.Op = strconv.FormatInt(int64(int32(value)), 10)
 	if op.Type != parser.OP_DIFF {
 		op.Type = parser.OP_NUMBER
-	}
-	return nil
-}
-func writeToFile(ast *parser.AST, buf *bufio.Writer) error {
-	word := make([]byte, 4)
-	for _, org := range ast.Orgs {
-		binary.LittleEndian.PutUint32(word, org.Addr)
-		if _, err := buf.Write(word); err != nil {
-			return err
-		}
-		binary.LittleEndian.PutUint32(word, uint32(org.WordCount()))
-		if _, err := buf.Write(word); err != nil {
-			return err
-		}
-		for _, section := range org.Sections {
-			for _, block := range section.Blocks {
-				for _, statement := range block.Statements {
-					if section.Type == parser.DATA_SECTION {
-						if statement.ArraySize != 0 {
-							bytes := make([]byte, statement.ArraySize)
-							if _, err := buf.Write(bytes); err != nil {
-								return err
-							}
-						} else if len(statement.Str) > 0 {
-							sz := utf8.RuneCountInString(statement.Str) + 1
-							sz *= 2
-							if sz%4 != 0 {
-								sz += 2
-							}
-							bytes := make([]byte, sz)
-							i := 0
-							for _, r := range statement.Str {
-								binary.LittleEndian.PutUint16(bytes[i:i+2], uint16(r&0xFFFF))
-								i += 2
-							}
-							if _, err := buf.Write(bytes); err != nil {
-								return err
-							}
-						} else {
-							binary.LittleEndian.PutUint32(word, statement.Value)
-							if _, err := buf.Write(word); err != nil {
-								return err
-							}
-						}
-						continue
-					}
-					w, err := encode(statement.Instr)
-					if err != nil {
-						return statement.Errorf(err.Error())
-					}
-					binary.LittleEndian.PutUint32(word, uint32(w))
-					if _, err := buf.Write(word); err != nil {
-						return err
-					}
-				}
-			}
-		}
 	}
 	return nil
 }

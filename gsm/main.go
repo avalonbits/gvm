@@ -29,8 +29,7 @@ import (
 )
 
 var (
-	outFile    = flag.String("o", "a.rom", "Name of output file.")
-	newCodeGen = flag.Bool("new_code_gen", true, "Toggle between code generators")
+	outFile = flag.String("o", "a.rom", "Name of output file.")
 )
 
 func main() {
@@ -66,14 +65,7 @@ func main() {
 		panic(err)
 	}
 
-	if *newCodeGen {
-		if err := code.GenerateFromObject(ast, bufio.NewWriter(out)); err != nil {
-			panic(err)
-		}
-	} else {
-		if err := code.Generate(ast, bufio.NewWriter(out)); err != nil {
-			panic(err)
-		}
-
+	if err := code.GenerateFromObject(ast, bufio.NewWriter(out)); err != nil {
+		panic(err)
 	}
 }
