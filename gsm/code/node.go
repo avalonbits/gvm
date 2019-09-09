@@ -39,9 +39,7 @@ func NewNode(name string, nType NodeType) *Node {
 	}
 }
 
-func (n *Node) AddSpan(baddr uint32, code []byte, fnTable map[string]uint32) error {
-	// Validate function table.
-	cLen := len(code)
+func validateSpanFnTable(cLen uint32, fnTable map[string]uint32) error {
 	for _, offset := range fnTable {
 		if offset%4 != 0 {
 			return fmt.Errorf("Offset for function %q is not word aligned: %x", offset)
@@ -49,6 +47,13 @@ func (n *Node) AddSpan(baddr uint32, code []byte, fnTable map[string]uint32) err
 		if offset >= uint32(cLen) {
 			return fmt.Errorf("Offset ofr function %q is larger than code span: %x >= %x", offset, cLen)
 		}
+	}
+	return nil
+}
+
+func (n *Node) AddSpan(baddr uint32, code []byte, fnTable map[string]uint32) error {
+	if err := validateSpanFnTable(uint32(len(code)), fnTable); err != nil {
+		return err
 	}
 
 	s := &span{
@@ -68,10 +73,34 @@ func (n *Node) AddSpan(baddr uint32, code []byte, fnTable map[string]uint32) err
 	// Common case: new span to existing span list. Need to check if baddr is valid.
 	bLen := n.tail.baddr + uint32(len(n.tail.code))
 	if bLen > baddr {
-		return fmt.Errorf("New span overlaps previous span.")
+		return fmt.Errorf("New span overlaps or starts before previous span: %x > %x", bLen, baddr)
 	}
 
 	// Since there is no overlap, we can safely add the span to the node.
+	n.tail.next = s
+	n.tail = s
+	return nil
+}
+
+func (n *Node) PackSpan(code []byte, fnTable map[string]uint32) error {
+	if err := validateSpanFnTable(uint32(len(code)), fnTable); err != nil {
+		return err
+	}
+	s := &span{
+		code:    code,
+		fnTable: fnTable,
+		next:    nil,
+	}
+
+	// First insertion.
+	if n.head == nil {
+		n.tail = s
+		n.head = n.tail
+		return nil
+	}
+
+	// Common case: new span to existing span list.
+	s.baddr = n.tail.baddr + uint32(len(n.tail.code))
 	n.tail.next = s
 	n.tail = s
 	return nil
