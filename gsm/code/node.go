@@ -1,6 +1,9 @@
 package code
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 type NodeType int
 
@@ -139,6 +142,30 @@ func (n *Node) MergeAfter(s *span) {
 	aux := s.next
 	s.next = n.head
 	n.tail.next = aux
+}
+
+type NodeIterator interface {
+	Next() (uint32, []byte, error)
+}
+
+type nodeIterator struct {
+	next *span
+}
+
+func (ni *nodeIterator) Next() (uint32, []byte, error) {
+	if ni.next == nil {
+		return 0, nil, fmt.Errorf("No more code.")
+	}
+	n := ni.next
+	ni.next = ni.next.next
+	return n.baddr, n.code, nil
+}
+
+func (n *Node) Iterator() NodeIterator {
+	log.Println(n.head)
+	return &nodeIterator{
+		next: n.head,
+	}
 }
 
 func (n *Node) NormalizeAddresses() {

@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -46,11 +47,8 @@ func Parse(in io.Reader, requireLibrary bool) (*parser.AST, error) {
 }
 
 type object struct {
-	hash      string
-	code      map[uint32][]byte
-	exported  map[string]uint32
-	unrefCode map[string]uint32
-	unrefData map[string]uint32
+	hash string
+	node *Node
 }
 
 func generateObject(ast *parser.AST, name string) (map[string]*object, error) {
@@ -87,7 +85,7 @@ func generateObject(ast *parser.AST, name string) (map[string]*object, error) {
 
 	var b bytes.Buffer
 
-	obj, err := writeObject(ast, bufio.NewReadWriter(bufio.NewReader(&b), bufio.NewWriter(&b)))
+	obj, err := writeObject(ast, name, bufio.NewReadWriter(bufio.NewReader(&b), bufio.NewWriter(&b)))
 	if err != nil {
 		return nil, err
 	}
@@ -354,35 +352,13 @@ func convertLocalOperand(instr string, instrAddr uint32, block parser.Block, inc
 	return nil
 }
 
-func writeObjectToFile(objs map[string]*object, buf *bufio.Writer) error {
-	word := make([]byte, 4)
-
-	for _, obj := range objs {
-		for addr, code := range obj.code {
-			binary.LittleEndian.PutUint32(word, addr)
-			if _, err := buf.Write(word); err != nil {
-				return err
-			}
-			binary.LittleEndian.PutUint32(word, uint32(len(code)/4))
-			if _, err := buf.Write(word); err != nil {
-				return err
-			}
-			if _, err := buf.Write(code); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func writeObject(ast *parser.AST, buf *bufio.ReadWriter) (*object, error) {
+func writeObject(ast *parser.AST, name string, buf *bufio.ReadWriter) (*object, error) {
 	obj := &object{
-		hash:      ast.Hash,
-		code:      map[uint32][]byte{},
-		exported:  map[string]uint32{},
-		unrefCode: map[string]uint32{},
-		unrefData: map[string]uint32{},
+		hash: ast.Hash,
+		node: NewNode(name, NT_RELOCATABLE),
 	}
+
+	fnTable := map[string]uint32{}
 	word := make([]byte, 4)
 	for _, org := range ast.Orgs {
 		var nb uint32
@@ -415,9 +391,9 @@ func writeObject(ast *parser.AST, buf *bufio.ReadWriter) (*object, error) {
 						} else {
 							if statement.Label != "" {
 								// This is an external label that hasn't been resolved. We need to
-								// save the point in the code where the address starts so we can
-								// update it later. We will store 0 as the address value for now.
-								obj.unrefData[statement.Label] = nb
+								// check the already compiled objects to see if it is available.
+								// TODO(icc): Get the compiled objects here so we can resolve the
+								// reference immediately.
 							}
 							binary.LittleEndian.PutUint32(word, statement.Value)
 							if _, err := buf.Write(word); err != nil {
@@ -446,10 +422,35 @@ func writeObject(ast *parser.AST, buf *bufio.ReadWriter) (*object, error) {
 		if err != nil {
 			return nil, err
 		}
-		obj.code[org.Addr] = bin
+		if err := obj.node.AddSpan(org.Addr, bin, fnTable); err != nil {
+			return nil, err
+		}
 
 	}
 	return obj, nil
+}
+
+func writeObjectToFile(objs map[string]*object, buf *bufio.Writer) error {
+	word := make([]byte, 4)
+
+	for _, obj := range objs {
+		nIter := obj.node.Iterator()
+		for addr, code, err := nIter.Next(); err == nil; addr, code, err = nIter.Next() {
+			binary.LittleEndian.PutUint32(word, addr)
+			if _, err := buf.Write(word); err != nil {
+				return err
+			}
+			log.Println(len(code))
+			binary.LittleEndian.PutUint32(word, uint32(len(code)/4))
+			if _, err := buf.Write(word); err != nil {
+				return err
+			}
+			if _, err := buf.Write(code); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func rToI(reg string) uint32 {
