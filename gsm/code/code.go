@@ -419,6 +419,7 @@ func writeObject(ast *parser.AST, name string, allObjs map[string]*object, buf *
 		}
 
 	}
+	obj.node.LiftFuncTable()
 	allObjs[name] = obj
 	return nil
 }
