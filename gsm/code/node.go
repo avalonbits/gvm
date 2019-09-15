@@ -2,7 +2,6 @@ package code
 
 import (
 	"fmt"
-	"log"
 )
 
 type NodeType int
@@ -162,7 +161,6 @@ func (ni *nodeIterator) Next() (uint32, []byte, error) {
 }
 
 func (n *Node) Iterator() NodeIterator {
-	log.Println(n.head)
 	return &nodeIterator{
 		next: n.head,
 	}
