@@ -51,53 +51,45 @@ type object struct {
 	node *Node
 }
 
-func generateObject(ast *parser.AST, name string) (map[string]*object, error) {
+func generateObject(ast *parser.AST, name string, allObjs map[string]*object) error {
 	var err error
 	if err = embedFile(ast); err != nil {
-		return nil, err
+		return err
 	}
 
 	includeMap := map[string]*parser.AST{}
 	if err = includeFile(includeMap, ast); err != nil {
-		return nil, err
+		return err
 	}
 
 	hashInclude := map[string]string{}
-	allObjs := map[string]*object{}
 	for k, iAST := range includeMap {
 		hashInclude[k] = iAST.Hash
-		objs, err := generateObject(iAST, k)
-		if err != nil {
-			return nil, err
-		}
-		for k, v := range objs {
-			allObjs[k] = v
+		if err := generateObject(iAST, k, allObjs); err != nil {
+			return err
 		}
 	}
 
 	// At this point we either handled all the includes or this is a leaf file.
 	localLabelMap := map[string]uint32{}
 	if err := assignLocalAddresses(localLabelMap, ast); err != nil {
+		return err
 	}
 	if err := convertLocalNames(localLabelMap, ast); err != nil {
-		return nil, err
+		return err
 	}
 
 	var b bytes.Buffer
 
-	obj, err := writeObject(ast, name, bufio.NewReadWriter(bufio.NewReader(&b), bufio.NewWriter(&b)))
-	if err != nil {
-		return nil, err
-	}
-	allObjs[name] = obj
-	return allObjs, nil
+	return writeObject(
+		ast, name, allObjs, bufio.NewReadWriter(bufio.NewReader(&b), bufio.NewWriter(&b)))
 }
 
 func GenerateFromObject(ast *parser.AST, buf *bufio.Writer) error {
 	defer buf.Flush()
 
-	objs, err := generateObject(ast, "__root")
-	if err != nil {
+	objs := map[string]*object{}
+	if err := generateObject(ast, "__root", objs); err != nil {
 		return err
 	}
 
@@ -352,7 +344,7 @@ func convertLocalOperand(instr string, instrAddr uint32, block parser.Block, inc
 	return nil
 }
 
-func writeObject(ast *parser.AST, name string, buf *bufio.ReadWriter) (*object, error) {
+func writeObject(ast *parser.AST, name string, allObjs map[string]*object, buf *bufio.ReadWriter) error {
 	obj := &object{
 		hash: ast.Hash,
 		node: NewNode(name, NT_RELOCATABLE),
@@ -369,7 +361,7 @@ func writeObject(ast *parser.AST, name string, buf *bufio.ReadWriter) (*object, 
 						if statement.ArraySize != 0 {
 							bytes := make([]byte, statement.ArraySize)
 							if _, err := buf.Write(bytes); err != nil {
-								return nil, err
+								return err
 							}
 							nb += uint32(statement.ArraySize)
 						} else if len(statement.Str) > 0 {
@@ -385,7 +377,7 @@ func writeObject(ast *parser.AST, name string, buf *bufio.ReadWriter) (*object, 
 								i += 2
 							}
 							if _, err := buf.Write(bytes); err != nil {
-								return nil, err
+								return err
 							}
 							nb += uint32(len(bytes))
 						} else {
@@ -397,7 +389,7 @@ func writeObject(ast *parser.AST, name string, buf *bufio.ReadWriter) (*object, 
 							}
 							binary.LittleEndian.PutUint32(word, statement.Value)
 							if _, err := buf.Write(word); err != nil {
-								return nil, err
+								return err
 							}
 							nb += 4
 						}
@@ -405,29 +397,30 @@ func writeObject(ast *parser.AST, name string, buf *bufio.ReadWriter) (*object, 
 					}
 					w, err := encode(statement.Instr)
 					if err != nil {
-						return nil, statement.Errorf(err.Error())
+						return statement.Errorf(err.Error())
 					}
 					binary.LittleEndian.PutUint32(word, uint32(w))
 					if _, err := buf.Write(word); err != nil {
-						return nil, err
+						return err
 					}
 					nb += 4
 				}
 			}
 		}
 		if err := buf.Flush(); err != nil {
-			return nil, err
+			return err
 		}
 		bin, err := ioutil.ReadAll(buf)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if err := obj.node.AddSpan(org.Addr, bin, fnTable); err != nil {
-			return nil, err
+			return err
 		}
 
 	}
-	return obj, nil
+	allObjs[name] = obj
+	return nil
 }
 
 func writeObjectToFile(objs map[string]*object, buf *bufio.Writer) error {
