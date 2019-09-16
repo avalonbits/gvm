@@ -335,6 +335,31 @@ func (p *Parser) mode(requireLibrary bool) state {
 	return INCLUDE_STATEMENT
 }
 
+func (p *Parser) readString() (string, error) {
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.D_QUOTE {
+		return "", p.Errorf("expected a double quote (\"), got %q", tok.Literal)
+	}
+
+	p.tokenizer.IgnoreWhiteSpace(false)
+	defer p.tokenizer.IgnoreWhiteSpace(true)
+
+	var sb strings.Builder
+	for {
+		tok = p.tokenizer.NextToken()
+		if tok.Type == lexer.NEWLINE {
+			return "", p.Errorf("expected a double quote(\"), got a new line")
+		}
+		if tok.Type == lexer.D_QUOTE {
+			break
+		}
+		if _, err := sb.WriteString(tok.Literal); err != nil {
+			return "", p.Errorf("error reading token in string: %v", err)
+		}
+	}
+	return sb.String(), nil
+}
+
 func (p *Parser) include() state {
 	tok := p.tokenizer.PeakToken()
 	if tok.Type != lexer.INCLUDE {
@@ -346,26 +371,11 @@ func (p *Parser) include() state {
 
 	// We know we are processing an include. We can skip it now.
 	p.tokenizer.NextToken()
-
-	tok = p.tokenizer.NextToken()
-	if tok.Type != lexer.D_QUOTE {
-		p.err = p.Errorf("expected a double quote (\"), got %q", tok.Literal)
+	includeStr, err := p.readString()
+	if err != nil {
+		p.err = err
 		return ERROR
 	}
-
-	var sb strings.Builder
-	for {
-		tok = p.tokenizer.NextToken()
-		if tok.Type == lexer.NEWLINE {
-			p.err = p.Errorf("expected a double quote(\"), got a new line")
-			return ERROR
-		}
-		if tok.Type == lexer.D_QUOTE {
-			break
-		}
-		sb.WriteString(tok.Literal)
-	}
-
 	tok = p.tokenizer.NextToken()
 	if tok.Type != lexer.AS {
 		p.err = p.Errorf("expected as, got %q", tok.Literal)
@@ -382,7 +392,7 @@ func (p *Parser) include() state {
 		p.err = p.Errorf("include name %q was already defined.", tok.Literal)
 		return ERROR
 	}
-	p.Ast.Includes[tok.Literal] = sb.String()
+	p.Ast.Includes[tok.Literal] = includeStr
 	return INCLUDE_STATEMENT
 }
 
@@ -453,26 +463,13 @@ func (p *Parser) embed() state {
 		return ERROR
 	}
 
-	tok = p.tokenizer.NextToken()
-	if tok.Type != lexer.D_QUOTE {
-		p.err = p.Errorf("expected a double quote (\"), got %q", tok.Literal)
+	embedStr, err := p.readString()
+	if err != nil {
+		p.err = err
 		return ERROR
 	}
 
-	var sb strings.Builder
-	for {
-		tok = p.tokenizer.NextToken()
-		if tok.Type == lexer.NEWLINE {
-			p.err = p.Errorf("expected a double quote(\"), got a new line")
-			return ERROR
-		}
-		if tok.Type == lexer.D_QUOTE {
-			break
-		}
-		sb.WriteString(tok.Literal)
-	}
-
-	s := Section{Type: EMBED_FILE, EmbedFile: sb.String()}
+	s := Section{Type: EMBED_FILE, EmbedFile: embedStr}
 	o := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
 	o.Sections = append(o.Sections, s)
 	return SECTION
@@ -537,29 +534,13 @@ func (p *Parser) data_block(cur state) state {
 		return DATA_BLOCK
 
 	case lexer.STRING_TYPE:
-		tok = p.tokenizer.NextToken()
-		if tok.Type != lexer.D_QUOTE {
-			p.err = p.Errorf("expected '\"', got %q", tok.Literal)
+		str, err := p.readString()
+		if err != nil {
+			p.err = err
 			return ERROR
 		}
-
-		// For strings we cannot ignore white spaces.
-		p.tokenizer.IgnoreWhiteSpace(false)
-		defer p.tokenizer.IgnoreWhiteSpace(true)
-		var sb strings.Builder
-		for {
-			tok = p.tokenizer.NextToken()
-			if tok.Type == lexer.NEWLINE {
-				p.err = p.Errorf("epxected '\"', got a new line.")
-				return ERROR
-			}
-			if tok.Type == lexer.D_QUOTE {
-				break
-			}
-			sb.WriteString(tok.Literal)
-		}
 		aBlock.Statements = append(aBlock.Statements, Statement{
-			Str:     sb.String(),
+			Str:     str,
 			lineNum: p.tokenizer.Line(),
 		})
 		return DATA_BLOCK
