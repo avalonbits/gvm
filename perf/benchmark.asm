@@ -26,7 +26,8 @@ interrupt_table:
     ret            ; Timer interrupt.
     ret            ; Input intterupt.
 
-
+.org 0x1000
+.section text
 ; ===== The acutal benchmark function.
 @infunc benchmark:
     ldr r0, [loop_size]
@@ -46,6 +47,7 @@ loop:
 .section data
 	.equ val 7
 
+.org 0x2000
 .section text
 @func update:
     stppi [sp, -8], r0, r1
