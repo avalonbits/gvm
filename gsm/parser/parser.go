@@ -423,17 +423,11 @@ func (p *Parser) org() state {
 }
 
 func (p *Parser) section() state {
-	tok := p.tokenizer.PeakToken()
-	if tok.Type != lexer.SECTION && tok.Type != lexer.EMBED {
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.SECTION {
 		p.err = p.Errorf("expected .section, got %q", tok.Literal)
 		return ERROR
 	}
-
-	if tok.Type == lexer.EMBED {
-		return EMBED_STATEMENT
-	}
-
-	p.tokenizer.NextToken()
 
 	tok = p.tokenizer.NextToken()
 	if tok.Type != lexer.S_DATA && tok.Type != lexer.S_TEXT {
@@ -441,7 +435,8 @@ func (p *Parser) section() state {
 		return ERROR
 	}
 
-	s := Section{Blocks: make([]Block, 1, 4)}
+	// For every new .section entry, we add an empty block and reserver mem for 16.
+	s := Section{Blocks: make([]Block, 1, 16)}
 	var next state
 	if tok.Type == lexer.S_DATA {
 		s.Type = DATA_SECTION
