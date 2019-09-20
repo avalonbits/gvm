@@ -43,6 +43,10 @@ type Org struct {
 	Sections []Section
 }
 
+func (o *Org) activeSection() *Section {
+	return &o.Sections[len(o.Sections)-1]
+}
+
 func (o Org) WordCount() int {
 	var count int
 	for _, s := range o.Sections {
@@ -209,6 +213,15 @@ type Section struct {
 	IncludeName string
 }
 
+func (s *Section) activeBlock() *Block {
+	return &s.Blocks[len(s.Blocks)-1]
+}
+
+func (s *Section) newBlock() *Block {
+	s.Blocks = append(s.Blocks, Block{})
+	return &s.Blocks[len(s.Blocks)-1]
+}
+
 func (s Section) wordCount() int {
 	var count int
 	for _, b := range s.Blocks {
@@ -230,6 +243,10 @@ type Parser struct {
 	Ast       *AST
 	Entry     string
 	Bin       bool
+}
+
+func (p *Parser) activeOrg() *Org {
+	return &p.Ast.Orgs[len(p.Ast.Orgs)-1]
 }
 
 func (p *Parser) Errorf(format string, a ...interface{}) error {
@@ -276,7 +293,7 @@ func (p *Parser) Parse(requireLibrary bool) error {
 		case DATA_BLOCK:
 			st = p.data_block(st)
 		case TEXT_BLOCK:
-			st = p.text_block(st)
+			st = p.textBlock(st)
 		case ERROR:
 			if p.err == nil {
 				panic("reached error state, but no error found")
@@ -485,10 +502,7 @@ func (p *Parser) data_block(cur state) state {
 	}
 
 	// Create a new block and add it to the section.
-	aOrg := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
-	aSection := &aOrg.Sections[len(aOrg.Sections)-1]
-	aSection.Blocks = append(aSection.Blocks, Block{})
-	aBlock := &aSection.Blocks[len(aSection.Blocks)-1]
+	aBlock := p.activeOrg().activeSection().newBlock()
 
 	switch tok.Type {
 	case lexer.IDENT:
@@ -596,12 +610,10 @@ func (p *Parser) parseDataEntries(block *Block) state {
 	}
 }
 
-func (p *Parser) text_block(cur state) state {
-	// Create a new text block.
-	aOrg := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
-	aSection := &aOrg.Sections[len(aOrg.Sections)-1]
-	aSection.Blocks = append(aSection.Blocks, Block{})
-	aBlock := &aSection.Blocks[len(aSection.Blocks)-1]
+func (p *Parser) textBlock(cur state) state {
+	// Create a new text block
+	aSection := p.activeOrg().activeSection()
+	aBlock := aSection.newBlock()
 
 	// If this is not the first block, check if it is part of a function context.
 	if len(aSection.Blocks) > 1 {
@@ -637,101 +649,21 @@ func (p *Parser) text_block(cur state) state {
 		return EMBED_STATEMENT
 	}
 
-	inFunc := aBlock.inFunc
-	exported := false
 	tok = p.tokenizer.NextToken()
 	switch tok.Type {
 	case lexer.FUNC_START:
-		return p.func_start(aBlock, true)
+		return p.funcStart(aBlock, true)
 	case lexer.INFUNC_START:
-		return p.func_start(aBlock, false)
+		return p.funcStart(aBlock, false)
 	case lexer.FUNC_END:
-		return p.func_end(aBlock)
+		return p.funcEnd(aBlock)
 	case lexer.IDENT:
-		return p.text_label(aBlock)
-	default:
-		return p.parseInstructions(aBlock)
+		return p.textLabel(aBlock, tok.Literal)
 	}
-	inFuncScope :=
-		tok.Type == lexer.FUNC_START || tok.Type == lexer.INFUNC_START ||
-			tok.Type == lexer.FUNC_END
-	if tok.Type == lexer.FUNC_START || tok.Type == lexer.INFUNC_START {
-		exported = tok.Type == lexer.FUNC_START
-		tok = p.tokenizer.NextToken()
-		if inFunc {
-			p.err = p.Errorf("expected function end for %q, got function start for %q",
-				aBlock.funcName, tok.Literal)
-			return ERROR
-		}
-		inFunc = true
-	} else if tok.Type == lexer.FUNC_END {
-		tok = p.tokenizer.NextToken()
-		if !aBlock.inFunc {
-			p.err = p.Errorf(
-				"found @endf for %q, but %q is not @func.", tok.Literal, tok.Literal)
-			return ERROR
-		}
-		inFunc = false
-	}
-
-	if tok.Type == lexer.IDENT {
-		label := tok.Literal
-		if !inFunc && aBlock.inFunc {
-			if label != aBlock.funcName {
-				p.err = p.Errorf("expected @endf %v, got @endf %v", aBlock.funcName, label)
-				return ERROR
-			}
-
-			// At this point we know we reached the end of a block, so we need to create
-			// a new one.
-			aSection.Blocks = append(aSection.Blocks, Block{})
-			return TEXT_BLOCK
-		}
-
-		tok = p.tokenizer.NextToken()
-		if tok.Type != lexer.COLON {
-			p.err = p.Errorf("expected \"%s:\", got \"%s%s\"",
-				label, label, tok.Literal)
-			return ERROR
-		}
-
-		// If the current block has no instructions, then we can reuse the block.
-		if len(aBlock.Statements) == 0 {
-			aBlock.inFunc = inFunc
-			if inFunc {
-				aBlock.funcName = label
-			} else {
-				aBlock.Label = label
-			}
-		} else {
-			b := Block{inFunc: inFunc}
-			if inFuncScope && inFunc {
-				b.funcName = label
-			} else if inFunc {
-				b.funcName = aBlock.funcName
-				b.Label = label
-			} else {
-				b.Label = label
-			}
-			aSection.Blocks = append(aSection.Blocks, b)
-		}
-		if inFuncScope && exported {
-			p.Ast.Exported[label] = struct{}{}
-		}
-		return TEXT_BLOCK
-	} else if inFuncScope {
-		p.err = p.Errorf("Expected an identifier for func, got %q", tok.Literal)
-		return ERROR
-	}
-
-	if tok.Type != lexer.INSTRUCTION {
-		p.err = p.Errorf("expected an instruction, got %q", tok.Literal)
-		return ERROR
-	}
-	return ERROR
+	return p.parseInstructions(aBlock)
 }
 
-func (p *Parser) func_start(block *Block, exported bool) state {
+func (p *Parser) funcStart(block *Block, exported bool) state {
 	if block.inFunc {
 		p.err = p.Errorf("Cannot start a new function within an existing function.")
 		return ERROR
@@ -744,18 +676,18 @@ func (p *Parser) func_start(block *Block, exported bool) state {
 		p.err = p.Errorf("Expected a name for the function, got %q", tok.Literal)
 		return ERROR
 	}
+	block.Label = tok.Literal
+	block.funcName = block.Label
 	tok = p.tokenizer.NextToken()
 	if tok.Type != lexer.COLON {
 		p.err = p.Errorf("expected ':', got %q", tok.Literal)
 		return ERROR
 	}
 
-	block.Label = tok.Literal
-	block.funcName = tok.Literal
 	return p.parseInstructions(block)
 }
 
-func (p *Parser) func_end(block *Block) state {
+func (p *Parser) funcEnd(block *Block) state {
 	if !block.inFunc {
 		p.err = p.Errorf("Cannot end a function that was not started.")
 		return ERROR
@@ -784,9 +716,15 @@ func (p *Parser) func_end(block *Block) state {
 	return TEXT_BLOCK
 }
 
-func (p *Parser) text_label(block *Block) state {
-	// First we need t chekc if this label belongs to a function block.
-	return TEXT_BLOCK
+func (p *Parser) textLabel(block *Block, label string) state {
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.COLON {
+		p.err = p.Errorf("Expected a ':', got %q", tok.Literal)
+		return ERROR
+	}
+	block.Label = label
+	return p.parseInstructions(block)
+	return ERROR
 }
 
 func ParseNumber(lit string) (uint32, error) {
@@ -867,7 +805,7 @@ func (p *Parser) parseInstructions(block *Block) state {
 		tok = p.tokenizer.NextToken()
 
 		if tok.Type == lexer.FUNC_END {
-			return p.func_end(block)
+			return p.funcEnd(block)
 		}
 		if tok.Type != lexer.INSTRUCTION {
 			p.err = p.Errorf("expected an instruction, got %q", tok.Literal)
