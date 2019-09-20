@@ -159,6 +159,7 @@ type Block struct {
 	inFunc     bool
 	funcName   string
 	Statements []Statement
+	exported   bool
 }
 
 func (b Block) Errorf(format string, a ...interface{}) error {
@@ -620,10 +621,21 @@ func (p *Parser) text_block(cur state) state {
 		}
 		return EMBED_STATEMENT
 	}
-
 	inFunc := aBlock.inFunc
 	exported := false
 	tok = p.tokenizer.NextToken()
+	switch tok.Type {
+	case lexer.FUNC_START:
+		return p.func_start(aBlock, true)
+	case lexer.INFUNC_START:
+		return p.func_start(aBlock, false)
+	case lexer.FUNC_END:
+		return p.func_end(aBlock)
+	case lexer.IDENT:
+		return p.text_label(aBlock)
+	default:
+		return p.parse_instructions(aBlock)
+	}
 	inFuncScope :=
 		tok.Type == lexer.FUNC_START || tok.Type == lexer.INFUNC_START ||
 			tok.Type == lexer.FUNC_END
@@ -701,6 +713,22 @@ func (p *Parser) text_block(cur state) state {
 		return ERROR
 	}
 	return p.parseInstruction(aBlock, tok)
+}
+
+func (p *Parser) func_start(block *Block, exported bool) state {
+	return TEXT_BLOCK
+}
+
+func (p *Parser) func_end(block *Block) state {
+	return TEXT_BLOCK
+}
+
+func (p *Parser) text_label(block *Block) state {
+	return TEXT_BLOCK
+}
+
+func (p *Parser) parse_instructions(block *Block) state {
+	return TEXT_BLOCK
 }
 
 func ParseNumber(lit string) (uint32, error) {
