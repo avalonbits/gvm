@@ -68,6 +68,8 @@ type Statement struct {
 	ArraySize int
 	Str       string
 	lineNum   int
+
+	ResolveReference bool
 }
 
 func (s Statement) Errorf(format string, a ...interface{}) error {

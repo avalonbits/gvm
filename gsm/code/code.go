@@ -262,14 +262,16 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) error {
 								return statement.Errorf("error processing instruction %q: %v",
 									statement.Instr, err)
 							}
+							statement.ResolveReference =
+								statement.ResolveReference || op.Type == parser.OP_EXTERNAL_LABEL
 						}
 						continue
 					}
 
 					if statement.Label != "" {
 						if strings.Index(statement.Label, ".") != -1 {
-							// This is an included label. We can't do anything here yet, let's skip it.
-							statement.Value = 0 // just in case it was set to something else.
+							// This is an included label. We will resolve the reference later.
+							statement.ResolveReference = true
 							continue
 						}
 
