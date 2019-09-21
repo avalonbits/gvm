@@ -384,10 +384,7 @@ func writeObject(ast *parser.AST, name string, allObjs map[string]*object, buf *
 							nb += uint32(len(bytes))
 						} else {
 							if statement.Label != "" {
-								// This is an external label that hasn't been resolved. We need to
-								// check the already compiled objects to see if it is available.
-								// TODO(icc): Get the compiled objects here so we can resolve the
-								// reference immediately.
+								return statement.Errorf("unresolved reference to %q", statement.Label)
 							}
 							binary.LittleEndian.PutUint32(word, statement.Value)
 							if _, err := buf.Write(word); err != nil {
@@ -396,6 +393,9 @@ func writeObject(ast *parser.AST, name string, allObjs map[string]*object, buf *
 							nb += 4
 						}
 						continue
+					}
+					if statement.ResolveReference {
+						return statement.Errorf("%q: unresolved reference", statement.Instr)
 					}
 					w, err := encode(statement.Instr)
 					if err != nil {
