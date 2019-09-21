@@ -75,8 +75,15 @@ func generateObject(ast *parser.AST, name string, allObjs map[string]*object) er
 	if err := assignLocalAddresses(localLabelMap, ast); err != nil {
 		return err
 	}
-	if err := convertLocalNames(localLabelMap, ast); err != nil {
+	resolve, err := convertLocalNames(localLabelMap, ast)
+	if err != nil {
 		return err
+	}
+
+	if resolve {
+		if err := resolveExternalReferences(allObjs, ast); err != nil {
+			return err
+		}
 	}
 
 	var b bytes.Buffer
@@ -239,7 +246,8 @@ func assignLocalAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 	return nil
 }
 
-func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) error {
+func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) (bool, error) {
+	resolve := false
 	for _, org := range ast.Orgs {
 		for _, section := range org.Sections {
 			for _, block := range section.Blocks {
@@ -259,11 +267,12 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) error {
 								statement.Instr.Name, addr, block,
 								section.IncludeName, localLabelMap, ast.Consts, op)
 							if err != nil {
-								return statement.Errorf("error processing instruction %q: %v",
+								return false, statement.Errorf("error processing instruction %q: %v",
 									statement.Instr, err)
 							}
 							statement.ResolveReference =
 								statement.ResolveReference || op.Type == parser.OP_EXTERNAL_LABEL
+							resolve = resolve || op.Type == parser.OP_EXTERNAL_LABEL
 						}
 						continue
 					}
@@ -272,13 +281,14 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) error {
 						if strings.Index(statement.Label, ".") != -1 {
 							// This is an included label. We will resolve the reference later.
 							statement.ResolveReference = true
+							resolve = true
 							continue
 						}
 
 						// This is a data entry with a label. Get the address if it is a local label.
 						addr, ok := localLabelMap[statement.Label]
 						if !ok {
-							return statement.Errorf("label does not exist: %q", statement.Label)
+							return false, statement.Errorf("label does not exist: %q", statement.Label)
 						}
 						statement.Label = ""
 						statement.Value = addr
@@ -287,7 +297,7 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) error {
 			}
 		}
 	}
-	return nil
+	return resolve, nil
 }
 
 func convertLocalOperand(instr string, instrAddr uint32, block parser.Block, inclName string, labelMap map[string]uint32, consts map[string]string, op *parser.Operand) error {
@@ -343,6 +353,10 @@ func convertLocalOperand(instr string, instrAddr uint32, block parser.Block, inc
 	if op.Type != parser.OP_DIFF {
 		op.Type = parser.OP_NUMBER
 	}
+	return nil
+}
+
+func resolveExternalReferences(allObjs map[string]*object, ast *parser.AST) error {
 	return nil
 }
 
