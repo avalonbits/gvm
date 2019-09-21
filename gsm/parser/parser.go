@@ -724,7 +724,6 @@ func (p *Parser) textLabel(block *Block, label string) state {
 	}
 	block.Label = label
 	return p.parseInstructions(block)
-	return ERROR
 }
 
 func ParseNumber(lit string) (uint32, error) {
