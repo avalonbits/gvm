@@ -163,7 +163,7 @@ type Block struct {
 	inFunc     bool
 	funcName   string
 	Statements []Statement
-	exported   bool
+	Exported   bool
 }
 
 func (b Block) Errorf(format string, a ...interface{}) error {
@@ -679,7 +679,7 @@ func (p *Parser) funcStart(block *Block, exported bool) state {
 		return ERROR
 	}
 	block.inFunc = true
-	block.exported = exported
+	block.Exported = exported
 
 	tok := p.tokenizer.NextToken()
 	if tok.Type != lexer.IDENT {

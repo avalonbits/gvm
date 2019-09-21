@@ -559,6 +559,7 @@ func encode1op(i parser.Instruction, rr, ri _1op) (parser.Word, error) {
 		return parser.Word(0),
 			fmt.Errorf("%q: label substitution was not performed.", i)
 	}
+	log.Println(i.Op1.Type)
 	if i.Op1.Type == parser.OP_REG {
 		return rr(rToI(i.Op1.Op)), nil
 	} else {
