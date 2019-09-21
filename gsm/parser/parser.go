@@ -182,10 +182,14 @@ func (b Block) LabelName(incl string) string {
 }
 
 func (b Block) JumpName(incl, label string) string {
-	if incl == "" {
-		return b.funcName + label
+	s := b.funcName + label
+	if b.funcName == label {
+		s = label
 	}
-	return incl + "." + b.funcName + label
+	if incl == "" {
+		return s
+	}
+	return incl + "." + s
 }
 
 func (b Block) WordCount() int {
@@ -214,7 +218,11 @@ type Section struct {
 }
 
 func (s *Section) activeBlock() *Block {
-	return &s.Blocks[len(s.Blocks)-1]
+	ln := len(s.Blocks)
+	if ln == 0 {
+		return nil
+	}
+	return &s.Blocks[ln-1]
 }
 
 func (s *Section) newBlock() *Block {
@@ -291,7 +299,7 @@ func (p *Parser) Parse(requireLibrary bool) error {
 		case INCLUDE_STATEMENT:
 			st = p.include()
 		case DATA_BLOCK:
-			st = p.data_block(st)
+			st = p.dataBlock(st)
 		case TEXT_BLOCK:
 			st = p.textBlock(st)
 		case ERROR:
@@ -488,7 +496,7 @@ func (p *Parser) embed() state {
 	return SECTION
 }
 
-func (p *Parser) data_block(cur state) state {
+func (p *Parser) dataBlock(cur state) state {
 	tok := p.tokenizer.PeakToken()
 	if tok.Type == lexer.ORG {
 		return ORG
@@ -613,18 +621,11 @@ func (p *Parser) parseDataEntries(block *Block) state {
 func (p *Parser) textBlock(cur state) state {
 	// Create a new text block
 	aSection := p.activeOrg().activeSection()
-	aBlock := aSection.newBlock()
-
-	// If this is not the first block, check if it is part of a function context.
-	if len(aSection.Blocks) > 1 {
-		pBlock := &aSection.Blocks[len(aSection.Blocks)-2]
-		aBlock.inFunc = pBlock.inFunc
-		aBlock.funcName = pBlock.funcName
-	}
+	aBlock := aSection.activeBlock()
 
 	tok := p.tokenizer.PeakToken()
 	if tok.Type == lexer.ORG {
-		if aBlock.inFunc {
+		if aBlock != nil && aBlock.inFunc {
 			p.err = p.Errorf(
 				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
 			return ERROR
@@ -632,7 +633,7 @@ func (p *Parser) textBlock(cur state) state {
 		return ORG
 	}
 	if tok.Type == lexer.SECTION {
-		if aBlock.inFunc {
+		if aBlock != nil && aBlock.inFunc {
 			p.err = p.Errorf(
 				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
 			return ERROR
@@ -641,12 +642,21 @@ func (p *Parser) textBlock(cur state) state {
 		return SECTION
 	}
 	if tok.Type == lexer.EMBED {
-		if aBlock.inFunc {
+		if aBlock != nil && aBlock.inFunc {
 			p.err = p.Errorf(
 				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
 			return ERROR
 		}
 		return EMBED_STATEMENT
+	}
+
+	aBlock = aSection.newBlock()
+
+	// If this is not the first block, check if it is part of a function context.
+	if len(aSection.Blocks) > 1 {
+		pBlock := &aSection.Blocks[len(aSection.Blocks)-2]
+		aBlock.inFunc = pBlock.inFunc
+		aBlock.funcName = pBlock.funcName
 	}
 
 	tok = p.tokenizer.NextToken()
