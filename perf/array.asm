@@ -16,8 +16,6 @@
 
 .bin
 
-.include "../includes/memory.asm" as memory
-
 .org 0x0
 .section text
 
@@ -35,6 +33,8 @@ size_words: .int 0x40000   ; 256Ki words.
 faddr: .int farray
 taddr: .int tarray
 iter: .int 300
+
+.include "../includes/memory.asm" as memory
 
 .section text
 

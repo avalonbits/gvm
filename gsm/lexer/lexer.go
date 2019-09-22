@@ -40,6 +40,10 @@ func (t Token) String() string {
 	return fmt.Sprintf("%s(%s)", t.Type, t.Literal)
 }
 
+func (t TokenType) IsTopLevel() bool {
+	return t == ORG || t == SECTION || t == EMBED || t == INCLUDE
+}
+
 const (
 	ILLEGAL TokenType = iota
 	EOF

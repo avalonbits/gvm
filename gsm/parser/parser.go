@@ -274,6 +274,8 @@ func New(t Tokenizer) *Parser {
 
 type state int
 
+var errEOF = errors.New("EOF")
+
 const (
 	START state = iota
 	ORG
@@ -287,41 +289,355 @@ const (
 )
 
 func (p *Parser) Parse(requireLibrary bool) error {
-	st := p.skipCommentsAndWhitespace(START)
-	for ; st != END; st = p.skipCommentsAndWhitespace(st) {
-		switch st {
-		case START:
-			st = p.mode(requireLibrary)
-		case ORG:
-			st = p.org()
-		case SECTION:
-			st = p.section()
-		case EMBED_STATEMENT:
-			st = p.embed()
-		case INCLUDE_STATEMENT:
-			st = p.include()
-		case DATA_BLOCK:
-			st = p.dataBlock(st)
-		case TEXT_BLOCK:
-			st = p.textBlock(st)
-		case ERROR:
-			if p.err == nil {
-				panic("reached error state, but no error found")
-			}
-			st = END
-		}
+	err := p.mode(requireLibrary)
+	if err != nil && err != errEOF {
+		return err
 	}
-	return p.err
+	return nil
 }
 
-func (p *Parser) skipCommentsAndWhitespace(next state) state {
+func (p *Parser) mode(requireLibrary bool) error {
+	if err := p.skipCommentsAndWhitespace(); err != nil {
+		return err
+	}
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.BIN_FILE && tok.Type != lexer.PROGRAM_FILE && tok.Type != lexer.LIBRARY_FILE {
+		return p.Errorf("expected .bin, .program or .library, got %q", tok.Literal)
+	}
+	if requireLibrary && tok.Type != lexer.LIBRARY_FILE {
+		return p.Errorf("this file is being included by another, so it must be a .library")
+	}
+	p.Bin = tok.Type == lexer.BIN_FILE
+	if p.Bin {
+		return p.binary()
+	}
+	if tok.Type == lexer.PROGRAM_FILE {
+		tok = p.tokenizer.NextToken()
+		if tok.Type != lexer.IDENT {
+			return p.Errorf("expected an entry point, got %q", tok.Literal)
+		}
+		p.Entry = tok.Literal
+	}
+
+	// For library and program, we create a single PIC org before moving to section parser.
+	o := Org{PIC: true, Addr: 0}
+	p.Ast.Orgs = append(p.Ast.Orgs, o)
+
+	return p.programOrLibrary()
+}
+
+func (p *Parser) binary() error {
+	for {
+		if err := p.skipCommentsAndWhitespace(); err != nil {
+			return err
+		}
+		if err := p.org(); err != nil {
+			return err
+		}
+	}
+	return errEOF
+}
+
+func (p *Parser) programOrLibrary() error {
+	for {
+		if err := p.skipCommentsAndWhitespace(); err != nil {
+			return err
+		}
+	}
+	return errEOF
+}
+
+func (p *Parser) org() error {
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.ORG {
+		return p.Errorf("expected .org got %q", tok.Literal)
+	}
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.NUMBER {
+		return p.Errorf("expected an address constant, got %q\n", tok.Literal)
+	}
+
+	n, err := p.parseNumber(tok.Literal)
+	if err != nil {
+		return err
+	}
+	o := Org{PIC: false, Addr: n}
+	p.Ast.Orgs = append(p.Ast.Orgs, o)
+
+	for {
+		if err := p.skipCommentsAndWhitespace(); err != nil {
+			return err
+		}
+
+		tok := p.tokenizer.PeakToken()
+		switch tok.Type {
+		case lexer.SECTION:
+			if err := p.section(); err != nil {
+				return err
+			} /*
+				case lexer.EMBED:
+					if err := p.embed(); err != nil {
+						return err
+					}
+				case lexer.INCLUDE:
+					if err := p.include(); err != nil {
+						return err
+					}*/
+		default:
+			return nil
+		}
+	}
+	return errEOF
+}
+
+func (p *Parser) section() error {
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.SECTION {
+		return p.Errorf("expected .section, got %q", tok.Literal)
+	}
+
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.S_DATA && tok.Type != lexer.S_TEXT {
+		return p.Errorf("expected data or text, got %q", tok.Literal)
+	}
+
+	// For every new .section entry, we reserve memory for 8 blocks.
+	o := p.activeOrg()
+	o.Sections = append(o.Sections, Section{Blocks: make([]Block, 0, 8)})
+	s := o.activeSection()
+
+	if tok.Type == lexer.S_DATA {
+		s.Type = DATA_SECTION
+		return p.dataBlock()
+	}
+	s.Type = TEXT_SECTION
+	return p.textBlock()
+}
+
+func (p *Parser) dataBlock() error {
+	for {
+		if err := p.skipCommentsAndWhitespace(); err != nil {
+			return err
+		}
+
+		tok := p.tokenizer.PeakToken()
+		if tok.Type.IsTopLevel() {
+			return nil
+		}
+
+		// Create a new block and add it to the section.
+		aBlock := p.activeOrg().activeSection().newBlock()
+
+		switch tok.Type {
+		case lexer.IDENT:
+			tok := p.tokenizer.NextToken()
+			label := tok.Literal
+			tok = p.tokenizer.NextToken()
+			if tok.Type != lexer.COLON {
+				return p.Errorf("expected \"%s:\", got \"%s%s\"", label, label, tok.Literal)
+			}
+			aBlock.Label = label
+		}
+		if err := p.parseDataEntries(aBlock); err != nil {
+			return err
+		}
+	}
+}
+
+func (p *Parser) textBlock() error {
+	for {
+		aBlock := p.activeOrg().activeSection().activeBlock()
+		if err := p.skipCommentsAndWhitespace(); err != nil {
+			if err == errEOF && (aBlock != nil && aBlock.inFunc) {
+				return p.Errorf("function %q was not closed.", aBlock.funcName)
+			}
+			return err
+		}
+
+		tok := p.tokenizer.PeakToken()
+		if tok.Type.IsTopLevel() {
+			if aBlock == nil || len(aBlock.Statements) == 0 {
+				return p.Errorf("empty data sections are not allowed")
+			}
+			if aBlock.inFunc {
+				return p.Errorf(
+					"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
+			}
+			return nil
+		}
+
+		// Create a new text block
+		aSection := p.activeOrg().activeSection()
+		aBlock = aSection.newBlock()
+
+		// If this is not the first block, check if it is part of a function context.
+		if len(aSection.Blocks) > 1 {
+			pBlock := &aSection.Blocks[len(aSection.Blocks)-2]
+			aBlock.inFunc = pBlock.inFunc
+			aBlock.funcName = pBlock.funcName
+		}
+
+		tok = p.tokenizer.NextToken()
+		switch tok.Type {
+		case lexer.FUNC_START:
+			if err := p.funcStart(aBlock, true); err != nil {
+				return err
+			}
+		case lexer.INFUNC_START:
+			if err := p.funcStart(aBlock, false); err != nil {
+				return err
+			}
+		case lexer.IDENT:
+			label := tok.Literal
+			tok := p.tokenizer.NextToken()
+			if tok.Type != lexer.COLON {
+				return p.Errorf("expected a ':', got %q", tok.Literal)
+			}
+			aBlock.Label = label
+		default:
+			return p.Errorf("invalid token %q", tok.Literal)
+		}
+		if err := p.parseInstructions(aBlock); err != nil {
+			return err
+		}
+	}
+}
+
+func (p *Parser) parseDataEntries(block *Block) error {
+	for {
+		if err := p.skipCommentsAndWhitespace(); err != nil {
+			return err
+		}
+		tok := p.tokenizer.PeakToken()
+		if tok.Type.IsTopLevel() || tok.Type == lexer.IDENT {
+			return nil
+		}
+		tok = p.tokenizer.NextToken()
+
+		switch tok.Type {
+		case lexer.ARRAY_TYPE:
+			tok = p.tokenizer.NextToken()
+			if tok.Type != lexer.NUMBER {
+				return p.Errorf("expected a number, got %q", tok.Literal)
+			}
+			n, err := p.parseNumber(tok.Literal)
+			if err != nil {
+				return err
+			}
+			if n <= 0 {
+				return p.Errorf("expected array with positive value, got %d", n)
+			}
+
+			block.Statements = append(block.Statements, Statement{
+				ArraySize: int(n),
+				lineNum:   p.tokenizer.Line(),
+			})
+
+		case lexer.STRING_TYPE:
+			str, err := p.readString()
+			if err != nil {
+				return err
+			}
+			block.Statements = append(block.Statements, Statement{
+				Str:     str,
+				lineNum: p.tokenizer.Line(),
+			})
+
+		case lexer.INT_TYPE:
+			tok = p.tokenizer.NextToken()
+			if tok.Type == lexer.IDENT {
+				// This is likely a label the user wants to store the adress from.
+				block.Statements = append(block.Statements, Statement{
+					Label:   tok.Literal,
+					lineNum: p.tokenizer.Line(),
+				})
+				break
+			}
+
+			n, err := p.parseNumber(tok.Literal)
+			if err != nil {
+				return err
+			}
+
+			block.Statements = append(block.Statements, Statement{
+				Value:   n,
+				lineNum: p.tokenizer.Line(),
+			})
+		case lexer.EQUATE:
+			tok = p.tokenizer.NextToken()
+			if tok.Type != lexer.IDENT {
+				return p.Errorf("expected an identifier, got %q", tok.Literal)
+			}
+			constant := tok.Literal
+			if _, ok := p.Ast.Consts[constant]; ok {
+				return p.Errorf("constant %q was previously defined.", constant)
+			}
+
+			tok = p.tokenizer.NextToken()
+			if tok.Type != lexer.NUMBER {
+				return p.Errorf("epxected a number, got %q", tok.Literal)
+			}
+			p.Ast.Consts[constant] = tok.Literal
+		default:
+			return p.Errorf("expected either a label, value or a constant definition, got %q", tok.Literal)
+		}
+	}
+}
+
+func (p *Parser) funcStart(block *Block, exported bool) error {
+	if block.inFunc {
+		return p.Errorf("Cannot start a new function within an existing function.")
+	}
+	block.inFunc = true
+	block.Exported = exported
+
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.IDENT {
+		return p.Errorf("Expected a name for the function, got %q", tok.Literal)
+	}
+	block.Label = tok.Literal
+	block.funcName = block.Label
+	tok = p.tokenizer.NextToken()
+	if tok.Type != lexer.COLON {
+		return p.Errorf("expected ':', got %q", tok.Literal)
+	}
+	return nil
+}
+
+func (p *Parser) funcEnd(block *Block) error {
+	if !block.inFunc {
+		return p.Errorf("cannot end a function that was not started.")
+	}
+
+	tok := p.tokenizer.NextToken()
+	if tok.Type != lexer.IDENT || tok.Literal != block.funcName {
+		return p.Errorf("expected %q, the name of the function; got %q", block.funcName, tok.Literal)
+	}
+
+	// The last statement of a function must be an unambiguous control transfer.
+	// That means it must either be a "ret", "jmp" or a "halt". "call" is not allowed
+	// because it can return back to the function. For the same reason, condition jumps
+	// ("jne, "jeq", etc...) are also not allowed.
+	if len(block.Statements) == 0 {
+		return p.Errorf("function cannot be empty.")
+	}
+	instr := &block.Statements[len(block.Statements)-1].Instr
+	if instr.Name == "" || (instr.Name != "ret" && instr.Name != "jmp" && instr.Name != "halt") {
+		return p.Errorf("function %q must end with either a 'ret', 'jmp' or 'halt' instruction.",
+			block.funcName)
+	}
+	block.inFunc = false
+	return nil
+}
+
+func (p *Parser) skipCommentsAndWhitespace() error {
 	for {
 		tok := p.tokenizer.PeakToken()
 		if tok.Type == lexer.EOF {
-			return END
+			return errEOF
 		}
 		if tok.Type != lexer.SEMICOLON && tok.Type != lexer.NEWLINE {
-			return next
+			return nil
 		}
 		if tok.Type == lexer.SEMICOLON {
 			for tok.Type != lexer.NEWLINE && tok.Type != lexer.EOF {
@@ -331,36 +647,7 @@ func (p *Parser) skipCommentsAndWhitespace(next state) state {
 			p.tokenizer.NextToken()
 		}
 	}
-}
-
-func (p *Parser) mode(requireLibrary bool) state {
-	tok := p.tokenizer.NextToken()
-	if tok.Type != lexer.BIN_FILE && tok.Type != lexer.PROGRAM_FILE && tok.Type != lexer.LIBRARY_FILE {
-		p.err = p.Errorf("expected .bin, .program or .library, got %q", tok.Literal)
-		return ERROR
-	}
-	if requireLibrary && tok.Type != lexer.LIBRARY_FILE {
-		p.err = p.Errorf("this file is being included by another, so it must be a .library")
-		return ERROR
-	}
-	p.Bin = tok.Type == lexer.BIN_FILE
-	if p.Bin {
-		return INCLUDE_STATEMENT
-	}
-	if tok.Type == lexer.PROGRAM_FILE {
-		tok = p.tokenizer.NextToken()
-		if tok.Type != lexer.IDENT {
-			p.err = p.Errorf("expected an entry point, got %q", tok.Literal)
-			return ERROR
-		}
-		p.Entry = tok.Literal
-	}
-
-	// For library and program, we create a single PIC org before moving to section parser.
-	o := Org{PIC: true, Addr: 0}
-	p.Ast.Orgs = append(p.Ast.Orgs, o)
-
-	return INCLUDE_STATEMENT
+	return errEOF
 }
 
 func (p *Parser) readString() (string, error) {
@@ -388,6 +675,7 @@ func (p *Parser) readString() (string, error) {
 	return sb.String(), nil
 }
 
+/*
 func (p *Parser) include() state {
 	tok := p.tokenizer.PeakToken()
 	if tok.Type != lexer.INCLUDE {
@@ -424,60 +712,6 @@ func (p *Parser) include() state {
 	return INCLUDE_STATEMENT
 }
 
-func (p *Parser) org() state {
-	if !p.Bin {
-		p.err = p.Errorf(".org directives are only allowed in .bin files.")
-		return ERROR
-	}
-	tok := p.tokenizer.NextToken()
-	if tok.Type != lexer.ORG {
-		p.err = p.Errorf("expected .org got %q", tok.Literal)
-		return ERROR
-	}
-	tok = p.tokenizer.NextToken()
-	if tok.Type != lexer.NUMBER {
-		p.err = p.Errorf("expected an address constant, got %q\n", tok.Literal)
-		return ERROR
-	}
-
-	n, err := p.parseNumber(tok.Literal)
-	if err != nil {
-		p.err = err
-		return ERROR
-	}
-	o := Org{PIC: false, Addr: n}
-	p.Ast.Orgs = append(p.Ast.Orgs, o)
-	return SECTION
-}
-
-func (p *Parser) section() state {
-	tok := p.tokenizer.NextToken()
-	if tok.Type != lexer.SECTION {
-		p.err = p.Errorf("expected .section, got %q", tok.Literal)
-		return ERROR
-	}
-
-	tok = p.tokenizer.NextToken()
-	if tok.Type != lexer.S_DATA && tok.Type != lexer.S_TEXT {
-		p.err = p.Errorf("expected data, embed or text, got %q", tok.Literal)
-		return ERROR
-	}
-
-	// For every new .section entry, we reserve memory for 8 blocks.
-	s := Section{Blocks: make([]Block, 0, 8)}
-	var next state
-	if tok.Type == lexer.S_DATA {
-		s.Type = DATA_SECTION
-		next = DATA_BLOCK
-	} else {
-		s.Type = TEXT_SECTION
-		next = TEXT_BLOCK
-	}
-
-	o := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
-	o.Sections = append(o.Sections, s)
-	return next
-}
 
 func (p *Parser) embed() state {
 	tok := p.tokenizer.NextToken()
@@ -496,247 +730,7 @@ func (p *Parser) embed() state {
 	o := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
 	o.Sections = append(o.Sections, s)
 	return SECTION
-}
-
-func (p *Parser) dataBlock(cur state) state {
-	tok := p.tokenizer.PeakToken()
-	if tok.Type == lexer.ORG {
-		return ORG
-	}
-	if tok.Type == lexer.SECTION {
-		return SECTION
-	}
-
-	if tok.Type == lexer.EMBED {
-		return EMBED_STATEMENT
-	}
-
-	// Create a new block and add it to the section.
-	aBlock := p.activeOrg().activeSection().newBlock()
-
-	switch tok.Type {
-	case lexer.IDENT:
-		tok := p.tokenizer.NextToken()
-		label := tok.Literal
-		tok = p.tokenizer.NextToken()
-		if tok.Type != lexer.COLON {
-			p.err = p.Errorf("expected \"%s:\", got \"%s%s\"",
-				label, label, tok.Literal)
-			return ERROR
-		}
-		aBlock.Label = label
-	}
-	return p.parseDataEntries(aBlock)
-}
-
-func (p *Parser) parseDataEntries(block *Block) state {
-	for {
-		if st := p.skipCommentsAndWhitespace(START); st != START {
-			return st
-		}
-		tok := p.tokenizer.PeakToken()
-		if tok.Type == lexer.ORG || tok.Type == lexer.SECTION || tok.Type == lexer.EMBED ||
-			tok.Type == lexer.IDENT {
-			return DATA_BLOCK
-		}
-		tok = p.tokenizer.NextToken()
-
-		switch tok.Type {
-		case lexer.ARRAY_TYPE:
-			tok = p.tokenizer.NextToken()
-			if tok.Type != lexer.NUMBER {
-				p.err = p.Errorf("expected a number, got %q", tok.Literal)
-				return ERROR
-			}
-			n, err := p.parseNumber(tok.Literal)
-			if err != nil {
-				p.err = err
-				return ERROR
-			}
-			if n <= 0 {
-				p.err = p.Errorf("expected array with positive value, got %d", n)
-				return ERROR
-			}
-
-			block.Statements = append(block.Statements, Statement{
-				ArraySize: int(n),
-				lineNum:   p.tokenizer.Line(),
-			})
-
-		case lexer.STRING_TYPE:
-			str, err := p.readString()
-			if err != nil {
-				p.err = err
-				return ERROR
-			}
-			block.Statements = append(block.Statements, Statement{
-				Str:     str,
-				lineNum: p.tokenizer.Line(),
-			})
-
-		case lexer.INT_TYPE:
-			tok = p.tokenizer.NextToken()
-			if tok.Type == lexer.IDENT {
-				// This is likely a label the user wants to store the adress from.
-				block.Statements = append(block.Statements, Statement{
-					Label:   tok.Literal,
-					lineNum: p.tokenizer.Line(),
-				})
-				break
-			}
-
-			n, err := p.parseNumber(tok.Literal)
-			if err != nil {
-				p.err = err
-				return ERROR
-			}
-
-			block.Statements = append(block.Statements, Statement{
-				Value:   n,
-				lineNum: p.tokenizer.Line(),
-			})
-		case lexer.EQUATE:
-			tok = p.tokenizer.NextToken()
-			if tok.Type != lexer.IDENT {
-				p.err = p.Errorf("expected an identifier, got %q", tok.Literal)
-				return ERROR
-			}
-			constant := tok.Literal
-			if _, ok := p.Ast.Consts[constant]; ok {
-				p.err = p.Errorf("constant %q was previously defined.", constant)
-				return ERROR
-			}
-
-			tok = p.tokenizer.NextToken()
-			if tok.Type != lexer.NUMBER {
-				p.err = p.Errorf("epxected a number, got %q", tok.Literal)
-				return ERROR
-			}
-			p.Ast.Consts[constant] = tok.Literal
-		default:
-			p.err = p.Errorf("expected either a label or a constant definition, got %q", tok.Literal)
-			return ERROR
-		}
-	}
-}
-
-func (p *Parser) textBlock(cur state) state {
-	// Create a new text block
-	aSection := p.activeOrg().activeSection()
-	aBlock := aSection.activeBlock()
-
-	tok := p.tokenizer.PeakToken()
-	if tok.Type == lexer.ORG {
-		if aBlock != nil && aBlock.inFunc {
-			p.err = p.Errorf(
-				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
-			return ERROR
-		}
-		return ORG
-	}
-	if tok.Type == lexer.SECTION {
-		if aBlock != nil && aBlock.inFunc {
-			p.err = p.Errorf(
-				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
-			return ERROR
-		}
-
-		return SECTION
-	}
-	if tok.Type == lexer.EMBED {
-		if aBlock != nil && aBlock.inFunc {
-			p.err = p.Errorf(
-				"expected function end for %q, got %q", aBlock.funcName, tok.Literal)
-			return ERROR
-		}
-		return EMBED_STATEMENT
-	}
-
-	aBlock = aSection.newBlock()
-
-	// If this is not the first block, check if it is part of a function context.
-	if len(aSection.Blocks) > 1 {
-		pBlock := &aSection.Blocks[len(aSection.Blocks)-2]
-		aBlock.inFunc = pBlock.inFunc
-		aBlock.funcName = pBlock.funcName
-	}
-
-	tok = p.tokenizer.NextToken()
-	switch tok.Type {
-	case lexer.FUNC_START:
-		return p.funcStart(aBlock, true)
-	case lexer.INFUNC_START:
-		return p.funcStart(aBlock, false)
-	case lexer.FUNC_END:
-		return p.funcEnd(aBlock)
-	case lexer.IDENT:
-		return p.textLabel(aBlock, tok.Literal)
-	}
-	return p.parseInstructions(aBlock)
-}
-
-func (p *Parser) funcStart(block *Block, exported bool) state {
-	if block.inFunc {
-		p.err = p.Errorf("Cannot start a new function within an existing function.")
-		return ERROR
-	}
-	block.inFunc = true
-	block.Exported = exported
-
-	tok := p.tokenizer.NextToken()
-	if tok.Type != lexer.IDENT {
-		p.err = p.Errorf("Expected a name for the function, got %q", tok.Literal)
-		return ERROR
-	}
-	block.Label = tok.Literal
-	block.funcName = block.Label
-	tok = p.tokenizer.NextToken()
-	if tok.Type != lexer.COLON {
-		p.err = p.Errorf("expected ':', got %q", tok.Literal)
-		return ERROR
-	}
-
-	return p.parseInstructions(block)
-}
-
-func (p *Parser) funcEnd(block *Block) state {
-	if !block.inFunc {
-		p.err = p.Errorf("Cannot end a function that was not started.")
-		return ERROR
-	}
-	tok := p.tokenizer.NextToken()
-	if tok.Type != lexer.IDENT || tok.Literal != block.funcName {
-		p.err = p.Errorf("Expected %q, the name of the function; got %q", block.funcName, tok.Literal)
-		return ERROR
-	}
-
-	// The last statement of a function must be an unambiguous control transfer.
-	// That means it must either be a "ret", "jmp" or a "halt". "call" is not allowed
-	// because it can return back to the function. For the same reason, condition jumps
-	// ("jne, "jeq", etc...) are also not allowed.
-	if len(block.Statements) == 0 {
-		p.err = p.Errorf("Cannot end a function with no instructions.")
-		return ERROR
-	}
-	instr := &block.Statements[len(block.Statements)-1].Instr
-	if instr.Name == "" || (instr.Name != "ret" && instr.Name != "jmp" && instr.Name != "halt") {
-		p.err = p.Errorf("Function %q must end with either a 'ret', 'jmp' or 'halt' instruction.",
-			block.funcName)
-		return ERROR
-	}
-	block.inFunc = false
-	return TEXT_BLOCK
-}
-
-func (p *Parser) textLabel(block *Block, label string) state {
-	tok := p.tokenizer.NextToken()
-	if tok.Type != lexer.COLON {
-		p.err = p.Errorf("Expected a ':', got %q", tok.Literal)
-		return ERROR
-	}
-	block.Label = label
-	return p.parseInstructions(block)
-}
+}*/
 
 func ParseNumber(lit string) (uint32, error) {
 	var n int64
@@ -803,15 +797,14 @@ var (
 	}
 )
 
-func (p *Parser) parseInstructions(block *Block) state {
+func (p *Parser) parseInstructions(block *Block) error {
 	for {
-		if st := p.skipCommentsAndWhitespace(START); st != START {
-			return st
+		if err := p.skipCommentsAndWhitespace(); err != nil {
+			return err
 		}
 		tok := p.tokenizer.PeakToken()
-		if tok.Type == lexer.ORG || tok.Type == lexer.SECTION || tok.Type == lexer.EMBED ||
-			tok.Type == lexer.IDENT {
-			return TEXT_BLOCK
+		if tok.Type.IsTopLevel() || tok.Type == lexer.IDENT {
+			return nil
 		}
 		tok = p.tokenizer.NextToken()
 
@@ -819,8 +812,7 @@ func (p *Parser) parseInstructions(block *Block) state {
 			return p.funcEnd(block)
 		}
 		if tok.Type != lexer.INSTRUCTION {
-			p.err = p.Errorf("expected an instruction, got %q", tok.Literal)
-			return ERROR
+			return p.Errorf("expected an instruction, got %q", tok.Literal)
 		}
 
 		// Instructions either have 0-4 operands. ldr and str and variations have brakets around
@@ -829,8 +821,7 @@ func (p *Parser) parseInstructions(block *Block) state {
 		instr := &Instruction{Name: tok.Literal}
 		opCount, ok := operands[instr.Name]
 		if !ok {
-			p.err = p.Errorf("instruction not present in operand table: %q", instr.Name)
-			return ERROR
+			return p.Errorf("instruction not present in operand table: %q", instr.Name)
 		}
 
 		s := Statement{Instr: *instr, lineNum: p.tokenizer.Line()}
@@ -852,8 +843,7 @@ func (p *Parser) parseInstructions(block *Block) state {
 			instr.Op1, err = p.parseOperand(opCount > 1)
 		}
 		if err != nil {
-			p.err = err
-			return ERROR
+			return err
 		}
 
 		if opCount == 1 {
@@ -870,8 +860,7 @@ func (p *Parser) parseInstructions(block *Block) state {
 			instr.Op2, err = p.parseOperand(opCount >= 3)
 		}
 		if err != nil {
-			p.err = err
-			return ERROR
+			return err
 		}
 
 		if opCount == 2 || instr.Name == "ldri" || instr.Name == "ldrip" || instr.Name == "ldrpi" {
@@ -884,16 +873,14 @@ func (p *Parser) parseInstructions(block *Block) state {
 		} else {
 			instr.Op3, err = p.parseOperand(opCount > 3)
 			if err != nil {
-				p.err = err
-				return ERROR
+				return err
 			}
 			if opCount > 3 {
 				instr.Op4, err = p.parseOperand(false)
 			}
 		}
 		if err != nil {
-			p.err = err
-			return ERROR
+			return err
 		}
 	}
 }
