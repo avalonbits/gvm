@@ -358,12 +358,10 @@ func (p *Parser) programOrLibrary() error {
 				if err := p.include(); err != nil {
 					return err
 				}
-
-			/*case lexer.EMBED:
-			if err := p.embed(); err != nil {
-				return err
-			}*/
-
+			case lexer.EMBED:
+				if err := p.embed(); err != nil {
+					return err
+				}
 			default:
 				return p.Errorf("unexpected token %q", tok.Literal)
 			}
@@ -406,12 +404,10 @@ func (p *Parser) org() error {
 			if err := p.include(); err != nil {
 				return err
 			}
-
-		/*case lexer.EMBED:
-		if err := p.embed(); err != nil {
-			return err
-		}*/
-
+		case lexer.EMBED:
+			if err := p.embed(); err != nil {
+				return err
+			}
 		default:
 			return nil
 		}
@@ -739,25 +735,21 @@ func (p *Parser) readString() (string, error) {
 	return sb.String(), nil
 }
 
-/*
-func (p *Parser) embed() state {
+func (p *Parser) embed() error {
 	tok := p.tokenizer.NextToken()
 	if tok.Type != lexer.EMBED {
-		p.err = p.Errorf("expected .embed, got %q", tok.Literal)
-		return ERROR
+		return p.Errorf("expected .embed, got %q", tok.Literal)
 	}
 
 	embedStr, err := p.readString()
 	if err != nil {
-		p.err = err
-		return ERROR
+		return err
 	}
 
-	s := Section{Type: EMBED_FILE, EmbedFile: embedStr}
-	o := &p.Ast.Orgs[len(p.Ast.Orgs)-1]
-	o.Sections = append(o.Sections, s)
-	return SECTION
-}*/
+	o := p.activeOrg()
+	o.Sections = append(o.Sections, Section{Type: EMBED_FILE, EmbedFile: embedStr})
+	return nil
+}
 
 func ParseNumber(lit string) (uint32, error) {
 	var n int64
