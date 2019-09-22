@@ -61,6 +61,7 @@ func generateObject(ast *parser.AST, name string, allObjs map[string]*object) er
 	if err = includeFile(includeMap, ast); err != nil {
 		return err
 	}
+	log.Println("done")
 
 	hashInclude := map[string]string{}
 	for k, iAST := range includeMap {

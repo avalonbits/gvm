@@ -343,6 +343,33 @@ func (p *Parser) programOrLibrary() error {
 		if err := p.skipCommentsAndWhitespace(); err != nil {
 			return err
 		}
+		for {
+			if err := p.skipCommentsAndWhitespace(); err != nil {
+				return err
+			}
+
+			tok := p.tokenizer.PeakToken()
+			switch tok.Type {
+			case lexer.SECTION:
+				if err := p.section(); err != nil {
+					return err
+				}
+			case lexer.INCLUDE:
+				if err := p.include(); err != nil {
+					return err
+				}
+
+			/*case lexer.EMBED:
+			if err := p.embed(); err != nil {
+				return err
+			}*/
+
+			default:
+				return p.Errorf("unexpected token %q", tok.Literal)
+			}
+		}
+		return errEOF
+
 	}
 	return errEOF
 }
