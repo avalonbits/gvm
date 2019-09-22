@@ -126,30 +126,23 @@ func embedFile(ast *parser.AST) error {
 			}
 			defer in.Close()
 
-			stats, err := in.Stat()
+			bytes, err := ioutil.ReadAll(in)
 			if err != nil {
 				return err
 			}
 
-			size := stats.Size()
-			bytes := make([]byte, size)
-
-			bufr := bufio.NewReader(in)
-			if _, err := bufr.Read(bytes); err != nil {
-				return err
-			}
-
-			// 2. For every 4 bytes, create a block and add it to the current statement.
-			section.Blocks = make([]parser.Block, 1)
-			block := &section.Blocks[0]
-			for i := int64(0); i < size; i += 4 {
-				v := binary.LittleEndian.Uint32(bytes[i : i+4])
-				block.Statements = append(block.Statements, parser.Statement{Value: v})
-			}
-
-			// 3. Change the type and we are good to go!
+			// 2. Change the type and save the data as a blob.
 			section.Type = parser.DATA_SECTION
 			section.EmbedFile = ""
+			section.Blocks = []parser.Block{
+				{
+					Statements: []parser.Statement{
+						{
+							Blob: bytes,
+						},
+					},
+				},
+			}
 		}
 	}
 	return nil
@@ -397,6 +390,11 @@ func writeObject(ast *parser.AST, name string, allObjs map[string]*object, buf *
 								return err
 							}
 							nb += uint32(len(bytes))
+						} else if len(statement.Blob) > 0 {
+							if _, err := buf.Write(statement.Blob); err != nil {
+								return err
+							}
+							nb += uint32(len(statement.Blob))
 						} else {
 							if statement.Label != "" {
 								return statement.Errorf("unresolved reference to %q", statement.Label)

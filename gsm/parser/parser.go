@@ -67,6 +67,7 @@ type Statement struct {
 	Label     string
 	ArraySize int
 	Str       string
+	Blob      []byte
 	lineNum   int
 
 	ResolveReference bool
