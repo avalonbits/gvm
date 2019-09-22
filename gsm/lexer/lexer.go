@@ -303,7 +303,8 @@ func (l *Lexer) readWhiteSpace() string {
 }
 func (l *Lexer) readNum() string {
 	var sb strings.Builder
-	for unicode.IsDigit(l.r) || l.r == 'x' || l.r == '-' || (l.r >= 'A' && l.r <= 'F') || (l.r >= 'a' && l.r <= 'f') {
+	for unicode.IsDigit(l.r) || l.r == 'x' || l.r == '-' || (l.r >= 'A' && l.r <= 'F') ||
+		(l.r >= 'a' && l.r <= 'f') {
 		sb.WriteRune(l.r)
 		l.readRune()
 	}
