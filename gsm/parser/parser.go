@@ -493,12 +493,12 @@ func (p *Parser) textBlock() error {
 		}
 
 		// Create a new text block
+		pBlock := aBlock
 		aSection := p.activeOrg().activeSection()
 		aBlock = aSection.newBlock()
 
 		// If this is not the first block, check if it is part of a function context.
-		if len(aSection.Blocks) > 1 {
-			pBlock := &aSection.Blocks[len(aSection.Blocks)-2]
+		if pBlock != nil && pBlock.inFunc {
 			aBlock.inFunc = pBlock.inFunc
 			aBlock.funcName = pBlock.funcName
 		}

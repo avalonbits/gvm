@@ -21,7 +21,7 @@
 : "${DISK_FILE:=/tmp/gvm.hd}"
 : "${DSTEP:=0}"
 : "${KERNEL:=kernel.asm}"
-CMD="killall -9 gvm; cd $HOME/gvm/gsm && go install && cd .. && gsm -o kernel.rom $KERNEL && scons -j6 dstep=$DSTEP  && ./gvm --prgrom=kernel.rom --video_mode=$VMODE --disk_file=$DISK_FILE"
+CMD="killall -9 gvm; cd $HOME/gvm/gsm && go install && cd .. && time gsm -o kernel.rom $KERNEL && scons -j6 dstep=$DSTEP  && ./gvm --prgrom=kernel.rom --video_mode=$VMODE --disk_file=$DISK_FILE"
 
 echo $CMD
 eval $CMD
