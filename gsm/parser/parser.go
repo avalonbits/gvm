@@ -823,7 +823,8 @@ func (p *Parser) parseInstructions(block *Block) error {
 			return err
 		}
 		tok := p.tokenizer.PeakToken()
-		if tok.Type.IsTopLevel() || tok.Type == lexer.IDENT {
+		if tok.Type.IsTopLevel() || tok.Type == lexer.IDENT ||
+			tok.Type == lexer.FUNC_START || tok.Type == lexer.INFUNC_START {
 			return nil
 		}
 		tok = p.tokenizer.NextToken()

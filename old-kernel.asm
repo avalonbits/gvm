@@ -22,7 +22,7 @@
 ; Jump table for interrupt handlers. Each address is for a specific interrupt.
 interrupt_table:
     jmp reset_handler     ; Reset. Handler will take care of registering kernel default
-						  ; handlers.
+                          ; handlers.
 
 .org 0x100
 .section data
@@ -32,9 +32,9 @@ get_interrupt:      .int _get_interrupt
 malloc:             .int _malloc
 free:               .int _free
 getkey:             .int _getkey
-getc:				.int _getc
+getc:               .int _getc
 text_putc:          .int _text_putc
-putc:				.int _putc
+putc:               .int _putc
 puts:               .int _puts
 strlen:             .int _strlen
 memcpy:             .int _memcpy
@@ -58,98 +58,98 @@ ptr_heap_start: .int heap_start
 
 ; ==== RegisterInterrrupt. Registers a function as an interrupt handler.
 @func _register_interrupt:
-	; r0: Returns 0 on failure, 1 otherise.
-	; r1: interrupt value.
-	; r2: absolute function address to call on interrupt. Must use <= 26 bits.
+    ; r0: Returns 0 on failure, 1 otherise.
+    ; r1: interrupt value.
+    ; r2: absolute function address to call on interrupt. Must use <= 26 bits.
 
-	; Interrupt values range from 0-255.
-	jlt r1, invalid_interrupt
-	sub r0, r1, 0xFF
-	jgt r0, invalid_interrupt
+    ; Interrupt values range from 0-255.
+    jlt r1, invalid_interrupt
+    sub r0, r1, 0xFF
+    jgt r0, invalid_interrupt
 
-	; We have a valid interrupt. Write the function pointer to the
-	; interrupt vector.
-	lsl r1, r1, 2    ; Each value in the vector is 4 bytes long.
-	sub r2, r2, r1   ; We subtract the vector value because jmp is pc relative.
-	lsl r2, r2, 6	 ; Make space for jump instruction
-	orr r2, r2, JMP  ; jmp instruction
-	str [r1], r2
-	mov r0, 1
-	ret
+    ; We have a valid interrupt. Write the function pointer to the
+    ; interrupt vector.
+    lsl r1, r1, 2    ; Each value in the vector is 4 bytes long.
+    sub r2, r2, r1   ; We subtract the vector value because jmp is pc relative.
+    lsl r2, r2, 6    ; Make space for jump instruction
+    orr r2, r2, JMP  ; jmp instruction
+    str [r1], r2
+    mov r0, 1
+    ret
 
 invalid_interrupt:
-	mov r0, 0
-	ret
+    mov r0, 0
+    ret
 @endf _register_interrupt
 
 ; ==== GetInterrrupt. Returns the function address registered for interrupt.
 @func _get_interrupt:
-	; r0: Returns 0 on failure, != 0 otherise.
-	; r1: interrupt value.
+    ; r0: Returns 0 on failure, != 0 otherise.
+    ; r1: interrupt value.
 
-	; Interrupt values range from 0-255.
-	jlt r1, invalid_interrupt
-	sub r0, r1, 0xFF
-	jgt r0, invalid_interrupt
+    ; Interrupt values range from 0-255.
+    jlt r1, invalid_interrupt
+    sub r0, r1, 0xFF
+    jgt r0, invalid_interrupt
 
-	; We have a valid interrupt. Get the pc relative funcrtion addreess, make
-	; it absolute and return.
-	lsl r1, r1, 2  ; Each value in the vector is 4 bytes long.
-	ldr r0, [r1]
-	lsr r0, r0, 6  ; Get rid of the jump instruction.
-	add r0, r0, r1 ; Add the vector index offset to get the absolute adress
-	ret
+    ; We have a valid interrupt. Get the pc relative funcrtion addreess, make
+    ; it absolute and return.
+    lsl r1, r1, 2  ; Each value in the vector is 4 bytes long.
+    ldr r0, [r1]
+    lsr r0, r0, 6  ; Get rid of the jump instruction.
+    add r0, r0, r1 ; Add the vector index offset to get the absolute adress
+    ret
 
 invalid_interrupt:
-	mov r0, 0
-	ret
+    mov r0, 0
+    ret
 @endf _get_interrupt
 
 ; ==== Reset interrupt handler.
 reset_handler:
-	; Clear the interrupt vector.
-	mov r1, 0
-	mov r2, 64
-	mov r3, RET
-	call _memset32
+    ; Clear the interrupt vector.
+    mov r1, 0
+    mov r2, 64
+    mov r3, RET
+    call _memset32
 
-	; Now, register the kernel handlers.
-	mov r1, 0
-	mov r2, reset_handler
-	call _register_interrupt
+    ; Now, register the kernel handlers.
+    mov r1, 0
+    mov r2, reset_handler
+    call _register_interrupt
 
-	mov r1, 2
-	mov r2, input_handler
-	call _register_interrupt
+    mov r1, 2
+    mov r2, input_handler
+    call _register_interrupt
 
-	mov r1, 3
-	mov r2, recurring_handler
-	call _register_interrupt
+    mov r1, 3
+    mov r2, recurring_handler
+    call _register_interrupt
 
-	; We initialize the first two words of the heap to zero. This corresponds
-	; to the header fields size and next.
-	ldr r0, [ptr_heap_start]
-	stpip [r0, 0x0], rZ, rZ
+    ; We initialize the first two words of the heap to zero. This corresponds
+    ; to the header fields size and next.
+    ldr r0, [ptr_heap_start]
+    stpip [r0, 0x0], rZ, rZ
 
     ; Clear input register
     ldr r1, [input_value_addr]
     str [r1], rZ
 
-	; Reset input buffer
-	mov r0, input_buffer
-	stri [r0, ib_head], rZ
-	stri [r0, ib_tail], rZ
+    ; Reset input buffer
+    mov r0, input_buffer
+    stri [r0, ib_head], rZ
+    stri [r0, ib_tail], rZ
 
     ; Now jump to main kernel code.
     jmp KERNEL_MAIN
 
 .section data
 input_value_addr: .int 0x1200404
-	; struct input_buffer. Defines 32 key long circular buffer.
-	.equ ib_buffer       0
-	.equ ib_head        128  ; 32 * 4.
-	.equ ib_tail        132
-	.equ ib_struct_size 136
+    ; struct input_buffer. Defines 32 key long circular buffer.
+    .equ ib_buffer       0
+    .equ ib_head        128  ; 32 * 4.
+    .equ ib_tail        132
+    .equ ib_struct_size 136
 input_buffer: .array 136
 
 .section text
@@ -168,35 +168,35 @@ input_buffer: .array 136
     add r0, r2, 1
     jeq r0, quit
 
-	; Save r1 and r3 to the stack.
-	stppi [sp, -8], r1, r3
+    ; Save r1 and r3 to the stack.
+    stppi [sp, -8], r1, r3
 
-	; Load input buffer.
-	mov r0, input_buffer
+    ; Load input buffer.
+    mov r0, input_buffer
 
     ; Load the buffer tail and write.
-	ldri r1, [r0, ib_tail]
+    ldri r1, [r0, ib_tail]
 
-	; Because we operate with words, we need to multiply r1 by 4.
-	lsl r3, r1, 2
-	add r3, r0, r3
-	str [r3], r2
+    ; Because we operate with words, we need to multiply r1 by 4.
+    lsl r3, r1, 2
+    add r3, r0, r3
+    str [r3], r2
 
-	; Update the tail
-	add r1, r1, 1
+    ; Update the tail
+    add r1, r1, 1
 
-	; If it is not 32, then just write it back and be done.
-	sub r3, r1, 32
-	jne r3, done
+    ; If it is not 32, then just write it back and be done.
+    sub r3, r1, 32
+    jne r3, done
 
-	; Need to wrap around.
-	mov r1, 0
+    ; Need to wrap around.
+    mov r1, 0
 
 done:
-	stri [r0, ib_tail], r1
+    stri [r0, ib_tail], r1
 
     ; Input processing done. Restore registers and return.
-	ldpip r1, r3, [sp, 8]
+    ldpip r1, r3, [sp, 8]
     ldpip r0, r2, [sp, 8]
     ret
 
@@ -207,259 +207,259 @@ quit:
 
 ; === GetKey. Reads the next key from the key input buffer.
 @func _getkey:
-	; r0: returns the key read. r0 == 0 means no input available.
+    ; r0: returns the key read. r0 == 0 means no input available.
 
-	; The first thing to do is to get ib_tail. This way, if an interrupt
+    ; The first thing to do is to get ib_tail. This way, if an interrupt
     ; happens while we are in this function, we will reduce the chance of
-	; buffer overwrite.
-	mov r0, input_buffer
-	ldri r2, [r0, ib_tail]
-	ldri r1, [r0, ib_head]
+    ; buffer overwrite.
+    mov r0, input_buffer
+    ldri r2, [r0, ib_tail]
+    ldri r1, [r0, ib_head]
 
-	;  If tail != head then the buffer has keys so we can read it.
-	sub r2, r2, r1
-	jne r2, read_input
+    ;  If tail != head then the buffer has keys so we can read it.
+    sub r2, r2, r1
+    jne r2, read_input
 
-	; tail == head means no key in buffer. Return 0.
-	mov r0, 0
-	ret
+    ; tail == head means no key in buffer. Return 0.
+    mov r0, 0
+    ret
 
 read_input:
-	; We read the input to r2, update ib_head then move the result to r0 to
-	; return it to caller.
+    ; We read the input to r2, update ib_head then move the result to r0 to
+    ; return it to caller.
 
-	; Because we operate on words, we need to multiply ib_head by 4.
-	lsl r2, r1, 2
+    ; Because we operate on words, we need to multiply ib_head by 4.
+    lsl r2, r1, 2
 
-	; Now get the char at buffer[r2]
-	add r2, r0, r2
-	ldr r2, [r2]
+    ; Now get the char at buffer[r2]
+    add r2, r0, r2
+    ldr r2, [r2]
 
-	; Update ib_head and wrap if needed.
-	add r1, r1, 1
-	sub r3, r1, 32
-	jne r3, done
+    ; Update ib_head and wrap if needed.
+    add r1, r1, 1
+    sub r3, r1, 32
+    jne r3, done
 
-	; We need to wrap back to 0.
-	mov r1, rZ
+    ; We need to wrap back to 0.
+    mov r1, rZ
 
 done:
-	stri [r0, ib_head], r1
-	mov r0, r2
-	ret
+    stri [r0, ib_head], r1
+    mov r0, r2
+    ret
 @endf _getkey
 
 ; ==== GetC: returns the character pressed. Ignores control keys and
 ; keyup events.
 @func _getc:
-	; r0: Returns the character. Returns 0 in case no character is available,
-	ldr r0, [getkey]
-	call r0
-	jeq r0, done
+    ; r0: Returns the character. Returns 0 in case no character is available,
+    ldr r0, [getkey]
+    call r0
+    jeq r0, done
 
-	; Check if this is a keyup event. If it is, ignore it.
-	lsr r1, r0, 31
-	and r1, r1, 1
-	jne r1, return_no_key
+    ; Check if this is a keyup event. If it is, ignore it.
+    lsr r1, r0, 31
+    and r1, r1, 1
+    jne r1, return_no_key
 
-	; Check if this is a control key. If it is, ignore it.
-	lsr r1, r0, 30
-	and r1, r1, 1
-	jne r1, return_no_key
+    ; Check if this is a control key. If it is, ignore it.
+    lsr r1, r0, 30
+    and r1, r1, 1
+    jne r1, return_no_key
 
-	; We got a charater code. Just return it.
-	jmp done
+    ; We got a charater code. Just return it.
+    jmp done
 
 return_no_key:
-	mov r0, 0
+    mov r0, 0
 done:
-	ret
+    ret
 @endf _getc
 
 ; ==== Itoa: Converts a signed integer to a string.
 @func _itoa:
-	; r1: number to convert
-	; r2: pointer to string. Worst case must be 24 bytes long (22 bytes for digits
-	;     + null terminator and 2 more bytes for memory alignment).
-	mov r5, 0
-	mov r6, r2
+    ; r1: number to convert
+    ; r2: pointer to string. Worst case must be 24 bytes long (22 bytes for digits
+    ;     + null terminator and 2 more bytes for memory alignment).
+    mov r5, 0
+    mov r6, r2
 loop:
-	; Buffer to store digits before writing to memory.
-	mov r4, 0
+    ; Buffer to store digits before writing to memory.
+    mov r4, 0
 
-	; The algorithm: keep diving by 10 until the div result is 0.
-	div r0, r1, 10
+    ; The algorithm: keep diving by 10 until the div result is 0.
+    div r0, r1, 10
 
-	; Now, multiply the result by ten and subtract from r1 to get mod.
-	mul r3, r0, 10
-	sub r1, r1, r3
+    ; Now, multiply the result by ten and subtract from r1 to get mod.
+    mul r3, r0, 10
+    sub r1, r1, r3
 
-	; r1 contains the mod (the current digit) while r0 contains the div
-	; (the next digit). We add 0x30 to the number, mask for the first byte then
-	; write to r4;
-	add r1, r1, 0x30
-	orr r4, r4, r1
+    ; r1 contains the mod (the current digit) while r0 contains the div
+    ; (the next digit). We add 0x30 to the number, mask for the first byte then
+    ; write to r4;
+    add r1, r1, 0x30
+    orr r4, r4, r1
 
-	; Increment the digit counter.
-	add r5, r5, 1
+    ; Increment the digit counter.
+    add r5, r5, 1
 
-	; If this is the last digit, then we are done
-	jne r0, next_digit
+    ; If this is the last digit, then we are done
+    jne r0, next_digit
 
-	; We are done and only used half the word, so the null terminator is already
-	; in r4. Just write it and jump to reverse.
-	str [r6], r4
-	sub r3, r5, 1
-	jeq r3, done
-	jmp reverse
+    ; We are done and only used half the word, so the null terminator is already
+    ; in r4. Just write it and jump to reverse.
+    str [r6], r4
+    sub r3, r5, 1
+    jeq r3, done
+    jmp reverse
 
 next_digit:
-	; We not done. Repeat the algorithm for r0.
-	mov r1, r0
+    ; We not done. Repeat the algorithm for r0.
+    mov r1, r0
 
-	; The algorithm: keep diving by 10 until the div result is 0.
-	div r0, r1, 10
+    ; The algorithm: keep diving by 10 until the div result is 0.
+    div r0, r1, 10
 
-	; Now, multiply the result by ten and subtract from r1 to get mod.
-	mul r3, r0, 10
-	sub r1, r1, r3
+    ; Now, multiply the result by ten and subtract from r1 to get mod.
+    mul r3, r0, 10
+    sub r1, r1, r3
 
-	; r1 contains the mod (the current digit) while r0 contains the div
-	; (the next digit). We add 0x30 to the number, mask for the first byte then
-	; write to r4;
-	add r1, r1, 0x30
+    ; r1 contains the mod (the current digit) while r0 contains the div
+    ; (the next digit). We add 0x30 to the number, mask for the first byte then
+    ; write to r4;
+    add r1, r1, 0x30
 
-	; Since this is the second digit in the loop, we need to shift it 16bits
-	; before oring.
-	lsl r1, r1, 16
-	orr r4, r4, r1
+    ; Since this is the second digit in the loop, we need to shift it 16bits
+    ; before oring.
+    lsl r1, r1, 16
+    orr r4, r4, r1
 
-	; Increment the digit counter.
-	add r5, r5, 1
+    ; Increment the digit counter.
+    add r5, r5, 1
 
-	; We have a full word to write. Write it and update the string pointer..
-	strip [r6, 4], r4
+    ; We have a full word to write. Write it and update the string pointer..
+    strip [r6, 4], r4
 
-	; If r0 != 0 then we still have numbers to process.
-	mov r1, r0
-	jne r1, loop
+    ; If r0 != 0 then we still have numbers to process.
+    mov r1, r0
+    jne r1, loop
 
-	; It is the last digit, so we need to write a null terminator before going
-	; to reverse.
-	str [r6], rZ
+    ; It is the last digit, so we need to write a null terminator before going
+    ; to reverse.
+    str [r6], rZ
 
 reverse:
-	; To reverse the string, we have pointers to start and end and then swap the
-	; values until either start == end or start == end - 1.
-	; At this point, r2 has ptr to start of string, r6 is ptr to end of string and
-	; r5 is the number of digits. Because we can't modify r2, we store of copy of
-	; r2 into r4 and work with that.
-	mov r4, r2
+    ; To reverse the string, we have pointers to start and end and then swap the
+    ; values until either start == end or start == end - 1.
+    ; At this point, r2 has ptr to start of string, r6 is ptr to end of string and
+    ; r5 is the number of digits. Because we can't modify r2, we store of copy of
+    ; r2 into r4 and work with that.
+    mov r4, r2
 
-	; If the number of digits is even, then end starts a word earlier and the
-	; algorithm is different.
-	and r0, r5, 0x1
-	jne r0, odd_reverse
+    ; If the number of digits is even, then end starts a word earlier and the
+    ; algorithm is different.
+    and r0, r5, 0x1
+    jne r0, odd_reverse
 
-	; When number of digits is even, we swap lower bits with high bits.
-	sub r6, r6, 4
+    ; When number of digits is even, we swap lower bits with high bits.
+    sub r6, r6, 4
 
 even_reverse:
-	ldr r0, [r4]
+    ldr r0, [r4]
 
-	; If this is the last word then swapping is done differently.
-	sub r3, r6, r4
-	jeq r3, simple_reverse
-	jlt r3, done
+    ; If this is the last word then swapping is done differently.
+    sub r3, r6, r4
+    jeq r3, simple_reverse
+    jlt r3, done
 
-	; Not last word, so let's do the swap.
-	ldr r1, [r6]
+    ; Not last word, so let's do the swap.
+    ldr r1, [r6]
 
-	; first digits.
-	lsr r3, r0, 16
-	lsl r3, r3, 16
-	lsr r5, r1, 16
-	orr r5, r3, r5
-	str [r4], r5
+    ; first digits.
+    lsr r3, r0, 16
+    lsl r3, r3, 16
+    lsr r5, r1, 16
+    orr r5, r3, r5
+    str [r4], r5
 
-	lsl r3, r0, 16
-	lsl r5, r1, 16
-	lsr r5, r5, 16
-	orr r5, r5, r3
-	str [r6], r5
+    lsl r3, r0, 16
+    lsl r5, r1, 16
+    lsr r5, r5, 16
+    orr r5, r5, r3
+    str [r6], r5
 
-	; second digits
-	ldr r0, [r4]
-	ldr r1, [r6]
+    ; second digits
+    ldr r0, [r4]
+    ldr r1, [r6]
 
-	lsr r3, r0, 16
-	lsr r5, r1, 16
-	lsl r5, r5, 16
-	orr r5, r3, r5
-	strip [r6, -4], r5
+    lsr r3, r0, 16
+    lsr r5, r1, 16
+    lsl r5, r5, 16
+    orr r5, r3, r5
+    strip [r6, -4], r5
 
-	lsl r3, r1, 16
-	lsl r5, r0, 16
-	lsr r5, r5, 16
-	orr r5, r3, r5
-	strip [r4, 4], r5
-	jmp even_reverse
+    lsl r3, r1, 16
+    lsl r5, r0, 16
+    lsr r5, r5, 16
+    orr r5, r3, r5
+    strip [r4, 4], r5
+    jmp even_reverse
 
 simple_reverse:
-	lsr r1, r0, 16
-	lsl r0, r0, 16
-	orr r0, r0, r1
-	str [r4], r0
-	ret
+    lsr r1, r0, 16
+    lsl r0, r0, 16
+    orr r0, r0, r1
+    str [r4], r0
+    ret
 
 odd_reverse:
-	; In odd reverse, the last word has a digit and a null terminator. this means
-	; we always swap digits matching byte order. We use r0 and r1 to start current
-	; digits and r3 as a temp for swap.
-	ldr r0, [r4]
-	ldr r1, [r6]
+    ; In odd reverse, the last word has a digit and a null terminator. this means
+    ; we always swap digits matching byte order. We use r0 and r1 to start current
+    ; digits and r3 as a temp for swap.
+    ldr r0, [r4]
+    ldr r1, [r6]
 
-	; r3 will now contain the new value of r0
-	lsl r3, r0, 16
-	lsr r3, r3, 16
-	lsr r5, r1, 16
-	lsl r5, r5, 16
-	orr r3, r5, r3
-	strip [r6, -4], r3
+    ; r3 will now contain the new value of r0
+    lsl r3, r0, 16
+    lsr r3, r3, 16
+    lsr r5, r1, 16
+    lsl r5, r5, 16
+    orr r3, r5, r3
+    strip [r6, -4], r3
 
-	; r0 now needs to be clear in its bottom bits so we can copy the swapped one.
-	lsr r3, r0, 16
-	lsl r3, r3, 16
-	orr r3, r3, r1
-	str [r4], r3
+    ; r0 now needs to be clear in its bottom bits so we can copy the swapped one.
+    lsr r3, r0, 16
+    lsl r3, r3, 16
+    orr r3, r3, r1
+    str [r4], r3
 
-	; r4 and r6 are the same, we are done.
-	sub r3, r6, r4
-	jeq r3, done
+    ; r4 and r6 are the same, we are done.
+    sub r3, r6, r4
+    jeq r3, done
 
-	; Still has digits, swap them.
-	ldr r0, [r4]
-	ldr r1, [r6]
+    ; Still has digits, swap them.
+    ldr r0, [r4]
+    ldr r1, [r6]
 
-	lsr r3, r0, 16
-	lsl r3, r3, 16
-	lsl r5, r1, 16
-	lsr r5, r5, 16
-	orr r3, r5, r3
-	str [r6], r3
+    lsr r3, r0, 16
+    lsl r3, r3, 16
+    lsl r5, r1, 16
+    lsr r5, r5, 16
+    orr r3, r5, r3
+    str [r6], r3
 
-	lsr r3, r1, 16
-	lsl r3, r3, 16
-	lsl r5, r0, 16
-	lsr r5, r5, 16
-	orr r3, r5, r3
-	strip [r4, 4], r3
+    lsr r3, r1, 16
+    lsl r3, r3, 16
+    lsl r5, r0, 16
+    lsr r5, r5, 16
+    orr r3, r5, r3
+    strip [r4, 4], r3
 
-	sub r3, r6, r4
-	jne r3, odd_reverse
+    sub r3, r6, r4
+    jne r3, odd_reverse
 
 done:
-	ret
+    ret
 @endf _itoa
 
 .section data
@@ -554,52 +554,52 @@ ptr_heap_curr_limit: .int heap_curr_limit
 
     ; struct memory_header
     .equ mh_bytes 0
-	.equ mh_next  4
-	.equ mh_size  8
+    .equ mh_next  4
+    .equ mh_size  8
 
-	.equ memory_page_shift 4  ; Shifting by 4 bits gives 16 bytes per page.
+    .equ memory_page_shift 4  ; Shifting by 4 bits gives 16 bytes per page.
 
 .section text
 @func _malloc:
-	; r0 returns address of memory. If < 0 no memory was available.
-	; r1: Size in bytes to allocate.
+    ; r0 returns address of memory. If < 0 no memory was available.
+    ; r1: Size in bytes to allocate.
 
-	ldr r2, [ptr_heap_curr_limit]
-	ldr r3, [heap_lower_limit]
+    ldr r2, [ptr_heap_curr_limit]
+    ldr r3, [heap_lower_limit]
 
-	; We subtract 8 from sp to account for the call to alloc.
-	sub r4, sp, 8
+    ; We subtract 8 from sp to account for the call to alloc.
+    sub r4, sp, 8
 
-	call alloc
-	ret
+    call alloc
+    ret
 @endf _malloc
 
 
 @func _free:
-	; r0: 0 if it was able to deallocate, -1 otherwise.
-	; r1: heap block to free.
+    ; r0: 0 if it was able to deallocate, -1 otherwise.
+    ; r1: heap block to free.
 
-	; If the memory address is within the heap limits, we assume it is a valid
-	; address and proceed.
-	ldr r2, [heap_lower_limit]
-	sub r2, r1, r2
-	jlt r2, invalid_memory
+    ; If the memory address is within the heap limits, we assume it is a valid
+    ; address and proceed.
+    ldr r2, [heap_lower_limit]
+    sub r2, r1, r2
+    jlt r2, invalid_memory
 
-	sub r2, sp, r1
-	jlt r2, invalid_memory
+    sub r2, sp, r1
+    jlt r2, invalid_memory
 
-	; Ok, both limits are valid. Mark the block as free and be gone.
-	; The memory block is right after the header and the number of bytes of the block
-	; is the first field. So, we want to go to that field and make it negative.
-	sub r1, r1, mh_size
-	ldr r2, [r1]
-	mul r2, r2, -1
-	str [r1], r2
-	ret
+    ; Ok, both limits are valid. Mark the block as free and be gone.
+    ; The memory block is right after the header and the number of bytes of the block
+    ; is the first field. So, we want to go to that field and make it negative.
+    sub r1, r1, mh_size
+    ldr r2, [r1]
+    mul r2, r2, -1
+    str [r1], r2
+    ret
 
 invalid_memory:
-	mov r0, -1
-	ret
+    mov r0, -1
+    ret
 @endf _free
 
 @infunc alloc:
@@ -609,8 +609,8 @@ invalid_memory:
     ; r3: heap start
     ; r4: heap end
 
-	; If r1 <= 0, we have an error.
-	jle r1, no_memory
+    ; If r1 <= 0, we have an error.
+    jle r1, no_memory
 
     ; We have positive bytes. Add the header size to the number of bytes.
     add r1, r1, mh_size
@@ -624,9 +624,9 @@ invalid_memory:
     jeq r0, ok_page_count
 
     ; Smaller, so adding a page to r1
-	mov r0, 1
-	lsl r0, r0, memory_page_shift
-	add r1, r0, r1
+    mov r0, 1
+    lsl r0, r0, memory_page_shift
+    add r1, r0, r1
 
 ok_page_count:
     ; Because we create a linked list of pointers, we need to walk the list in order
@@ -636,76 +636,76 @@ ok_page_count:
     mov r5, r3
 
 walk_list:
-	; Ok, we are at the start of a header. We need to check a few things:
-	; 1) If mh_bytes == 0 then we allocate a new page.
-	ldri r6, [r5, mh_bytes]
-	jeq r6, allocate_page
+    ; Ok, we are at the start of a header. We need to check a few things:
+    ; 1) If mh_bytes == 0 then we allocate a new page.
+    ldri r6, [r5, mh_bytes]
+    jeq r6, allocate_page
 
-	; 2) mh.size < 0 is a free page. We now check if r1 <= -mh.size
-	mul r6, r6, -1
-	sub r7, r6, r1
-	jlt r7, next_or_allocate
+    ; 2) mh.size < 0 is a free page. We now check if r1 <= -mh.size
+    mul r6, r6, -1
+    sub r7, r6, r1
+    jlt r7, next_or_allocate
 
-	; Ok, bytes are available! Write -mh.size back and return the valid address.
-	; TODO(icc): Shorten the page in case it's bigger.
-	stri [r5, mh_bytes], r6
+    ; Ok, bytes are available! Write -mh.size back and return the valid address.
+    ; TODO(icc): Shorten the page in case it's bigger.
+    stri [r5, mh_bytes], r6
 
-	; Memory block starts right after the header.
-	add r0, r5, mh_size
-	ret
+    ; Memory block starts right after the header.
+    add r0, r5, mh_size
+    ret
 
 next_or_allocate:
-	; 3) Either mh.next is valid and we loop to the next block or it is invalid
-	; and we need to allocate a new page.
-	ldri r6, [r5, mh_next]
-	jeq r6, allocate_page
+    ; 3) Either mh.next is valid and we loop to the next block or it is invalid
+    ; and we need to allocate a new page.
+    ldri r6, [r5, mh_next]
+    jeq r6, allocate_page
 
-	; mh.next is valid. Copy it to r5 and loop.
-	mov r5, r6
-	jmp walk_list
+    ; mh.next is valid. Copy it to r5 and loop.
+    mov r5, r6
+    jmp walk_list
 
 allocate_page:
-	; Finally we know that no page is available in the list, so we need to
-	; allocate a new one.
+    ; Finally we know that no page is available in the list, so we need to
+    ; allocate a new one.
 
-	; We need to get the current limit. For that, we call brk(0).
-	; Copy bytes to r5
-	mov r5, r1
+    ; We need to get the current limit. For that, we call brk(0).
+    ; Copy bytes to r5
+    mov r5, r1
 
-	; Set r1 to 0
-	mov r1, 0
+    ; Set r1 to 0
+    mov r1, 0
 
-	; Call brk(0)
-	call brk
+    ; Call brk(0)
+    call brk
 
-	; r0 now has the current heap address. Now we need to allocate memory so
+    ; r0 now has the current heap address. Now we need to allocate memory so
     ; that this block become valid.
 
-	; Copy the block to r7
-	mov r7, r0
+    ; Copy the block to r7
+    mov r7, r0
 
-	; Copy the number of bytes to request to r1
-	mov r1, r5
+    ; Copy the number of bytes to request to r1
+    mov r1, r5
 
-	; Call brk(bytes)
-	call brk
+    ; Call brk(bytes)
+    call brk
 
-	; r0 now has either a valid new memory addres or < 0. If it is < 0 then no
-	; memory was allocated
+    ; r0 now has either a valid new memory addres or < 0. If it is < 0 then no
+    ; memory was allocated
 
-	jeq r0, no_memory
+    jeq r0, no_memory
 
-	; Ok, we got memory! Setup the header and return the start of the block.
-	stri [r7, mh_bytes], r1
-	stri [r7, mh_next], r0
+    ; Ok, we got memory! Setup the header and return the start of the block.
+    stri [r7, mh_bytes], r1
+    stri [r7, mh_next], r0
 
-	; Set r0 mh_bytes to 0 so we know this is the point that we need to allocate.
-	stri [r0, mh_bytes], rZ
-	stri [r0, mh_next], rZ
+    ; Set r0 mh_bytes to 0 so we know this is the point that we need to allocate.
+    stri [r0, mh_bytes], rZ
+    stri [r0, mh_next], rZ
 
-	; memory block starts right after header.
-	add r0, r7, mh_size
-	ret
+    ; memory block starts right after header.
+    add r0, r7, mh_size
+    ret
 
 no_memory:
     mov r0, 0
@@ -730,8 +730,8 @@ _memset2:
     ; r3: value to set.
     stpip [r1, 8], r3, r3
     sub r2, r2, 2
-	jgt r2, _memset2
-	ret
+    jgt r2, _memset2
+    ret
 
 
 ; ==== Memset32. Same as memset but assumes size is a multiple of 32 words.
@@ -775,15 +775,15 @@ _memcpy:
 ; ==== Memcopy2. Same as memcpy but assumes size is a multiple of 2 words.
 ; Dones not handle overalp.
 _memcpy2:
-	; r1: start to-addres
-	; r2: start from-addres
-	; r3: size in words.
-	; r24, r25: local variable for copying memory.
-	ldpip r24, r25, [r2, 8]
-	stpip [r1, 8], r24, r25
-	sub r3, r3, 2
-	jgt r3, _memcpy2
-	ret
+    ; r1: start to-addres
+    ; r2: start from-addres
+    ; r3: size in words.
+    ; r24, r25: local variable for copying memory.
+    ldpip r24, r25, [r2, 8]
+    stpip [r1, 8], r24, r25
+    sub r3, r3, 2
+    jgt r3, _memcpy2
+    ret
 
 ; ==== Memcopy32. Same as memcpy but assumes size is a multiple of 32 words.
 ; Does not handle overlap.
@@ -830,30 +830,30 @@ _memcpy32:
 
 ; ==== StrLen: Returns the length of a string.
 @func _strlen:
-	; r0: returns length of the string.
-	; r1: ptr to start of string.
-	; r2, r3, r4: vars.
+    ; r0: returns length of the string.
+    ; r1: ptr to start of string.
+    ; r2, r3, r4: vars.
 
-	mov r0, 0
-	mov r4, r1
+    mov r0, 0
+    mov r4, r1
 
 loop:
-	ldr r2, [r4]
-	and r3, r2, 0xFFFF
-	jeq r3, end_half
+    ldr r2, [r4]
+    and r3, r2, 0xFFFF
+    jeq r3, end_half
 
-	lsr r2, r2, 16
-	and r3, r2, 0xFFFF
-	jeq r3, end
+    lsr r2, r2, 16
+    and r3, r2, 0xFFFF
+    jeq r3, end
 
-	add r0, r0, 2
-	add r4, r4, 4
-	jmp loop
+    add r0, r0, 2
+    add r4, r4, 4
+    jmp loop
 
 end:
-	add r0, r0, 1
+    add r0, r0, 1
 end_half:
-	ret
+    ret
 @endf _strlen
 
 .section data
@@ -1324,7 +1324,7 @@ loop:
     ldri r2, [r0, sbuf_start]
 
     ; Copy to vram.
-	ldr r24, [memcpy32]
+    ldr r24, [memcpy32]
     call r24
 
     ; Flush using text mode.
@@ -1393,7 +1393,7 @@ done:
     ldri r3, [r0, console_fcolor]
     ldri r4, [r0, console_bcolor]
     mov r5, frame_buffer
-	ldr r0, [text_putc]
+    ldr r0, [text_putc]
     call r0
     ret
 @endf console_putc
@@ -1403,9 +1403,9 @@ done:
     ldri r2, [r0, console_cursor_y]
     ldri r3, [r0, console_fcolor]
     ldri r4, [r0, console_bcolor]
-	mov r5, frame_buffer
+    mov r5, frame_buffer
     ldr r7, [text_putc]
-	ldr r0, [puts]
+    ldr r0, [puts]
     call r0
     ret
 @endf console_puts
@@ -1418,7 +1418,7 @@ done:
     ldri r4, [r0, console_bcolor]
     mov r5, frame_buffer
     ldr r0, [text_putc]
-	call r0
+    call r0
     ret
 @endf console_print_cursor
 
@@ -1429,8 +1429,8 @@ done:
     ldri r3, [r0, console_bcolor]
     ldri r4, [r0, console_bcolor]
     mov r5, frame_buffer
-	ldr r0, [text_putc]
-	call r0
+    ldr r0, [text_putc]
+    call r0
     ret
 @endf console_erase_cursor
 
@@ -1486,7 +1486,7 @@ done:
     lsr r3, r3, 2
 
     ; Copy back skipping the first line.
-	ldr r24, [memcpy32]
+    ldr r24, [memcpy32]
     call r24
 
     ; Erase last line.
@@ -1494,7 +1494,7 @@ done:
     sub r1, r1, 400
     mov r2, 100
     ldri r3, [r0, console_bcolor]
-	ldr r24, [memset32]
+    ldr r24, [memset32]
     call r24
 
     ret
@@ -1523,8 +1523,8 @@ done:
 
 .section data
 gvm:            .str "GVM Virtual Machine Version 0.1987"
-ready:			.str "READY."
-mem_av:			.str "Memory available:"
+ready:          .str "READY."
+mem_av:         .str "Memory available:"
 kibytes:        .str "Kilobytes"
 recurring_reg:  .int 0x1200410
 frame_buffer:   .array 11200
@@ -1534,12 +1534,12 @@ used_bytes:     .array 24
 
 @func KERNEL_MAIN:
     ; Allocate space for console
-	mov r1, console_size
-	call _malloc
+    mov r1, console_size
+    call _malloc
 
-	jne r0, allocated
-	; Not enough memory. Halt the cpu.
-	halt
+    jne r0, allocated
+    ; Not enough memory. Halt the cpu.
+    halt
 
 allocated:
     str [console_addr], r0
@@ -1562,21 +1562,21 @@ allocated:
     mov r6, gvm
     call console_puts
 
-	; Calculate memory available.
-	ldr r1, [heap_curr_limit]
-	sub r1, sp, r1
-	; We want the amount in kilo bytes, so divide by 1024.
-	lsr r1, r1, 10
-	mov r2, used_bytes
-	ldr r0, [itoa]
-	call r0
+    ; Calculate memory available.
+    ldr r1, [heap_curr_limit]
+    sub r1, sp, r1
+    ; We want the amount in kilo bytes, so divide by 1024.
+    lsr r1, r1, 10
+    mov r2, used_bytes
+    ldr r0, [itoa]
+    call r0
 
-	; Print memory available string.
-	ldr r0, [console_addr]
+    ; Print memory available string.
+    ldr r0, [console_addr]
     mov r1, 0
     mov r2, 1
     call console_set_cursor
-	ldr r0, [console_addr]
+    ldr r0, [console_addr]
     mov r6, mem_av
     call console_puts
 
@@ -1586,37 +1586,37 @@ allocated:
     mov r2, 0
     call console_set_color
 
-	; Print actual bytes available
-	ldr r0, [console_addr]
-	mov r1, 18
-	mov r2, 1
-	call console_set_cursor
-	ldr r0, [console_addr]
-	mov r6, used_bytes
-	call console_puts
+    ; Print actual bytes available
+    ldr r0, [console_addr]
+    mov r1, 18
+    mov r2, 1
+    call console_set_cursor
+    ldr r0, [console_addr]
+    mov r6, used_bytes
+    call console_puts
 
-	; Print KiB suffix
-	mov r1, used_bytes
-	ldr r0, [strlen]
-	call r0
-	add r0, r0, 19
+    ; Print KiB suffix
+    mov r1, used_bytes
+    ldr r0, [strlen]
+    call r0
+    add r0, r0, 19
 
-	mov r1, r0
-	ldr r0, [console_addr]
-	mov r2, 1
-	call console_set_cursor
-	ldr r0, [console_addr]
-	mov r6, kibytes
-	call console_puts
+    mov r1, r0
+    ldr r0, [console_addr]
+    mov r2, 1
+    call console_set_cursor
+    ldr r0, [console_addr]
+    mov r6, kibytes
+    call console_puts
 
 
 
     ; Print ready sign.
-	ldr r0, [console_addr]
+    ldr r0, [console_addr]
     mov r1, 0
     mov r2, 3
     call console_set_cursor
-	ldr r0, [console_addr]
+    ldr r0, [console_addr]
     mov r6, ready
     call console_puts
 
@@ -1625,7 +1625,7 @@ allocated:
     mov r1, 0
     mov r2, 4
     call console_set_cursor
-	ldr r0, [console_addr]
+    ldr r0, [console_addr]
     call console_print_cursor
 
     ; Install our display updater.
@@ -1646,15 +1646,15 @@ loop: wfi
 
 ; We wait for a user input and print the value on screen.
 @func USER_INTERFACE:
-	ldr r0, [getc]
-	call r0
+    ldr r0, [getc]
+    call r0
     jne r0, process_input
     ret
 
 process_input:
     ; check if we have a control char. If we do, update ui accordingly and get next
     ; input.
-	mov r1, r0
+    mov r1, r0
     call USER_control_chars
     jeq r0, done
     mov r6, r1
@@ -1666,7 +1666,7 @@ process_input:
     ; Advance cursor.
     ldr r0, [console_addr]
     call console_next_cursor
-	ldr r0, [console_addr]
+    ldr r0, [console_addr]
     call console_print_cursor
 
 done:
@@ -1691,9 +1691,9 @@ backspace:
     ; Erase cursor at current position.
     ldr r0, [console_addr]
     call console_erase_cursor
-	ldr r0, [console_addr]
+    ldr r0, [console_addr]
     call console_prev_cursor
-	ldr r0, [console_addr]
+    ldr r0, [console_addr]
     call console_print_cursor
     mov r0, 0
     ret
@@ -1702,9 +1702,9 @@ enter:
     ; Erase cursor at current position
     ldr r0, [console_addr]
     call console_erase_cursor
-	ldr r0, [console_addr]
+    ldr r0, [console_addr]
     call console_nextline_cursor
-	ldr r0, [console_addr]
+    ldr r0, [console_addr]
     call console_print_cursor
     mov r0, 0
     ret
