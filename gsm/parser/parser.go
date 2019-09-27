@@ -273,21 +273,7 @@ func New(t Tokenizer) *Parser {
 	}}
 }
 
-type state int
-
 var errEOF = errors.New("EOF")
-
-const (
-	START state = iota
-	ORG
-	SECTION
-	EMBED_STATEMENT
-	INCLUDE_STATEMENT
-	DATA_BLOCK
-	TEXT_BLOCK
-	ERROR
-	END
-)
 
 func (p *Parser) Parse(requireLibrary bool) error {
 	err := p.mode(requireLibrary)
