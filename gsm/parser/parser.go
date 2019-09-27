@@ -115,6 +115,7 @@ type Operand struct {
 
 type Instruction struct {
 	Name string
+	Code OpCode
 	Op1  Operand
 	Op2  Operand
 	Op3  Operand
