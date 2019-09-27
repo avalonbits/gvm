@@ -52,7 +52,7 @@ constexpr uint32_t reg4(uint32_t word) {
   return (word >> 21) & 0x1F;
 }
 constexpr uint32_t v16bit(uint32_t word) {
-  return (word >> 16) & 0xFFFF;
+  return word >> 16;
 }
 constexpr uint32_t v11bit(uint32_t word) {
   return word >> 21;
@@ -68,14 +68,14 @@ constexpr uint32_t ext11bit(uint32_t word) {
 }
 
 constexpr uint32_t reladdr26(const uint32_t v26bit) {
-  return (v26bit >> 25) & 1 ? -(~(0xFC000000 | v26bit) + 1)
-                            : v26bit;
+  return (0x01000000 & v26bit) ? -(~(0xFC000000 | v26bit) + 1)
+                               : v26bit;
 }
 
 constexpr uint32_t reladdr21(const uint32_t v) {
   const uint32_t v21bit = v >> 11;
-  return (v21bit >> 20) & 1 ? -(~(0xFFE00000 | v21bit) + 1)
-                            : v21bit;
+  return (0x00100000 & v21bit) ? -(~(0xFFE00000 | v21bit) + 1)
+                               : v21bit;
 }
 
 }  // namespace
@@ -248,8 +248,8 @@ void CPU::Run() {
       DISPATCH();
   }
   LOAD_PI: {
-      const uint32_t idx = reg1(word);
       const uint32_t idx2 = reg2(word);
+      const uint32_t idx = reg1(word);
       const uint32_t next = regv(idx2, pc, reg_) + ext16bit(word);
       int32_t v;
       TIMER_READ(next, v, mem_[m2w(next)]);
@@ -258,8 +258,8 @@ void CPU::Run() {
       DISPATCH();
   }
   LOAD_IP: {
-      const uint32_t idx = reg1(word);
       const uint32_t idx2 = reg2(word);
+      const uint32_t idx = reg1(word);
       const uint32_t cur = regv(idx2, pc, reg_);
       const uint32_t next = cur + ext16bit(word);
       int32_t v;
