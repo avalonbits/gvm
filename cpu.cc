@@ -31,48 +31,48 @@
 namespace gvm {
 
 namespace {
-constexpr uint32_t m2w(uint32_t idx) {
-  return idx / kWordSize;
+constexpr const uint32_t m2w(const uint32_t idx) {
+  return idx >> 2;
 }
-constexpr uint32_t regv(const uint32_t idx, const uint32_t pc, uint32_t* regs) {
+constexpr const uint32_t regv(const uint32_t idx, const uint32_t pc, uint32_t* regs) {
   if (idx < 30) return regs[idx];
   if (idx == 30) return pc;
   return 0;
 }
-constexpr uint32_t reg1(uint32_t word) {
+constexpr const uint32_t reg1(const uint32_t word) {
   return (word >> 6) & 0x1F;
 }
-constexpr uint32_t reg2(uint32_t word) {
+constexpr const uint32_t reg2(const uint32_t word) {
   return (word >> 11) & 0x1F;
 }
-constexpr uint32_t reg3(uint32_t word) {
+constexpr const uint32_t reg3(const uint32_t word) {
   return (word >> 16) & 0x1F;
 }
-constexpr uint32_t reg4(uint32_t word) {
+constexpr const uint32_t reg4(const uint32_t word) {
   return (word >> 21) & 0x1F;
 }
-constexpr uint32_t v16bit(uint32_t word) {
+constexpr const uint32_t v16bit(const uint32_t word) {
   return word >> 16;
 }
-constexpr uint32_t v11bit(uint32_t word) {
+constexpr const uint32_t v11bit(const uint32_t word) {
   return word >> 21;
 }
 
-constexpr uint32_t ext16bit(uint32_t word) {
+constexpr const uint32_t ext16bit(uint32_t word) {
   word = v16bit(word);
   return (0x00008000 & word) ? (0xFFFF0000 | word) : word;
 }
-constexpr uint32_t ext11bit(uint32_t word) {
+constexpr const uint32_t ext11bit(uint32_t word) {
   word = v11bit(word);
   return (0x00000400 & word) ? (0xFFFFF800 | word) : word;
 }
 
-constexpr uint32_t reladdr26(const uint32_t v26bit) {
+constexpr const uint32_t reladdr26(const uint32_t v26bit) {
   return (0x01000000 & v26bit) ? -(~(0xFC000000 | v26bit) + 1)
                                : v26bit;
 }
 
-constexpr uint32_t reladdr21(const uint32_t v) {
+constexpr const uint32_t reladdr21(const uint32_t v) {
   const uint32_t v21bit = v >> 11;
   return (0x00100000 & v21bit) ? -(~(0xFFE00000 | v21bit) + 1)
                                : v21bit;
