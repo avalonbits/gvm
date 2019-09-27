@@ -81,8 +81,6 @@ class CPU {
 
  private:
   void Run();
-  void SetupHandlers();
-  void RunHandlers();
   void InterruptService(uint32_t& pc);
   void SetPC(uint32_t pc);
 
