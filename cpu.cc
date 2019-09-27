@@ -36,8 +36,8 @@ constexpr uint32_t m2w(uint32_t idx) {
 }
 constexpr uint32_t regv(const uint32_t idx, const uint32_t pc, uint32_t* regs) {
   if (idx < 30) return regs[idx];
-  if (idx == 31) return 0;
-  return pc;
+  if (idx == 30) return pc;
+  return 0;
 }
 constexpr uint32_t reg1(uint32_t word) {
   return (word >> 6) & 0x1F;
@@ -55,7 +55,7 @@ constexpr uint32_t v16bit(uint32_t word) {
   return (word >> 16) & 0xFFFF;
 }
 constexpr uint32_t v11bit(uint32_t word) {
-  return (word >> 21) & 0x7FF;
+  return word >> 21;
 }
 
 constexpr uint32_t ext16bit(uint32_t word) {
