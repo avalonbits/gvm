@@ -119,7 +119,7 @@ void Computer::LoadRom(const Rom* rom) {
 
 void Computer::Run() {
   std::chrono::nanoseconds runtime;
-  uint32_t op_count;
+  uint64_t op_count;
 
   auto* timer = timer_service_.get();
   std::thread timer_thread([timer]() {

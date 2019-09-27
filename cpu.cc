@@ -101,15 +101,15 @@ void CPU::SetPC(const uint32_t pc) {
   assert(pc_ < mem_size_);
 }
 
-uint32_t CPU::PowerOn() {
+uint64_t CPU::PowerOn() {
   Reset();
   Run();
   return op_count_;
 }
 
-uint32_t CPU::Reset() {
+uint64_t CPU::Reset() {
   mask_interrupt_ = true;
-  const uint32_t op_count = op_count_;
+  const uint64_t op_count = op_count_;
   interrupt_ = 1;  // Mask out all interrupts and set bit 0 to 1, signaling reset.
   interrupt_event_.notify_one();
   return op_count;

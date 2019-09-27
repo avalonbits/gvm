@@ -43,8 +43,8 @@ class CPU {
   void ConnectMemory(
       uint32_t* mem, uint32_t mem_size_bytes, uint32_t user_ram_limit);
 
-  uint32_t PowerOn();
-  uint32_t Reset();
+  uint64_t PowerOn();
+  uint64_t Reset();
 
   // Sets signal for input handling.
   void Input();
@@ -93,7 +93,7 @@ class CPU {
   uint32_t user_ram_limit_;
   uint32_t& sp_;
   uint32_t& fp_;
-  uint32_t op_count_;
+  uint64_t op_count_;
   volatile bool mask_interrupt_;
   volatile uint32_t interrupt_;
   std::mutex interrupt_mutex_;
