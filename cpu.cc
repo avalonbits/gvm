@@ -96,7 +96,7 @@ void CPU::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes, uint32_t user_ra
   fp_ = sp_ = user_ram_limit_;
 }
 
-void CPU::SetPC(uint32_t pc) {
+void CPU::SetPC(const uint32_t pc) {
   assert(pc % kWordSize == 0);
   pc_ = pc;
   assert(pc_ < mem_size_);
@@ -297,21 +297,24 @@ void CPU::Run() {
   }
   STOR_RI: {
       const uint32_t addr = (word >> 11) & 0x1FFFFF;
-      const auto v = mem_[m2w(addr)] = regv(reg1(word), pc, reg_);
+      const auto v = regv(reg1(word), pc, reg_);
+      mem_[m2w(addr)] = v;
       VSIG(addr);
       TIMER_WRITE(addr, v);
       DISPATCH();
   }
   STOR_IX: {
       const uint32_t addr = regv(reg1(word), pc, reg_) + ext16bit(word);
-      const auto v = mem_[m2w(addr)] = regv(reg2(word), pc, reg_);
+      const auto v = regv(reg2(word), pc, reg_);
+      mem_[m2w(addr)] = v;
       VSIG(addr);
       TIMER_WRITE(addr, v);
       DISPATCH();
   }
   STOR_PC: {
       const uint32_t addr = pc + reladdr21(word);
-      const auto v = mem_[m2w(addr)] = regv(reg1(word), pc, reg_);
+      const auto v = regv(reg1(word), pc, reg_);
+      mem_[m2w(addr)] = v;
       VSIG(addr);
       TIMER_WRITE(addr, v);
       DISPATCH();
@@ -319,7 +322,8 @@ void CPU::Run() {
   STOR_PI: {
       const uint32_t idx = reg1(word);
       const uint32_t next = regv(idx, pc, reg_) + ext16bit(word);
-      const auto v = mem_[m2w(next)] = regv(reg2(word), pc, reg_);
+      const auto v = regv(reg2(word), pc, reg_);
+      mem_[m2w(next)] = v;
       reg_[idx] = next;
       VSIG(next);
       TIMER_WRITE(next, v);
@@ -329,7 +333,8 @@ void CPU::Run() {
       const uint32_t idx = reg1(word);
       const uint32_t cur = regv(idx, pc, reg_);
       const uint32_t next = cur + ext16bit(word);
-      const auto v = mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
+      const auto v = regv(reg2(word), pc, reg_);
+      mem_[m2w(cur)] = v;
       reg_[idx] = next;
       VSIG(cur);
       TIMER_WRITE(cur, v);
