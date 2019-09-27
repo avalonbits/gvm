@@ -26,19 +26,24 @@ interrupt_table:
     ret            ; Timer interrupt.
     ret            ; Input intterupt.
 
-.org 0x1000
+.org 0x100000
+.section data
+loop_size: .int 0x1000000
+mem_ptr: .int mem
+
 .section text
 ; ===== The acutal benchmark function.
 @infunc benchmark:
     ldr r0, [loop_size]
 
 loop:
-    ldr r1, [mem]
+	mov r5, mem_ptr
+    ldr r1, [r5]
     add r1, r1, 1
     lsl r1, r1, 4
     call update
-    str [mem], r0
-    ldr r2, [mem]
+    str [r5], r0
+    ldr r2, [r5]
     mul r2, r1, r2
     jne r0, loop
     halt
@@ -47,7 +52,7 @@ loop:
 .section data
 	.equ val 7
 
-.org 0x2000
+.org 0x200000
 .section text
 @func update:
     stppi [sp, -8], r0, r1
@@ -60,4 +65,3 @@ loop:
 
 .section data
 mem: .int 0x0
-loop_size: .int 0x1000000
