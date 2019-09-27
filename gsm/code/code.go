@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -61,7 +60,6 @@ func generateObject(ast *parser.AST, name string, allObjs map[string]*object) er
 	if err = includeFile(includeMap, ast); err != nil {
 		return err
 	}
-	log.Println("done")
 
 	hashInclude := map[string]string{}
 	for k, iAST := range includeMap {
@@ -449,7 +447,6 @@ func writeObjectToFile(objs map[string]*object, buf *bufio.Writer) error {
 			if _, err := buf.Write(word); err != nil {
 				return err
 			}
-			log.Println(len(code))
 			binary.LittleEndian.PutUint32(word, uint32(len(code)/4))
 			if _, err := buf.Write(word); err != nil {
 				return err
@@ -574,7 +571,6 @@ func encode1op(i parser.Instruction, rr, ri _1op) (parser.Word, error) {
 		return parser.Word(0),
 			fmt.Errorf("%q: label substitution was not performed.", i)
 	}
-	log.Println(i.Op1.Type)
 	if i.Op1.Type == parser.OP_REG {
 		return rr(rToI(i.Op1.Op)), nil
 	} else {
