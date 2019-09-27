@@ -460,16 +460,16 @@ func writeObjectToFile(objs map[string]*object, buf *bufio.Writer) error {
 }
 
 func rToI(reg string) uint32 {
-	if reg == "rZ" {
+	if reg == "sp" {
 		return 28
 	}
-	if reg == "pc" {
+	if reg == "fp" {
 		return 29
 	}
-	if reg == "sp" {
+	if reg == "pc" {
 		return 30
 	}
-	if reg == "fp" {
+	if reg == "rZ" {
 		return 31
 	}
 	n, err := strconv.Atoi(reg[1:])
@@ -606,7 +606,7 @@ func encodeMov(i parser.Instruction) (parser.Word, error) {
 	} else if i.Op2.Type == parser.OP_NUMBER {
 		return MovRI(rToI(i.Op1.Op), toNum(i.Op2.Op)), nil
 	} else {
-		return AddRI(rToI(i.Op1.Op), 29, toNum(i.Op2.Op)), nil
+		return AddRI(rToI(i.Op1.Op), 30, toNum(i.Op2.Op)), nil
 	}
 }
 

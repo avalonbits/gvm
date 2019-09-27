@@ -39,7 +39,7 @@ func MovRR(dest, src uint32) parser.Word {
 }
 
 func MovRI(dest, value uint32) parser.Word {
-	return AddRI(dest, 28, value)
+	return AddRI(dest, 31, value)
 }
 
 func LoadRR(dest, src uint32) parser.Word {

@@ -35,9 +35,9 @@ constexpr uint32_t m2w(uint32_t idx) {
   return idx / kWordSize;
 }
 constexpr uint32_t regv(const uint32_t idx, const uint32_t pc, uint32_t* regs) {
-  if (idx != 29 && idx != 28) return regs[idx];
-  if (idx == 29) return pc;
-  return 0;
+  if (idx < 30) return regs[idx];
+  if (idx == 31) return 0;
+  return pc;
 }
 constexpr uint32_t reg1(uint32_t word) {
   return (word >> 6) & 0x1F;
@@ -81,7 +81,7 @@ constexpr uint32_t reladdr21(const uint32_t v) {
 }  // namespace
 
 CPU::CPU()
-    : pc_(reg_[kRegCount-3]), sp_(reg_[kRegCount-2]), fp_(reg_[kRegCount-1]),
+    : pc_(reg_[kRegCount-2]), sp_(reg_[kRegCount-4]), fp_(reg_[kRegCount-3]),
       op_count_(0), mask_interrupt_(false), interrupt_(0) {
   std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
   SetupHandlers();
