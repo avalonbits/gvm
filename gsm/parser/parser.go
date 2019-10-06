@@ -473,14 +473,14 @@ func (p *Parser) textBlock() error {
 		}
 
 		// Create a new text block
-		pBlock := aBlock
+		prevBlock := aBlock
 		aSection := p.activeOrg().activeSection()
 		aBlock = aSection.newBlock()
 
 		// If this is not the first block, check if it is part of a function context.
-		if pBlock != nil && pBlock.inFunc {
-			aBlock.inFunc = pBlock.inFunc
-			aBlock.funcName = pBlock.funcName
+		if prevBlock != nil && prevBlock.inFunc {
+			aBlock.inFunc = prevBlock.inFunc
+			aBlock.funcName = prevBlock.funcName
 		}
 
 		tok = p.tokenizer.NextToken()
