@@ -259,11 +259,11 @@ func (l *Lexer) nextToken() *Token {
 		return newTok(EOF, "")
 	default:
 		if unicode.IsSpace(l.r) && l.r != '\n' {
+			ws := l.readWhiteSpace()
 			if l.ignoreWS {
-				l.readWhiteSpace()
 				return l.nextToken()
 			} else {
-				return newTok(WHITE_SPACE, l.readWhiteSpace())
+				return newTok(WHITE_SPACE, ws)
 			}
 		}
 		if l.r == '.' || l.r == '@' || l.r == '_' || unicode.IsLetter(l.r) {
