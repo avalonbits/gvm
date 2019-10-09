@@ -62,12 +62,14 @@ func (o *Org) newSection() *Section {
 
 func (o *Org) addIncludeSection(incFile string) {
 	o.linkSection(&Section{
+		Type:        INCLUDE_FILE,
 		IncludeFile: incFile,
 	})
 }
 
 func (o *Org) addEmbedSection(embFile string) {
 	o.linkSection(&Section{
+		Type:      EMBED_FILE,
 		EmbedFile: embFile,
 	})
 }
