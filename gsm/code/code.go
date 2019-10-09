@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -109,37 +110,40 @@ func GenerateFromObject(ast *parser.AST, buf *bufio.Writer) error {
 
 func embedFile(ast *parser.AST) error {
 	for _, org := range ast.Orgs {
-		for i := range org.Sections {
-			section := &org.Sections[i]
-			if section.Type != parser.EMBED_FILE {
-				continue
-			}
+		if org.Sections == nil {
+			continue
+		}
+		for section := org.Sections; ; section = section.Next {
+			if section.Type == parser.EMBED_FILE {
+				// Ok, we have a file. Lets convert it to a data section with blocks.
 
-			// Ok, we have a file. Lets convert it to a data section with blocks.
+				// 1. Read the file.
+				in, err := os.Open(section.EmbedFile)
+				if err != nil {
+					return err
+				}
+				defer in.Close()
 
-			// 1. Read the file.
-			in, err := os.Open(section.EmbedFile)
-			if err != nil {
-				return err
-			}
-			defer in.Close()
+				bytes, err := ioutil.ReadAll(in)
+				if err != nil {
+					return err
+				}
 
-			bytes, err := ioutil.ReadAll(in)
-			if err != nil {
-				return err
-			}
-
-			// 2. Change the type and save the data as a blob.
-			section.Type = parser.DATA_SECTION
-			section.EmbedFile = ""
-			section.Blocks = []parser.Block{
-				{
-					Statements: []parser.Statement{
-						{
-							Blob: bytes,
+				// 2. Change the type and save the data as a blob.
+				section.Type = parser.DATA_SECTION
+				section.EmbedFile = ""
+				section.Blocks = []parser.Block{
+					{
+						Statements: []parser.Statement{
+							{
+								Blob: bytes,
+							},
 						},
 					},
-				},
+				}
+			}
+			if section.Next == org.Sections {
+				break
 			}
 		}
 	}
@@ -179,9 +183,15 @@ func includeFile(includeMap map[string]*parser.AST, ast *parser.AST) error {
 		}
 
 		// Set the include name on each section.
-		for o := range ast.Orgs {
-			for s := range ast.Orgs[o].Sections {
-				ast.Orgs[o].Sections[s].IncludeName = incl
+		for _, org := range ast.Orgs {
+			if org.Sections == nil {
+				continue
+			}
+			for s := org.Sections; ; s = s.Next {
+				s.IncludeName = incl
+				if s.Next == org.Sections {
+					break
+				}
 			}
 		}
 
@@ -214,7 +224,10 @@ func assignLocalAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 	for _, org := range ast.Orgs {
 		baseAddr := org.Addr
 		wordCount := uint32(0)
-		for _, section := range org.Sections {
+		if org.Sections == nil {
+			continue
+		}
+		for section := org.Sections; ; section = section.Next {
 			for _, block := range section.Blocks {
 				if block.LocalLabelName() != "" {
 					label := block.LocalLabelName()
@@ -233,6 +246,9 @@ func assignLocalAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 				}
 				wordCount += uint32(block.WordCount())
 			}
+			if section.Next == org.Sections {
+				break
+			}
 		}
 	}
 	return nil
@@ -241,7 +257,10 @@ func assignLocalAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) (bool, error) {
 	resolve := false
 	for _, org := range ast.Orgs {
-		for _, section := range org.Sections {
+		if org.Sections == nil {
+			continue
+		}
+		for section := org.Sections; ; section = section.Next {
 			for _, block := range section.Blocks {
 				for i := range block.Statements {
 					statement := &block.Statements[i]
@@ -253,6 +272,7 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) (bool, 
 							&statement.Instr.Op2,
 							&statement.Instr.Op3,
 						}
+						log.Println(localLabelMap)
 						addr := localLabelMap[block.LocalLabelName()] + uint32(i*4)
 						for _, op := range ops {
 							err := convertLocalOperand(
@@ -285,6 +305,9 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) (bool, 
 						statement.Label = ""
 						statement.Value = addr
 					}
+				}
+				if section.Next == org.Sections {
+					break
 				}
 			}
 		}
@@ -362,7 +385,10 @@ func writeObject(ast *parser.AST, name string, allObjs map[string]*object, buf *
 	word := make([]byte, 4)
 	for _, org := range ast.Orgs {
 		var nb uint32
-		for _, section := range org.Sections {
+		if org.Sections == nil {
+			continue
+		}
+		for section := org.Sections; ; section = section.Next {
 			for _, block := range section.Blocks {
 				for _, statement := range block.Statements {
 					if section.Type == parser.DATA_SECTION {
@@ -418,6 +444,9 @@ func writeObject(ast *parser.AST, name string, allObjs map[string]*object, buf *
 					}
 					nb += 4
 				}
+			}
+			if section.Next == org.Sections {
+				break
 			}
 		}
 		if err := buf.Flush(); err != nil {

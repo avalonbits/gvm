@@ -40,17 +40,65 @@ type AST struct {
 type Org struct {
 	Addr     uint32
 	PIC      bool
-	Sections []Section
+	Sections *Section
 }
 
+/*
+   [] -> <- [] -> <-
+*/
+
 func (o *Org) activeSection() *Section {
-	return &o.Sections[len(o.Sections)-1]
+	return o.Sections.Prev
+}
+
+func (o *Org) newSection() *Section {
+	sec := &Section{
+		Blocks: make([]Block, 0, 8),
+		Prev:   nil,
+		Next:   nil,
+	}
+
+	o.linkSection(sec)
+	return sec
+}
+
+func (o *Org) addIncludeSection(incFile string) {
+	o.linkSection(&Section{
+		IncludeFile: incFile,
+	})
+}
+
+func (o *Org) addEmbedSection(embFile string) {
+	o.linkSection(&Section{
+		EmbedFile: embFile,
+	})
+}
+
+func (o *Org) linkSection(sec *Section) {
+	// First section.
+	if o.Sections == nil {
+		o.Sections = sec
+		sec.Prev = sec
+		sec.Next = sec
+		return
+	}
+
+	sec.Next = o.Sections
+	sec.Prev = o.Sections.Prev
+	o.Sections.Prev = sec
+	return
 }
 
 func (o Org) WordCount() int {
+	if o.Sections == nil {
+		return 0
+	}
 	var count int
-	for _, s := range o.Sections {
+	for s := o.Sections; ; s = s.Next {
 		count += s.wordCount()
+		if s.Next == o.Sections {
+			break
+		}
 	}
 	return count
 }
@@ -219,6 +267,8 @@ type Section struct {
 	EmbedFile   string
 	IncludeFile string
 	IncludeName string
+	Prev        *Section
+	Next        *Section
 }
 
 func (s *Section) activeBlock() *Block {
@@ -409,8 +459,7 @@ func (p *Parser) section() error {
 
 	// For every new .section entry, we reserve memory for 8 blocks.
 	o := p.activeOrg()
-	o.Sections = append(o.Sections, Section{Blocks: make([]Block, 0, 8)})
-	s := o.activeSection()
+	s := o.newSection()
 
 	if tok.Type == lexer.S_DATA {
 		s.Type = DATA_SECTION
@@ -667,7 +716,7 @@ func (p *Parser) include() error {
 	p.Ast.Includes[tok.Literal] = includeStr
 
 	o := p.activeOrg()
-	o.Sections = append(o.Sections, Section{IncludeFile: includeStr})
+	o.addIncludeSection(includeStr)
 	return nil
 }
 
@@ -728,7 +777,7 @@ func (p *Parser) embed() error {
 	}
 
 	o := p.activeOrg()
-	o.Sections = append(o.Sections, Section{Type: EMBED_FILE, EmbedFile: embedStr})
+	o.addEmbedSection(embedStr)
 	return nil
 }
 
