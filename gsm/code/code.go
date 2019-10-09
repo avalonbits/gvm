@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -272,7 +271,6 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) (bool, 
 							&statement.Instr.Op2,
 							&statement.Instr.Op3,
 						}
-						log.Println(localLabelMap)
 						addr := localLabelMap[block.LocalLabelName()] + uint32(i*4)
 						for _, op := range ops {
 							err := convertLocalOperand(
@@ -306,10 +304,11 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) (bool, 
 						statement.Value = addr
 					}
 				}
-				if section.Next == org.Sections {
-					break
-				}
 			}
+			if section.Next == org.Sections {
+				break
+			}
+
 		}
 	}
 	return resolve, nil

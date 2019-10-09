@@ -54,8 +54,6 @@ func (o *Org) activeSection() *Section {
 func (o *Org) newSection() *Section {
 	sec := &Section{
 		Blocks: make([]Block, 0, 8),
-		Prev:   nil,
-		Next:   nil,
 	}
 
 	o.linkSection(sec)
@@ -85,6 +83,7 @@ func (o *Org) linkSection(sec *Section) {
 
 	sec.Next = o.Sections
 	sec.Prev = o.Sections.Prev
+	o.Sections.Prev.Next = sec
 	o.Sections.Prev = sec
 	return
 }
