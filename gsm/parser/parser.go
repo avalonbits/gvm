@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -789,7 +791,30 @@ func (p *Parser) embed() error {
 	}
 
 	o := p.activeOrg()
-	o.addEmbedSection(embedStr)
+
+	// 1. Read the file.
+	in, err := os.Open(embedStr)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	bytes, err := ioutil.ReadAll(in)
+	if err != nil {
+		return err
+	}
+
+	section := o.newSection()
+	section.Type = DATA_SECTION
+	section.Blocks = []Block{
+		{
+			Statements: []Statement{
+				{
+					Blob: bytes,
+				},
+			},
+		},
+	}
 	return nil
 }
 

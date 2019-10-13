@@ -40,10 +40,6 @@ type object struct {
 
 func generateObject(ast *parser.AST, name string, allObjs map[string]*object) error {
 	var err error
-	if err = embedFile(ast); err != nil {
-		return err
-	}
-
 	includeMap := map[string]*parser.AST{}
 	if err = includeFile(includeMap, ast); err != nil {
 		return err
@@ -91,48 +87,6 @@ func GenerateFromObject(ast *parser.AST, buf *bufio.Writer) error {
 	buf.Write([]byte("s1987gvm"))
 	if err := writeObjectToFile(objs, buf); err != nil {
 		return err
-	}
-	return nil
-}
-
-func embedFile(ast *parser.AST) error {
-	for _, org := range ast.Orgs {
-		if org.Sections == nil {
-			continue
-		}
-		for section := org.Sections; ; section = section.Next {
-			if section.Type == parser.EMBED_FILE {
-				// Ok, we have a file. Lets convert it to a data section with blocks.
-
-				// 1. Read the file.
-				in, err := os.Open(section.EmbedFile)
-				if err != nil {
-					return err
-				}
-				defer in.Close()
-
-				bytes, err := ioutil.ReadAll(in)
-				if err != nil {
-					return err
-				}
-
-				// 2. Change the type and save the data as a blob.
-				section.Type = parser.DATA_SECTION
-				section.EmbedFile = ""
-				section.Blocks = []parser.Block{
-					{
-						Statements: []parser.Statement{
-							{
-								Blob: bytes,
-							},
-						},
-					},
-				}
-			}
-			if section.Next == org.Sections {
-				break
-			}
-		}
 	}
 	return nil
 }
