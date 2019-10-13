@@ -24,8 +24,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -75,63 +73,6 @@ func GenerateFromObject(ast *parser.AST, buf *bufio.Writer) error {
 	if err := writeObjectToFile(objs, buf); err != nil {
 		return err
 	}
-	return nil
-}
-
-func includeFile(includeMap map[string]*parser.AST, ast *parser.AST) error {
-	curWD, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	for incl := range ast.Includes {
-		if _, ok := ast.Consts[incl]; ok {
-			return fmt.Errorf("include redefinition: %q was defined as a contant")
-		}
-
-		// Ok, we have an include. Try to read the file.
-		in, err := os.Open(ast.Includes[incl])
-		if err != nil {
-			return err
-		}
-		defer in.Close()
-
-		dir, _ := filepath.Split(ast.Includes[incl])
-		if dir == "" {
-			continue
-		}
-
-		if err := os.Chdir(dir); err != nil {
-			panic(err)
-		}
-
-		// Parse the file, producing an AST.
-		ast, err := parser.Parse(in, true)
-		if err != nil {
-			return err
-		}
-
-		// Set the include name on each section.
-		for _, org := range ast.Orgs {
-			if org.Sections == nil {
-				continue
-			}
-			for s := org.Sections; ; s = s.Next {
-				s.IncludeName = incl
-				if s.Next == org.Sections {
-					break
-				}
-			}
-		}
-
-		// Alright! Add the AST to the include map and we are ready to process the next.
-		includeMap[incl] = ast
-
-		// Restore the current working directory.
-		if err := os.Chdir(curWD); err != nil {
-			return err
-		}
-	}
-	// Return to the saved working directory.
 	return nil
 }
 
