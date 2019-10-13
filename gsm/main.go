@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 
 	"github.com/avalonbits/gsm/code"
+	"github.com/avalonbits/gsm/parser"
 )
 
 var (
@@ -60,7 +61,7 @@ func main() {
 		}
 	}
 
-	ast, err := code.Parse(in, false)
+	ast, err := parser.Parse(in, false)
 	if err != nil {
 		panic(err)
 	}

@@ -23,7 +23,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -31,19 +30,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/avalonbits/gsm/lexer"
 	"github.com/avalonbits/gsm/parser"
 )
-
-func Parse(in io.Reader, requireLibrary bool) (*parser.AST, error) {
-	lex := lexer.New(in)
-	p := parser.New(lex)
-	if err := p.Parse(requireLibrary); err != nil {
-		return nil, err
-	}
-	p.Ast.Hash = lex.Hash()
-	return p.Ast, nil
-}
 
 type object struct {
 	hash string
@@ -176,7 +164,7 @@ func includeFile(includeMap map[string]*parser.AST, ast *parser.AST) error {
 		}
 
 		// Parse the file, producing an AST.
-		ast, err := Parse(in, true)
+		ast, err := parser.Parse(in, true)
 		if err != nil {
 			return err
 		}

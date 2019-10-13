@@ -21,12 +21,23 @@ package parser
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/avalonbits/gsm/lexer"
 )
+
+func Parse(in io.Reader, requireLibrary bool) (*AST, error) {
+	lex := lexer.New(in)
+	p := New(lex)
+	if err := p.Parse(requireLibrary); err != nil {
+		return nil, err
+	}
+	p.Ast.Hash = lex.Hash()
+	return p.Ast, nil
+}
 
 type Word uint32
 type AST struct {
