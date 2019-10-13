@@ -61,7 +61,7 @@ func main() {
 		}
 	}
 
-	ast, err := parser.Parse(in, false)
+	ast, err := parser.Parse(in)
 	if err != nil {
 		panic(err)
 	}

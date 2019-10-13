@@ -32,10 +32,18 @@ import (
 	"github.com/avalonbits/gsm/lexer"
 )
 
-func Parse(in io.Reader, requireLibrary bool) (*AST, error) {
+func ParseLibrary(in io.Reader, name string) (*AST, error) {
+	return parse(in, name)
+}
+
+func Parse(in io.Reader) (*AST, error) {
+	return parse(in, "__root")
+}
+
+func parse(in io.Reader, nam string) (*AST, error) {
 	lex := lexer.New(in)
 	p := New(lex)
-	if err := p.Parse(requireLibrary); err != nil {
+	if err := p.Parse(false); err != nil {
 		return nil, err
 	}
 	p.Ast.Hash = lex.Hash()
@@ -265,8 +273,6 @@ const (
 type Section struct {
 	Type        SType
 	Blocks      []Block
-	EmbedFile   string
-	IncludeFile string
 	IncludeName string
 	Prev        *Section
 	Next        *Section
@@ -745,7 +751,7 @@ func (p *Parser) include() error {
 	}
 
 	// Parse the file, producing an AST.
-	ast, err := Parse(in, true)
+	ast, err := ParseLibrary(in, tok.Literal)
 	if err != nil {
 		return err
 	}
