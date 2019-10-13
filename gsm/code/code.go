@@ -39,21 +39,8 @@ type object struct {
 }
 
 func generateObject(ast *parser.AST, name string, allObjs map[string]*object) error {
-	var err error
-	includeMap := map[string]*parser.AST{}
-	if err = includeFile(includeMap, ast); err != nil {
-		return err
-	}
-
-	hashInclude := map[string]string{}
-	for k, iAST := range includeMap {
-		hashInclude[k] = iAST.Hash
-		if err := generateObject(iAST, k, allObjs); err != nil {
-			return err
-		}
-	}
-
-	// At this point we either handled all the includes or this is a leaf file.
+	//includeMap := map[string]*parser.AST{}
+	//hashInclude := map[string]string{}
 	localLabelMap := map[string]uint32{}
 	if err := assignLocalAddresses(localLabelMap, ast); err != nil {
 		return err

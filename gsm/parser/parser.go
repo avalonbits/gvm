@@ -24,6 +24,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -71,20 +72,6 @@ func (o *Org) newSection() *Section {
 
 	o.linkSection(sec)
 	return sec
-}
-
-func (o *Org) addIncludeSection(incFile string) {
-	o.linkSection(&Section{
-		Type:        INCLUDE_FILE,
-		IncludeFile: incFile,
-	})
-}
-
-func (o *Org) addEmbedSection(embFile string) {
-	o.linkSection(&Section{
-		Type:      EMBED_FILE,
-		EmbedFile: embFile,
-	})
 }
 
 func (o *Org) linkSection(sec *Section) {
@@ -730,7 +717,54 @@ func (p *Parser) include() error {
 	p.Ast.Includes[tok.Literal] = includeStr
 
 	o := p.activeOrg()
-	o.addIncludeSection(includeStr)
+
+	// Ok, we have an include. Try to read the file.
+	in, err := os.Open(includeStr)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	dir, _ := filepath.Split(includeStr)
+	if dir != "" {
+		// We need to change the current working directory in order for the include to be
+		// parsed correctly. So, we save the cwd, set the new cwd and then restore once we are
+		// done processing.
+		curWD, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		if err := os.Chdir(dir); err != nil {
+			panic(err)
+		}
+		defer func() {
+			if err := os.Chdir(curWD); err != nil {
+				panic(err)
+			}
+		}()
+	}
+
+	// Parse the file, producing an AST.
+	ast, err := Parse(in, true)
+	if err != nil {
+		return err
+	}
+
+	// Set the include name on each section.
+	for _, org := range ast.Orgs {
+		if org.Sections == nil {
+			continue
+		}
+		for s := org.Sections; ; s = s.Next {
+			s.IncludeName = tok.Literal
+			if s.Next == org.Sections {
+				break
+			}
+		}
+	}
+
+	// Ok, parsing was sucessful, so now we include the sections here.
+	o.linkSection(ast.Orgs[0].Sections)
 	return nil
 }
 
