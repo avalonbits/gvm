@@ -33,17 +33,17 @@ import (
 )
 
 func ParseLibrary(in io.Reader, name string) (*AST, error) {
-	return parse(in, name)
+	return parse(in, name, true)
 }
 
 func Parse(in io.Reader) (*AST, error) {
-	return parse(in, "__root")
+	return parse(in, "__root", false)
 }
 
-func parse(in io.Reader, nam string) (*AST, error) {
+func parse(in io.Reader, name string, requireLibrary bool) (*AST, error) {
 	lex := lexer.New(in)
-	p := New(lex)
-	if err := p.Parse(false); err != nil {
+	p := New(name, lex)
+	if err := p.Parse(requireLibrary); err != nil {
 		return nil, err
 	}
 	p.Ast.Hash = lex.Hash()
@@ -307,6 +307,7 @@ type Tokenizer interface {
 }
 
 type Parser struct {
+	Name      string
 	tokenizer Tokenizer
 	err       error
 	Ast       *AST
@@ -322,13 +323,17 @@ func (p *Parser) Errorf(format string, a ...interface{}) error {
 	return errors.New(fmt.Sprintf("line %d: %s", p.tokenizer.Line(), fmt.Sprintf(format, a...)))
 }
 
-func New(t Tokenizer) *Parser {
+func New(name string, t Tokenizer) *Parser {
 	t.IgnoreWhiteSpace(true)
-	return &Parser{tokenizer: t, Ast: &AST{
-		Consts:   make(map[string]string),
-		Includes: make(map[string]string),
-		Exported: make(map[string]struct{}),
-	}}
+	return &Parser{
+		Name:      name,
+		tokenizer: t,
+		Ast: &AST{
+			Consts:   make(map[string]string),
+			Includes: make(map[string]string),
+			Exported: make(map[string]struct{}),
+		},
+	}
 }
 
 var errEOF = errors.New("EOF")
