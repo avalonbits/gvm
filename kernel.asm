@@ -16,10 +16,6 @@
 
 .bin
 
-.include "./includes/memory.asm" as memory
-.include "./includes/strings.asm" as strings
-.include "./includes/textmode.asm" as textmode
-
 .org 0x0
 .section text
 
@@ -57,6 +53,10 @@ ptr_heap_start: .int heap_start
 
 .equ JMP 0x15  ; jmp instruction for registering handler.
 .equ RET 0x1e  ; ret instruction for clearing interrupt vector.
+
+.include "./includes/memory.asm" as memory
+.include "./includes/strings.asm" as strings
+.include "./includes/textmode.asm" as textmode
 
 .section text
 
