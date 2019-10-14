@@ -762,22 +762,9 @@ func (p *Parser) include() error {
 	}
 
 	// Parse the file, producing an AST.
-	ast, err := ParseLibrary(in, tok.Literal)
+	ast, err := ParseLibrary(in, p.Name+"."+tok.Literal)
 	if err != nil {
 		return err
-	}
-
-	// Set the include name on each section.
-	for _, org := range ast.Orgs {
-		if org.Sections == nil {
-			continue
-		}
-		for s := org.Sections; ; s = s.Next {
-			s.IncludeName = tok.Literal
-			if s.Next == org.Sections {
-				break
-			}
-		}
 	}
 
 	// Ok, parsing was sucessful, so now we include the sections here.
