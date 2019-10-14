@@ -30,6 +30,7 @@ interrupt_table:
 .section data
 loop_size: .int 0x1000000
 mem_ptr: .int mem
+.equ VAL 4
 
 .section text
 ; ===== The acutal benchmark function.
@@ -40,7 +41,7 @@ loop:
 	mov r5, mem_ptr
     ldr r1, [r5]
     add r1, r1, 1
-    lsl r1, r1, 4
+    lsl r1, r1, VAL
     call update
     str [r5], r0
     ldr r2, [r5]

@@ -37,8 +37,6 @@ type object struct {
 }
 
 func generateObject(ast *parser.AST, name string, allObjs map[string]*object) error {
-	//includeMap := map[string]*parser.AST{}
-	//hashInclude := map[string]string{}
 	localLabelMap := map[string]uint32{}
 	if err := assignLocalAddresses(localLabelMap, ast); err != nil {
 		return err
@@ -98,8 +96,8 @@ func assignLocalAddresses(labelMap map[string]uint32, ast *parser.AST) error {
 		}
 		for section := org.Sections; ; section = section.Next {
 			for _, block := range section.Blocks {
-				if block.LocalLabelName() != "" {
-					label := block.LocalLabelName()
+				label := block.LabelName(section.IncludeName)
+				if label != section.IncludeName {
 					if _, ok := labelMap[label]; ok {
 						return block.Errorf("label redefinition: %q", block.Label)
 					}
@@ -141,7 +139,7 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) (bool, 
 							&statement.Instr.Op2,
 							&statement.Instr.Op3,
 						}
-						addr := localLabelMap[block.LocalLabelName()] + uint32(i*4)
+						addr := localLabelMap[block.LabelName(section.IncludeName)] + uint32(i*4)
 						for _, op := range ops {
 							err := convertLocalOperand(
 								statement.Instr.Name, addr, block,
@@ -166,7 +164,7 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) (bool, 
 						}
 
 						// This is a data entry with a label. Get the address if it is a local label.
-						addr, ok := localLabelMap[statement.Label]
+						addr, ok := localLabelMap[section.IncludeName+"."+statement.Label]
 						if !ok {
 							return false, statement.Errorf("label does not exist: %q", statement.Label)
 						}
@@ -188,23 +186,24 @@ func convertLocalOperand(instr string, instrAddr uint32, block parser.Block, inc
 	if op.Type != parser.OP_LABEL {
 		return nil
 	}
-	if value, ok := consts[op.Op]; ok {
+	fullOp := inclName + "." + op.Op
+	if value, ok := consts[fullOp]; ok {
 		op.Op = value
 		op.Type = parser.OP_NUMBER
 		return nil
-	}
-	var jumpName string
-	if strings.Index(op.Op, ".") != -1 {
-		op.Type = parser.OP_EXTERNAL_LABEL
-		return nil
-	}
+	} /*
+		var jumpName string
+		if strings.Index(op.Op, ".") != -1 {
+			op.Type = parser.OP_EXTERNAL_LABEL
+			return nil
+		}*/
 
 	// First check if this is a local label i.e a label inside a function.
-	jumpName = block.JumpName("", op.Op)
+	jumpName := block.JumpName(inclName, op.Op)
 	value, ok := labelMap[jumpName]
 	if !ok {
 		// It's not, so let's check if it is a free label.
-		value, ok = labelMap[op.Op]
+		value, ok = labelMap[fullOp]
 		if !ok {
 			return fmt.Errorf("operand %q is not a label or a constant", op.Op)
 		}

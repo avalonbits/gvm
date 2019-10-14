@@ -60,6 +60,7 @@ type AST struct {
 }
 
 type Org struct {
+	Name     string
 	Addr     uint32
 	PIC      bool
 	Sections *Section
@@ -75,7 +76,8 @@ func (o *Org) activeSection() *Section {
 
 func (o *Org) newSection() *Section {
 	sec := &Section{
-		Blocks: make([]Block, 0, 8),
+		IncludeName: o.Name,
+		Blocks:      make([]Block, 0, 8),
 	}
 
 	o.linkSection(sec)
@@ -234,10 +236,6 @@ func (b Block) Errorf(format string, a ...interface{}) error {
 	return fmt.Errorf(format, a...)
 }
 
-func (b Block) LocalLabelName() string {
-	return b.JumpName("", b.Label)
-}
-
 func (b Block) LabelName(incl string) string {
 	return b.JumpName(incl, b.Label)
 }
@@ -247,8 +245,8 @@ func (b Block) JumpName(incl, label string) string {
 	if b.funcName == label {
 		s = label
 	}
-	if incl == "" {
-		return s
+	if s == "" {
+		return incl
 	}
 	return incl + "." + s
 }
@@ -370,7 +368,11 @@ func (p *Parser) mode(requireLibrary bool) error {
 	}
 
 	// For library and program, we create a single PIC org before moving to section parser.
-	o := Org{PIC: true, Addr: 0}
+	o := Org{
+		Name: p.Name,
+		PIC:  true,
+		Addr: 0,
+	}
 	p.Ast.Orgs = append(p.Ast.Orgs, o)
 
 	return p.programOrLibrary()
@@ -429,7 +431,11 @@ func (p *Parser) org() error {
 	if err != nil {
 		return err
 	}
-	o := Org{PIC: false, Addr: n}
+	o := Org{
+		Name: p.Name,
+		PIC:  false,
+		Addr: n,
+	}
 	p.Ast.Orgs = append(p.Ast.Orgs, o)
 
 	for {
@@ -640,7 +646,7 @@ func (p *Parser) parseDataEntries(block *Block) error {
 			if tok.Type != lexer.IDENT {
 				return p.Errorf("expected an identifier, got %q", tok.Literal)
 			}
-			constant := tok.Literal
+			constant := p.Name + "." + tok.Literal
 			if _, ok := p.Ast.Consts[constant]; ok {
 				return p.Errorf("constant %q was previously defined.", constant)
 			}
