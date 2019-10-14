@@ -16,7 +16,6 @@
 
 .bin
 
-.include "../includes/memory.asm" as memory
 
 .org 0x0
 .section text
@@ -27,6 +26,8 @@ interrupt_table:
   jmp benchmark  ; Reset interrupt.
   ret            ; Timer interrupt.
   ret            ; Input intterupt.
+
+.include "../includes/memory.asm" as memory
 
 .section data
 
