@@ -79,6 +79,8 @@ func (o *Org) newSection() *Section {
 		IncludeName: o.Name,
 		Blocks:      make([]Block, 0, 8),
 	}
+	sec.Next = sec
+	sec.Prev = sec
 
 	o.linkSection(sec)
 	return sec
@@ -88,15 +90,17 @@ func (o *Org) linkSection(sec *Section) {
 	// First section.
 	if o.Sections == nil {
 		o.Sections = sec
-		sec.Prev = sec
-		sec.Next = sec
 		return
 	}
 
-	sec.Next = o.Sections
-	sec.Prev = o.Sections.Prev
-	o.Sections.Prev.Next = sec
-	o.Sections.Prev = sec
+	oldTail := o.Sections.Prev
+	newTail := sec.Prev
+	head := o.Sections
+
+	newTail.Next = head
+	oldTail.Next = sec
+	sec.Prev = oldTail
+	head.Prev = newTail
 	return
 }
 
@@ -767,7 +771,10 @@ func (p *Parser) include() error {
 		return err
 	}
 
-	// Ok, parsing was sucessful, so now we include the sections here.
+	// Ok, parsing was sucessful. Merge constants and include the sections here.
+	for k, v := range ast.Consts {
+		p.Ast.Consts[k] = v
+	}
 	o.linkSection(ast.Orgs[0].Sections)
 	return nil
 }
