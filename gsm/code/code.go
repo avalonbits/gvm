@@ -25,7 +25,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/avalonbits/gsm/parser"
@@ -156,13 +155,6 @@ func convertLocalNames(localLabelMap map[string]uint32, ast *parser.AST) (bool, 
 					}
 
 					if statement.Label != "" {
-						if strings.Index(statement.Label, ".") != -1 {
-							// This is an included label. We will resolve the reference later.
-							statement.ResolveReference = true
-							resolve = true
-							continue
-						}
-
 						// This is a data entry with a label. Get the address if it is a local label.
 						addr, ok := localLabelMap[section.IncludeName+"."+statement.Label]
 						if !ok {
