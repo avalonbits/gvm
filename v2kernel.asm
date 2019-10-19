@@ -16,44 +16,34 @@
 
 .bin
 
-.include "./includes/interrupts.asm" as interrupts
-.include "./includes/memory.asm" as memory
-.include "./includes/strings.asm" as strings
-.include "./includes/textmode.asm" as textmode
-
 .org 0x0
 .section text
 
-; Jump table for interrupt handlers. Each address is for a specific interrupt. There are 256
-; possible interrupts. If no handler is available, we use a RET instruction so that the
-; interrupt is ignored. The reset handler takes care of setting the other RET instructions
-; to avoid writing a huge list of values.
+; Jump table for interrupt handlers. Each address is for a specific interrupt.
 interrupt_table:
-    jmp reset_handler
-	ret
-	jmp input_handler
-	jmp recurring_handler
+    jmp reset_handler     ; Reset. Handler will take care of registering kernel default
+						  ; handlers.
 
 .org 0x400
 .section data
 ; ===== Kernel function table.
-register_int_handler: .int interrupts.register_handler
-get_int_handler:      .int interrupts.get_handler
-malloc:               .int _malloc
-free:                 .int _free
-getkey:               .int _getkey
-getc:				  .int _getc
-text_putc:            .int textmode.putc
-putc:				  .int _putc
-puts:                 .int _puts
-strlen:               .int strings.length
-memcpy:               .int memory.copy
-memcpy2:              .int memory.copy2
-memcpy32:             .int memory.copy32
-memset:               .int memory.set
-memset2:              .int memory.set2
-memset32:             .int memory.set32
-itoa:                 .int strings.itoa
+register_interrupt: .int interrupts.register
+get_interrupt:      .int interrupts.get
+malloc:             .int _malloc
+free:               .int _free
+getkey:             .int _getkey
+getc:				.int _getc
+text_putc:          .int textmode.putc
+putc:				.int _putc
+puts:               .int _puts
+strlen:             .int strings.length
+memcpy:             .int memory.copy
+memcpy2:            .int memory.copy2
+memcpy32:           .int memory.copy32
+memset:             .int memory.set
+memset2:            .int memory.set2
+memset32:           .int memory.set32
+itoa:               .int strings.itoa
 
 .org 0x2400
 .section data
@@ -61,15 +51,39 @@ vram_reg:   .int 0x1200400
 vram_start: .int 0x1000000
 ptr_heap_start: .int heap_start
 
+.equ JMP 0x15  ; jmp instruction for registering handler.
+.equ RET 0x1e  ; ret instruction for clearing interrupt vector.
+
+.include "./includes/memory.asm" as memory
+.include "./includes/strings.asm" as strings
+.include "./includes/textmode.asm" as textmode
+.include "./includes/interrupts.asm" as interrupts
+
 .section text
 
 ; ==== Reset interrupt handler.
 reset_handler:
-	; Set the interrupt vector starting from the 5th interrupt with RET instruction.
-	mov r1, 0x10
-	mov r2, 0xFC
+	; Clear the interrupt vector.
+	mov r1, 0
+	mov r2, 64
 	mov r3, RET
-	call memory.set4
+	call memory.set32
+
+	; Now, register the kernel handlers.
+	mov r1, 0
+	mov r2, reset_handler
+	ldr r3, [register_interrupt]
+	call r3
+
+	mov r1, 2
+	mov r2, input_handler
+	ldr r3, [register_interrupt]
+	call r3
+
+	mov r1, 3
+	mov r2, recurring_handler
+	ldr r3, [register_interrupt]
+	call r3
 
 	; We initialize the first two words of the heap to zero. This corresponds
 	; to the header fields size and next.
@@ -261,13 +275,6 @@ done:
 heap_lower_limit: .int heap_start
 heap_curr_limit: .int heap_start
 ptr_heap_curr_limit: .int heap_curr_limit
-
-    ; struct memory_header
-    .equ mh_bytes 0
-	.equ mh_next  4
-	.equ mh_size  8
-
-	.equ memory_page_shift 4  ; Shifting by 4 bits gives 16 bytes per page.
 
 .section text
 @func _malloc:
