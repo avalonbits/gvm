@@ -24,7 +24,7 @@
 
 .section text
 ; ==== RegisterInterrrupt. Registers a function as an interrupt handler.
-@func register_handler:
+@func register:
 	; r0: Returns 0 on failure, 1 otherise.
 	; r1: interrupt value.
 	; r2: absolute function address to call on interrupt. Must use <= 26 bits.
@@ -48,10 +48,10 @@
 invalid_handler:
 	mov r0, 0
 	ret
-@endf register_handler
+@endf register
 
 ; ==== GetInterrrupt. Returns the function address registered for interrupt.
-@func get_handler:
+@func get:
 	; r0: Returns 0 on failure, != 0 otherise.
 	; r1: interrupt value.
 
@@ -71,4 +71,4 @@ invalid_handler:
 invalid_handler:
 	mov r0, 0
 	ret
-@endf get_handler
+@endf get
