@@ -21,8 +21,10 @@
 
 ; Jump table for interrupt handlers. Each address is for a specific interrupt.
 interrupt_table:
-    jmp reset_handler     ; Reset. Handler will take care of registering kernel default
-						  ; handlers.
+    jmp reset_handler     ; Reset interrupt.
+	ret
+	jmp input_handler     ; Input handler.
+	jmp recurring_handler ; Video refresh handler.
 
 .org 0x400
 .section data
@@ -63,27 +65,11 @@ ptr_heap_start: .int heap_start
 
 ; ==== Reset interrupt handler.
 reset_handler:
-	; Clear the interrupt vector.
-	mov r1, 0
-	mov r2, 64
+	; Set RET as the handler for unhandled interrupts.
+	mov r1, 0x10  ; The first 4 handlers have been defined.
+	mov r2, 60
 	mov r3, RET
-	call memory.set32
-
-	; Now, register the kernel handlers.
-	mov r1, 0
-	mov r2, reset_handler
-	ldr r3, [register_interrupt]
-	call r3
-
-	mov r1, 2
-	mov r2, input_handler
-	ldr r3, [register_interrupt]
-	call r3
-
-	mov r1, 3
-	mov r2, recurring_handler
-	ldr r3, [register_interrupt]
-	call r3
+	call memory.set4
 
 	; We initialize the first two words of the heap to zero. This corresponds
 	; to the header fields size and next.

@@ -45,7 +45,7 @@
 ; ==== Memset4. Same as set but assumes size is a multiple of 4 words.
 @func set4:
     ; r1: start address
-    ; r2: size in words. MUST BE A MULTIPLE OF 2 WORDS.
+    ; r2: size in words. MUST BE A MULTIPLE OF 4 WORDS.
     ; r3: value to set.
     stpip [r1, 8], r3, r3
     stpip [r1, 8], r3, r3
