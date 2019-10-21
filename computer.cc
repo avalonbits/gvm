@@ -70,6 +70,11 @@ Computer::Computer(CPU* cpu, VideoController* video_controller,
   video_controller_->SetSignal(&video_signal_);
   video_controller_->SetTextRom(&mem_.get()[kUnicodeRomStart/kWordSize]);
   video_controller_->SetColorTable(&mem_.get()[kColorTableStart/kWordSize]);
+  video_controller_->SetVideoInterrupt([this]() {
+    cpu_->VideoInterrupt();
+    std::this_thread::yield();
+  });
+
   cpu_->ConnectMemory(mem_.get(), mem_size_bytes_, kVramStart);
   cpu_->SetVideoSignal(kVramReg, &video_signal_);
 
