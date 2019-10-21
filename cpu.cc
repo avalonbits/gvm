@@ -111,7 +111,7 @@ uint64_t CPU::Reset() {
   mask_interrupt_ = true;
   const uint64_t op_count = op_count_;
   interrupt_ = 1;  // Mask out all interrupts and set bit 0 to 1, signaling reset.
-  interrupt_event_.notify_one();
+  interrupt_event_.notify_all();
   return op_count;
 }
 
@@ -142,6 +142,12 @@ void CPU::Timer2() {
 void CPU::RecurringTimer2() {
   if (mask_interrupt_) return;
   interrupt_ |= 0x20;
+  interrupt_event_.notify_all();
+}
+
+void CPU::VideoInterrupt() {
+  // This is a non-maskable interrupt.
+  interrupt_ |= 0x40;
   interrupt_event_.notify_all();
 }
 
@@ -581,6 +587,8 @@ void CPU::Run() {
       } else if (interrupt_ & 0x20) {
         pc = 0x10;  // Set to 0x10 because it will be incremented to addr 0x14 on DISPATCH.
         interrupt_ &= ~0x20;
+      } else if (interrupt_ & 0x20) {
+        pc = 0x14;  // Set to 0x14 because it will be incremented to addr 0x18 on DISPATH.
       }
     }
     DISPATCH();

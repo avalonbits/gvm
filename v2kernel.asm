@@ -22,9 +22,12 @@
 ; Jump table for interrupt handlers. Each address is for a specific interrupt.
 interrupt_table:
     jmp reset_handler     ; Reset interrupt.
-	ret
+	ret                   ; Timer1 interrupt.
 	jmp input_handler     ; Input handler.
-	jmp recurring_handler ; Video refresh handler.
+	jmp recurring_handler ; Video refresh handler (recurring timer1).
+	ret                   ; Timer2 interrupt.
+	ret                   ; Recurring timer2 interrupt.
+	ret                   ; Video interrupt.
 
 .org 0x400
 .section data
