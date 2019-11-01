@@ -186,7 +186,6 @@ void CPU::Run() {
 #define VSIG(addr) \
   if (addr == vram_reg_) {\
     video_signal_->send();\
-    video_signal_->recv();\
   }
 
 #define TIMER_READ(addr, v, fallback) \

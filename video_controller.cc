@@ -46,13 +46,11 @@ void VideoController::Run() {
   while (!shutdown_) {
     signal_->recv();
     if (mem_[mem_reg_] == 0) {
-      signal_->send();
       continue;
     }
 
     const uint32_t mode = mem_[mem_reg_];
     display_->CopyBuffer(&mem_[mem_addr_], mode);
-    signal_->send();
 
     if (print_fps_) start = std::chrono::high_resolution_clock::now();
     display_->Render(mode);
