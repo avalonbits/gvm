@@ -216,11 +216,10 @@ done:
 	jne r1, return_no_key
 
 	; We got a charater code. Just return it.
-	jmp done
+	ret
 
 return_no_key:
 	mov r0, 0
-done:
 	ret
 @endf _getc
 
