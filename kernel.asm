@@ -71,7 +71,7 @@ reset_handler:
 	; We initialize the first two words of the heap to zero. This corresponds
 	; to the header fields size and next.
 	ldr r0, [ptr_heap_start]
-	stpip [r0, 0x0], rZ, rZ
+	stppi [r0, 0x0], rZ, rZ
 
     ; Clear input register
     ldr r1, [input_value_addr]

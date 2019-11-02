@@ -648,127 +648,170 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::HALT:
       ss << "halt";
       break;
+
     case ISA::NOP:
       ss << "nop";
       break;
+
     case ISA::LOAD_RI:
       ss << "load r" << reg1(word) << ", [0x" << std::hex << ((word >> 11) & 0x1FFFFF) << "]";
       break;
+
     case ISA::LOAD_IX:
       ss << "load r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
       break;
+
     case ISA::LOAD_PC:
       ss << "load r" << reg1(word) << ", [r29, 0x" << std::hex << reladdr21(word) << "]";
       break;
+
     case ISA::LOAD_IXR:
       ss << "load r" << reg1(word) << ", [r" << reg2(word) << ", r" << reg3(word) << "]";
       break;
+
     case ISA::LOAD_IP:
       ss << "load post inc r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
       break;
+
     case ISA::LOAD_PI:
       ss << "load pre inc r" << reg1(word) << ", [r" << reg2(word) << ", 0x" << std::hex << v16bit(word) << "]";
       break;
+
     case ISA::LDP_PI:
       ss << "load pre inc r" << reg1(word) << ", r" << reg2(word) << ", [r" << reg3(word) << ", 0x" << std::hex << ext11bit(word) << "]";
       break;
+
     case ISA::LDP_IP:
       ss << "load post inc r" << reg1(word) << ", r" << reg2(word) << ", [r" << reg3(word) << ", 0x" << std::hex << ext11bit(word) << "]";
       break;
+
     case ISA::STOR_RI:
       ss << "stor [0x" << std::hex << ((word >> 11) & 0x1FFFFF) << "], r" << std::dec << reg1(word);
       break;
+
     case ISA::STOR_IX:
       ss << "stor [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word);
       break;
+
     case ISA::STOR_PC:
       ss << "stor [r29, 0x" << std::hex << reladdr21(word) << "], r" << std::dec << reg1(word);
       break;
+
     case ISA::STOR_IP:
-      ss << "stor post inc [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word);
+      ss << "stor post inc [r" << reg1(word) << ", 0x" << std::hex << ext16bit(word) << "], r" << std::dec << reg2(word);
       break;
-     case ISA::STOR_PI:
-      ss << "stor pre inc [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word);
-     case ISA::STP_PI:
-      ss << "stor pre inc [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word) << ", r" << reg3(word);
-     case ISA::STP_IP:
-      ss << "stor post inc [r" << reg1(word) << ", 0x" << std::hex << v16bit(word) << "], r" << std::dec << reg2(word) << ", r" << reg3(word);
+
+    case ISA::STOR_PI:
+      ss << "stor pre inc [r" << reg1(word) << ", 0x" << std::hex << ext16bit(word) << "], r" << std::dec << reg2(word);
       break;
+
+    case ISA::STP_PI:
+      ss << "stor pre inc [r" << reg1(word) << ", 0x" << std::hex << ext11bit(word) << "], r" << std::dec << reg2(word) << ", r" << reg3(word);
+      break;
+
+    case ISA::STP_IP:
+      ss << "stor post inc [r" << reg1(word) << ", 0x" << std::hex << ext11bit(word) << "], r" << std::dec << reg2(word) << ", r" << reg3(word);
+      break;
+
     case ISA::ADD_RR:
       ss << "add r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
       break;
+
     case ISA::ADD_RI:
       ss << "add r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
+
     case ISA::SUB_RR:
       ss << "sub r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
       break;
+
     case ISA::SUB_RI:
       ss << "sub r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
+
     case ISA::JMP:
       ss << "jmp 0x" << std::hex << pc;
       break;
+
     case ISA::JNE:
       ss << "jne 0x" << std::hex << pc;
       break;
+
     case ISA::JEQ:
       ss << "jeq 0x" << std::hex << pc;
       break;
     case ISA::JGT:
       ss << "jgt 0x" << std::hex << pc;
       break;
+
     case ISA::JGE:
       ss << "jge 0x" << std::hex << pc;
       break;
+
     case ISA::JLT:
       ss << "jlt 0x" << std::hex << pc;
       break;
+
     case ISA::JLE:
       ss << "jle 0x" << std::hex << pc;
       break;
+
     case ISA::CALLI:
       ss << "call 0x" << std::hex << pc;
       break;
+
     case ISA::CALLR:
       ss << "call [r" << reg1(word) << "]";
       break;
+
     case ISA::RET:
       ss << "ret";
       break;
+
     case ISA::AND_RR:
       ss << "and r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
       break;
+
     case ISA::AND_RI:
       ss << "and r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
+
     case ISA::ORR_RR:
       ss << "orr r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
       break;
+
     case ISA::ORR_RI:
       ss << "orr r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
+
     case ISA::XOR_RR:
       ss << "xor r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
       break;
+
     case ISA::XOR_RI:
       ss << "xor r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
+
     case ISA::LSL_RR:
       ss << "lsl r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
       break;
+
     case ISA::LSL_RI:
       ss << "lsl r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
+
     case ISA::LSR_RR:
       ss << "lsr r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
       break;
+
     case ISA::LSR_RI:
       ss << "lsr r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
+
     case ISA::ASR_RR:
       ss << "asr r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
       break;
+
     case ISA::ASR_RI:
       ss << "asr r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
@@ -776,6 +819,7 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::DIV_RI:
       ss << "div r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
+
     case ISA::DIV_RR:
       ss << "div r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
       break;
@@ -783,12 +827,15 @@ std::string CPU::PrintInstruction(const Word word) {
     case ISA::MUL_RI:
       ss << "mul r" << reg1(word) << ", r" << reg2(word) << ", 0x" << std::hex << v16bit(word);
       break;
+
     case ISA::MUL_RR:
       ss << "mul r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
       break;
+
     case ISA::MULL_RR:
       ss << "mull r" << reg1(word) << ", r" << reg2(word) << ", r" << reg3(word);
       break;
+
     case ISA::WFI:
       ss << "wfi";
       break;
