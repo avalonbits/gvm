@@ -332,6 +332,9 @@ func writeObjectToFile(objs map[string]*object, buf *bufio.Writer) error {
 	for _, obj := range objs {
 		nIter := obj.node.Iterator()
 		for addr, code, err := nIter.Next(); err == nil; addr, code, err = nIter.Next() {
+			if len(code) == 0 {
+				continue
+			}
 			binary.LittleEndian.PutUint32(word, addr)
 			if _, err := buf.Write(word); err != nil {
 				return err

@@ -25,13 +25,13 @@
 @func putc:
     ; r1: x-pos
     ; r2: y-pos
-    ; r3 foreground color
+    ; r3: foreground color
     ; r4: background color
     ; r5: framebuffer start.
     ; r6: Character unicode value.
 
     ; We calculate position in framebuffer using the formula
-    ; pos(x,y) x*4 + frame_buffer + y * 100 * 4
+    ; pos(x,y) x*4 + frame_buffer + y * 400
     lsl r1, r1, 2
     mul r2, r2, 400
     add r5, r5, r1
