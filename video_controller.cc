@@ -43,6 +43,7 @@ void VideoController::Run() {
   display_->Render(1);
   SDL_Thread* input_thread = SDL_CreateThread(
       ReadInput, "ReadInput", reinterpret_cast<void*>(input_controller_.get()));
+
   ready_();
   while (!shutdown_) {
     signal_->recv();
