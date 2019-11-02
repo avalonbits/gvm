@@ -578,57 +578,24 @@ void CPU::Run() {
         pc = 0x04;  // Set to 0x04 because it will be incremented to addr 0x08 on DISPATCH.
         interrupt_ &= ~0x04;
       } else if (interrupt_ & 0x08) {
+        // Recurring timer interrupt.
         pc = 0x08;  // Set to 0x08 because it will be incremented to addr 0x0c on DISPATCH.
         interrupt_ &= ~0x08;
       } else if (interrupt_ & 0x10) {
+        // Timer2 interrupt.
         pc = 0x0c;  // Set to 0x0c because it will be incremented to addr 0x10 on DISPATCH.
         interrupt_ &= ~0x10;
       } else if (interrupt_ & 0x20) {
+        // Recurring timer2 interrupt.
         pc = 0x10;  // Set to 0x10 because it will be incremented to addr 0x14 on DISPATCH.
         interrupt_ &= ~0x20;
-      } else if (interrupt_ & 0x20) {
+      } else if (interrupt_ & 0x40) {
+        // Video interrupt.
         pc = 0x14;  // Set to 0x14 because it will be incremented to addr 0x18 on DISPATH.
+        interrupt_ &= ~0x40;
       }
     }
     DISPATCH();
-  }
-}
-
-void CPU::InterruptService(uint32_t& pc) {
-  // If reset is set, we ignore every other signal and reset the cpu.
-  if (interrupt_ & 0x01) {
-    interrupt_ = 0;
-    // We zero out all registers and setup pc, sp and fp accordingly.
-    std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
-    fp_ = sp_ = user_ram_limit_;
-    pc = pc_;
-  } else {
-    mask_interrupt_ = true;
-    sp_ -= 4;
-    mem_[m2w(sp_)] = pc-4;
-    sp_ -= 4;
-    mem_[m2w(sp_)] = fp_;
-    fp_ = sp_;
-
-    // Process signals in bit order. Lower bits have higher priority than higher bits.
-    if (interrupt_ & 0x02) {
-      // Timer interrupt.
-      pc = 0x4;
-      interrupt_ &= ~0x02;
-    } else if (interrupt_ & 0x04) {
-      // Input interrupt.
-      pc = 0x08;
-      interrupt_ &= ~0x04;
-    } else if (interrupt_ & 0x08) {
-      pc = 0x0c;
-      interrupt_ &= ~0x08;
-    } else if (interrupt_ & 0x10) {
-      pc = 0x10;
-      interrupt_ &= ~0x10;
-    } else if (interrupt_ & 0x20) {
-      pc = 0x14;
-      interrupt_ &= ~0x20;
-    }
   }
 }
 
