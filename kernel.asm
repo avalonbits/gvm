@@ -31,9 +31,20 @@ interrupt_table:
 
 .org 0x400
 .section data
+memset:     .int memory.set
+memset2:    .int memory.set2
+memset4:    .int memory.set4
+memset32:   .int memory.set32
+memcpy:     .int memory.copy
+memcpy2:    .int memory.copy2
+memcpy4:    .int memory.copy4
+memcpy32:   .int memory.copy32
 ; ===== Kernel function table.
 
 .org 0x2400
+
+.include "includes/v2/memory.asm" as memory
+
 .section text
 ; ==== Reset interrupt handler.
 reset_handler:
