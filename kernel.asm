@@ -44,10 +44,12 @@ memcpy32:   .int memory.copy32
 .org 0x2400
 
 .include "includes/v2/memory.asm" as memory
+.include "includes/v2/textmode.asm" as textmode
 
 .section text
 ; ==== Reset interrupt handler.
 reset_handler:
+	call textmode.init
     ; Now jump to main kernel code.
     jmp KERNEL_MAIN
 
