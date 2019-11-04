@@ -21,7 +21,6 @@
 .library
 
 .section data
-.equ FB_SIZE   11200
 .equ FB_WORDS   2800
 .equ MEMSET4   0x408
 .equ CURSOR   0x2588
