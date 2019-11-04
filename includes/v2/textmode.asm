@@ -21,21 +21,21 @@
 .library
 
 .section data
-.equ FB_SIZE  11200
-.equ FB_WORDS  2800
+.equ FB_SIZE   11200
+.equ FB_WORDS   2800
 .equ MEMSET4   0x408
 
 framebuffer_start: .int 0x1000000
-fg_color: .int 15
+fg_color: .int 0
 bg_color: .int 0
 cursor_x: .int 0
 cursor_y: .int 0
-
 .section text
 
 ; ==== Init: Initializes textmode.
 @func init:
 	mov r1, 15
+	lsl r1, r1, 16
 	str [fg_color], r1
 	str [bg_color], rZ
 	str [cursor_x], rZ
@@ -51,39 +51,63 @@ cursor_y: .int 0
 	ldr r3, [bg_color]
 	ldr r4, [MEMSET4]
 	call r4
+	call flush
 	ret
 @endf clear
 
-
-; ==== TextPutC: Prints a charcater on the screen in text mode.
+; ==== PutC: Prints a character on the screen at the current cursor position
+;            and advances the cursor.
 @func putc:
+	; r0: Character unicode value.
+
+	ldr r1, [cursor_x]
+	ldr r2, [cursor_y]
+	ldr r3, [fg_color]
+	ldr r4, [bg_color]
+	mov r5, r0
+	call _putc_at
+	call flush
+	ret
+@endf putc
+
+; ==== PutCAt: Prints a charcater on the screen in text mode.
+@func _putc_at:
     ; r1: x-pos
     ; r2: y-pos
     ; r3: foreground color
     ; r4: background color
-    ; r5: framebuffer start.
-    ; r6: Character unicode value.
+    ; r5: Character unicode value.
 
+	ldr r6, [framebuffer_start]
     ; We calculate position in framebuffer using the formula
     ; pos(x,y) x*4 + frame_buffer + y * 400
     lsl r1, r1, 2
     mul r2, r2, 400
-    add r5, r5, r1
-    add r5, r5, r2
+    add r6, r6, r1
+    add r6, r6, r2
 
     ; In text mode, we write a word with 2 bytes for char, 1 byte for fcolor
     ; and 1 byte for bcolor. char is in r1, so we just need to write the colors.
-    and r6, r6, 0xFFFF
+    and r5, r5, 0xFFFF
     and r3, r3, 0xFF
     lsl r3, r3, 16
-    orr r6, r6, r3
+    orr r5, r5, r3
 
     and r4, r4, 0xFF;
     lsl r3, r3, 24
-    orr r6, r6, r4
+    orr r5, r5, r4
 
-    str [r5], r6
+    str [r6], r5
     ret
-@endf putc
+@endf _putc_at
 
+.section data
+vram_reg: .int 0x1200400
 
+.section text
+@infunc flush:
+	mov r26, 2
+	ldr r27, [vram_reg]
+	str [r27], r26
+	ret
+@endf flush
