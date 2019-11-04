@@ -205,7 +205,7 @@ func convertLocalOperand(instr string, instrAddr uint32, block parser.Block, inc
 	case "jmp", "jne", "jeq", "jlt", "jle", "jge", "jgt", "call":
 		value -= instrAddr
 	case "ldr", "str", "mov":
-		if value >= 0x2100 {
+		if value >= 0x2400 {
 			value -= instrAddr
 			v := int32(value)
 			if instr == "ldr" || instr == "str" {
