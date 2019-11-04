@@ -138,19 +138,27 @@ loop:
 @endf _putc
 
 @infunc _advance_cursor:
+	; Increment the x position.
 	ldr r1, [cursor_x]
 	add r1, r1, 1
+
+	; If we are not at the edge we are done.
 	sub r2, r1, 100
 	jlt r2, done
 
 	; We need to go to the next line.
 	mov r1, 0
+
+	; Increment the y position.
 	ldr r2, [cursor_y]
 	add r2, r2, 1
+
+	; If we are not a the edge we are done.
 	sub r3, r2, 28
 	jlt r3, done_y
 
 	; For now we will keep wrapping back to the last line.
+	mor r1, 0
 	mov r2, 27
 
 done_y:
