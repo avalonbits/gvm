@@ -50,6 +50,11 @@ memcpy32:   .int memory.copy32
 ; ==== Reset interrupt handler.
 reset_handler:
 	call textmode.init
+	mov r0, 1
+	call textmode.set_bgcolor
+	mov r0, 0
+	call textmode.set_fgcolor
+	call textmode.clear
 	mov r0, 0x42
 	call textmode.putc
     ; Now jump to main kernel code.

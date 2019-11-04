@@ -34,13 +34,24 @@ cursor_y: .int 0
 
 ; ==== Init: Initializes textmode.
 @func init:
+	; Initialie textmode variables.
 	mov r1, 15
 	lsl r1, r1, 16
 	str [fg_color], r1
 	str [bg_color], rZ
 	str [cursor_x], rZ
 	str [cursor_y], rZ
+
+	; Clear the screen with the background color.
 	call clear
+
+	; Loop to make sure the video was initialized.
+loop:
+	ldr r27, [vram_reg]
+	ldr r27, [r27]
+	jne r27, loop
+
+	; Video is setup.
 	ret
 @endf init
 
@@ -59,7 +70,6 @@ cursor_y: .int 0
 ;            and advances the cursor.
 @func putc:
 	; r0: Character unicode value.
-
 	ldr r1, [cursor_x]
 	ldr r2, [cursor_y]
 	ldr r3, [fg_color]
@@ -70,8 +80,26 @@ cursor_y: .int 0
 	ret
 @endf putc
 
-; ==== PutCAt: Prints a charcater on the screen in text mode.
-@func _putc_at:
+; ==== SetFgcolor: Sets the foreground color.
+@func set_fgcolor:
+	; r0: Foreground color.
+	and r0, r0, 0xFF
+	lsl r0, r0, 16
+	str [fg_color], r0
+	ret
+@endf set_fgcolor
+
+; ==== SetFgcolor: Sets the foreground color.
+@func set_bgcolor:
+	; r0: Background color.
+	and r0, r0, 0xFF
+	lsl r0, r0, 24
+	str [bg_color], r0
+	ret
+@endf set_bgcolor
+
+; ==== _PutCAt: Prints a charcater on the screen in text mode.
+@infunc _putc_at:
     ; r1: x-pos
     ; r2: y-pos
     ; r3: foreground color
