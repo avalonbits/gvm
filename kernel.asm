@@ -49,7 +49,9 @@ memcpy32:   .int memory.copy32
 .section text
 ; ==== Reset interrupt handler.
 reset_handler:
-	call textmode.clear
+	call textmode.init
+	mov r0, 0x42
+	call textmode.putc
     ; Now jump to main kernel code.
     jmp KERNEL_MAIN
 

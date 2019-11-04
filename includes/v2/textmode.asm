@@ -88,13 +88,10 @@ cursor_y: .int 0
 
     ; In text mode, we write a word with 2 bytes for char, 1 byte for fcolor
     ; and 1 byte for bcolor. char is in r1, so we just need to write the colors.
+	; Here we assume the colors are already shifted to the correct position and
+    ; just OR them.
     and r5, r5, 0xFFFF
-    and r3, r3, 0xFF
-    lsl r3, r3, 16
     orr r5, r5, r3
-
-    and r4, r4, 0xFF;
-    lsl r3, r3, 24
     orr r5, r5, r4
 
     str [r6], r5
