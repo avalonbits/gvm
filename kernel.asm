@@ -43,10 +43,14 @@ memcpy2:    .int memory.copy2
 memcpy4:    .int memory.copy4
 memcpy32:   .int memory.copy32
 
+; ==== General io functions
+readkey:    .int io.getkey
+
 ; ==== Textmode functions.
 tm_init:    .int textmode.init
 tm_clear:   .int textmode.clear
 tm_putc:    .int textmode.putc
+tm_getc:    .int textmode.getc
 tm_set_fg:  .int textmode.set_fgcolor
 tm_set_bg:  .int textmode.set_bgcolor
 
@@ -60,18 +64,14 @@ tm_set_bg:  .int textmode.set_bgcolor
 ; ==== Reset interrupt handler.
 reset_handler:
 	call textmode.init
-	mov r0, 1
-	call textmode.set_bgcolor
-	mov r0, 0
-	call textmode.set_fgcolor
-	call textmode.clear
-	mov r0, 0x42
-	call textmode.putc
     ; Now jump to main kernel code.
     jmp KERNEL_MAIN
 
 KERNEL_MAIN:
 	wfi
+	call textmode.getc
+	jeq r0, KERNEL_MAIN
+	call textmode.putc
 	jmp KERNEL_MAIN
 
 ; ============ Character font.

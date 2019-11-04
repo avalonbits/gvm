@@ -79,3 +79,47 @@ quit:
     halt
 @endf input_handler
 
+; === GetKey: Reads the next key from the key input buffer. It requires that
+;             the input_handler is being used to process input interrupts.
+@func getkey:
+	; r0: returns the key read. r0 == 0 means no input available.
+
+	; The first thing to do is to get ib_tail. This way, if an interrupt
+    ; happens while we are in this function, we will reduce the chance of
+	; buffer overwrite.
+	mov r0, input_buffer
+	ldri r2, [r0, ib_tail]
+	ldri r1, [r0, ib_head]
+
+	;  If tail != head then the buffer has keys so we can read it.
+	sub r2, r2, r1
+	jne r2, read_input
+
+	; tail == head means no key in buffer. Return 0.
+	mov r0, 0
+	ret
+
+read_input:
+	; We read the input to r2, update ib_head then move the result to r0 to
+	; return it to caller.
+
+	; Because we operate on words, we need to multiply ib_head by 4.
+	lsl r2, r1, 2
+
+	; Now get the char at buffer[r2]
+	add r2, r0, r2
+	ldr r2, [r2]
+
+	; Update ib_head and wrap if needed.
+	add r1, r1, 1
+	sub r3, r1, 32
+	jne r3, done
+
+	; We need to wrap back to 0.
+	mov r1, rZ
+
+done:
+	stri [r0, ib_head], r1
+	mov r0, r2
+	ret
+@endf getkey

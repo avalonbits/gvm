@@ -22,8 +22,9 @@
 
 .section data
 .equ FB_WORDS   2800
-.equ MEMSET4   0x408
 .equ CURSOR   0x2588
+.equ MEMSET4   0x408
+.equ READKEY   0x420
 
 framebuffer_start: .int 0x1000000
 fg_color: .int 0
@@ -98,6 +99,35 @@ loop:
 	str [bg_color], r0
 	ret
 @endf set_bgcolor
+
+; ==== GetC: Reads a character from the input and returns it. Ignores control
+;            keys and keyup events.
+@func getc:
+	; r0: Returns the character. Returns 0 in case no character is available,
+	ldr r0, [READKEY]
+	call r0
+	jeq r0, done
+
+	; Check if this is a keyup event. If it is, ignore it.
+	lsr r1, r0, 31
+	and r1, r1, 1
+	jne r1, return_no_key
+
+	; Check if this is a control key. If it is, ignore it.
+	lsr r1, r0, 30
+	and r1, r1, 1
+	jne r1, return_no_key
+
+	; We got a charater code. Just return it.
+done:
+	ret
+
+return_no_key:
+	mov r0, 0
+	ret
+@endf getc
+
+
 
 ; ========================== Internal functions ============================= ;
 ; ==== _PutCAt: Prints a charcater on the screen in text mode.
