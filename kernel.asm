@@ -52,6 +52,7 @@ tm_set_bg:  .int textmode.set_bgcolor
 
 .org 0x2400
 
+.include "includes/v2/io.asm" as io
 .include "includes/v2/memory.asm" as memory
 .include "includes/v2/textmode.asm" as textmode
 
@@ -71,7 +72,7 @@ reset_handler:
 
 KERNEL_MAIN:
 	wfi
-	halt
+	jmp KERNEL_MAIN
 
 ; ============ Character font.
 .org 0x1100000
