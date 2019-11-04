@@ -158,7 +158,7 @@ loop:
 	jlt r3, done_y
 
 	; For now we will keep wrapping back to the last line.
-	mor r1, 0
+	mov r1, 0
 	mov r2, 27
 
 done_y:

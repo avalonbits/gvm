@@ -31,6 +31,9 @@ interrupt_table:
 
 .org 0x400
 .section data
+; ========================= Kernel function table. =========================== ;
+
+; ==== Memory functions.
 memset:     .int memory.set
 memset2:    .int memory.set2
 memset4:    .int memory.set4
@@ -39,7 +42,13 @@ memcpy:     .int memory.copy
 memcpy2:    .int memory.copy2
 memcpy4:    .int memory.copy4
 memcpy32:   .int memory.copy32
-; ===== Kernel function table.
+
+; ==== Textmode functions.
+tm_init:    .int textmode.init
+tm_clear:   .int textmode.clear
+tm_putc:    .int textmode.putc
+tm_set_fg:  .int textmode.set_fgcolor
+tm_set_bg:  .int textmode.set_bgcolor
 
 .org 0x2400
 
