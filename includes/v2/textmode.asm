@@ -65,6 +65,8 @@ loop:
 	; Now draw the cursor on the screen
 	mov r0, CURSOR
 	call _putc
+
+	; Flush the memory to video controller.
 	call flush
 	ret
 @endf clear

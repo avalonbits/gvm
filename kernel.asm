@@ -23,7 +23,7 @@
 interrupt_table:
     jmp reset_handler     ; Reset interrupt.
 	ret                   ; Timer1 interrupt.
-	ret                   ; Input handler.
+	jmp io.input_handler  ; Input handler.
 	ret                   ; Video refresh handler (recurring timer1).
 	ret                   ; Timer2 interrupt.
 	ret                   ; Recurring timer2 interrupt.
