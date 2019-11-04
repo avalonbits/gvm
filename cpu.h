@@ -52,7 +52,6 @@ class CPU {
   void RecurringTimer();
   void Timer2();
   void RecurringTimer2();
-  void VideoInterrupt();
 
   void SetVideoSignal(const uint32_t vram_reg, SyncPoint* video_signal) {
     vram_reg_ = vram_reg;

@@ -34,16 +34,20 @@ cursor_y: .int 0
 
 ; ==== Init: Initializes textmode.
 @func init:
-	; Initialie textmode variables.
-	mov r1, 15
-	lsl r1, r1, 16
-	str [fg_color], r1
+	; Initialize textmode variables.
+	; We first initialize background so we can call clear immediately. This will
+	; Allow us to interleave the cpu and the video controller operations.
 	str [bg_color], rZ
-	str [cursor_x], rZ
-	str [cursor_y], rZ
 
 	; Clear the screen with the background color.
 	call clear
+
+	; Set the remainder of the variables.
+	mov r1, 15
+	lsl r1, r1, 16
+	str [fg_color], r1
+	str [cursor_x], rZ
+	str [cursor_y], rZ
 
 	; Loop to make sure the video was initialized.
 loop:
@@ -77,6 +81,7 @@ loop:
 	mov r5, r0
 	call _putc_at
 	call flush
+	call _advance_cursor
 	ret
 @endf putc
 
@@ -125,6 +130,10 @@ loop:
     str [r6], r5
     ret
 @endf _putc_at
+
+@infunc _advance_cursor:
+	ret
+@endf _advance_cursor
 
 .section data
 vram_reg: .int 0x1200400

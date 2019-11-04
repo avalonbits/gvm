@@ -24,6 +24,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "isa.h"
@@ -145,12 +146,6 @@ void CPU::RecurringTimer2() {
   interrupt_event_.notify_all();
 }
 
-void CPU::VideoInterrupt() {
-  // This is a non-maskable interrupt.
-  interrupt_ |= 0x40;
-  interrupt_event_.notify_all();
-}
-
 void CPU::Run() {
   static void* opcodes[] = {
     &&NOP, &&HALT, &&LOAD_RI, &&LOAD_IX, &&LOAD_PC, &&LOAD_IXR, &&LOAD_PI,
@@ -186,6 +181,7 @@ void CPU::Run() {
 #define VSIG(addr) \
   if (addr == vram_reg_) {\
     video_signal_->send();\
+    std::this_thread::yield();\
   }
 
 #define TIMER_READ(addr, v, fallback) \

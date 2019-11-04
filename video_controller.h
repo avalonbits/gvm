@@ -40,9 +40,6 @@ class VideoController {
   void SetSignal(SyncPoint* signal) { signal_ = signal; }
   void SetTextRom(uint32_t* mem) { display_->SetTextRom(mem); }
   void SetColorTable(uint32_t* mem) { display_->SetColorTable(mem); }
-  void SetVideoInterrupt(std::function<void(void)> ready) {
-    ready_ = ready;
-  }
   void Run();
   void Shutdown();
 
@@ -55,7 +52,6 @@ class VideoController {
   uint32_t* mem_;
   std::unique_ptr<VideoDisplay> display_;
   std::unique_ptr<InputController> input_controller_;
-  std::function<void(void)> ready_;
   volatile bool shutdown_;
 
 };
