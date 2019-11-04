@@ -24,6 +24,7 @@
 .equ FB_SIZE   11200
 .equ FB_WORDS   2800
 .equ MEMSET4   0x408
+.equ CURSOR   0x2588
 
 framebuffer_start: .int 0x1000000
 fg_color: .int 0
@@ -35,19 +36,13 @@ cursor_y: .int 0
 ; ==== Init: Initializes textmode.
 @func init:
 	; Initialize textmode variables.
-	; We first initialize background so we can call clear immediately. This will
-	; Allow us to interleave the cpu and the video controller operations.
-	str [bg_color], rZ
-
-	; Clear the screen with the background color.
-	call clear
-
-	; Set the remainder of the variables.
 	mov r1, 15
 	lsl r1, r1, 16
 	str [fg_color], r1
+	str [bg_color], rZ
 	str [cursor_x], rZ
 	str [cursor_y], rZ
+	call clear
 
 	; Loop to make sure the video was initialized.
 loop:
@@ -61,11 +56,16 @@ loop:
 
 ; ==== Clear: Clears the screen with the current background color.
 @func clear:
+	; Use memset4 to clear the screen with the background color.
 	ldr r1, [framebuffer_start]
 	mov r2, FB_WORDS
 	ldr r3, [bg_color]
 	ldr r4, [MEMSET4]
 	call r4
+
+	; Now draw the cursor on the screen
+	mov r0, CURSOR
+	call _putc
 	call flush
 	ret
 @endf clear
@@ -74,14 +74,9 @@ loop:
 ;            and advances the cursor.
 @func putc:
 	; r0: Character unicode value.
-	ldr r1, [cursor_x]
-	ldr r2, [cursor_y]
-	ldr r3, [fg_color]
-	ldr r4, [bg_color]
-	mov r5, r0
-	call _putc_at
-	call flush
+	call _putc
 	call _advance_cursor
+	call flush
 	ret
 @endf putc
 
@@ -131,7 +126,40 @@ loop:
     ret
 @endf _putc_at
 
+@infunc _putc:
+	; r0: Character unicode value.
+	ldr r1, [cursor_x]
+	ldr r2, [cursor_y]
+	ldr r3, [fg_color]
+	ldr r4, [bg_color]
+	mov r5, r0
+	call _putc_at
+	ret
+@endf _putc
+
 @infunc _advance_cursor:
+	ldr r1, [cursor_x]
+	add r1, r1, 1
+	sub r2, r1, 100
+	jlt r2, done
+
+	; We need to go to the next line.
+	mov r1, 0
+	ldr r2, [cursor_y]
+	add r2, r2, 1
+	sub r3, r2, 28
+	jlt r3, done_y
+
+	; For now we will keep wrapping back to the last line.
+	mov r2, 27
+
+done_y:
+	str [cursor_y], r2
+
+done:
+	str [cursor_x], r1
+	mov r0, CURSOR
+	call _putc
 	ret
 @endf _advance_cursor
 
