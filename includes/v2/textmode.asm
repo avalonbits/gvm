@@ -89,7 +89,7 @@ loop:
 	ret
 @endf set_fgcolor
 
-; ==== SetFgcolor: Sets the foreground color.
+; ==== SetBgcolor: Sets the background color.
 @func set_bgcolor:
 	; r0: Background color.
 	and r0, r0, 0xFF
@@ -98,6 +98,7 @@ loop:
 	ret
 @endf set_bgcolor
 
+; ========================== Internal functions ============================= ;
 ; ==== _PutCAt: Prints a charcater on the screen in text mode.
 @infunc _putc_at:
     ; r1: x-pos
