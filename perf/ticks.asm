@@ -78,6 +78,5 @@ loop:
     ldr r1, [r0]
     sub r2, r2, 20
     jne r2, loop
+	halt
 @endf benchmark
-
-    halt
