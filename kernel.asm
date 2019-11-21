@@ -72,8 +72,8 @@ reset_handler:
 
 KERNEL_MAIN:
 	; Print startup message.
-	mov r1, startup_msg
-	call textmode.puts
+	; mov r1, startup_msg
+	; call textmode.puts
 
 	wfi
 	call textmode.getc
