@@ -78,7 +78,7 @@ KERNEL_MAIN:
 loop:
 	wfi
 	call textmode.getc
-	jeq r0, KERNEL_MAIN
+	jeq r0, loop
 	call textmode.putc
 	jmp loop
 
