@@ -127,7 +127,12 @@ return_no_key:
 	ret
 @endf getc
 
-
+; ==== PutS: Writes a string on the screen in text mode at the current cursor position.
+@func puts:
+	call _puts
+	call flush
+	ret
+@endf puts
 
 ; ========================== Internal functions ============================= ;
 ; ==== _PutCAt: Prints a charcater on the screen in text mode.
@@ -158,6 +163,57 @@ return_no_key:
     ret
 @endf _putc_at
 
+@infunc _puts_at:
+    ; r1: x-pos
+    ; r2: y-pos
+    ; r3: foreground color
+    ; r4: background color
+    ; r5: Pointer null-terminated string buffer.
+
+	ldr r6, [framebuffer_start]
+    ; We calculate position in framebuffer using the formula
+    ; pos(x,y) x*4 + frame_buffer + y * 400
+    lsl r1, r1, 2
+    mul r2, r2, 400
+    add r6, r6, r1
+    add r6, r6, r2
+
+string_loop:
+	ldr r7, [r5]
+    and r0, r7, 0xFFFF
+
+	; If this is the null character, we are done.
+	jeq r0, done
+
+    ; In text mode, we write a word with 2 bytes for char, 1 byte for fcolor
+    ; and 1 byte for bcolor. char is in r1, so we just need to write the colors.
+	; Here we assume the colors are already shifted to the correct position and
+    ; just OR them.
+    orr r0, r0, r3
+    orr r0, r0, r4
+    str [r6], r0
+
+	; Get next charcter and check if it is the null string.
+	lsr r0, r7, 16
+	jeq r0, done
+
+	; Ok, still has characters. Advance the frame buffer.
+	add r6, r6, 4
+
+	; Write the character
+    orr r0, r0, r3
+    orr r0, r0, r4
+    str [r6], r0
+
+	; Advance the frame and string buffers and start over.
+	add r5, r5, 4
+	add r6, r6, 4
+	jmp string_loop
+
+done:
+    ret
+@endf _puts_at
+
 @infunc _putc:
 	; r0: Character unicode value.
 	ldr r1, [cursor_x]
@@ -168,6 +224,17 @@ return_no_key:
 	call _putc_at
 	ret
 @endf _putc
+
+@infunc _puts:
+	; r0: Pointer to null terminated string buffer.
+	ldr r1, [cursor_x]
+	ldr r2, [cursor_y]
+	ldr r3, [fg_color]
+	ldr r4, [bg_color]
+	mov r5, r0
+	call _puts_at
+	ret
+@endf _puts
 
 @infunc _advance_cursor:
 	; Increment the x position.

@@ -60,6 +60,9 @@ tm_set_bg:  .int textmode.set_bgcolor
 .include "includes/v2/memory.asm" as memory
 .include "includes/v2/textmode.asm" as textmode
 
+.section data
+startup_msg: .str "GVM Version 0.0.1"
+
 .section text
 ; ==== Reset interrupt handler.
 reset_handler:
@@ -68,6 +71,10 @@ reset_handler:
     jmp KERNEL_MAIN
 
 KERNEL_MAIN:
+	; Print startup message.
+	mov r0, startup_msg
+	call textmode.puts
+
 	wfi
 	call textmode.getc
 	jeq r0, KERNEL_MAIN
