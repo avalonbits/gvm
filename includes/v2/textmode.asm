@@ -130,11 +130,16 @@ return_no_key:
 
 ; ==== PutS: Writes a string on the screen in text mode at the current cursor position.
 @func puts:
+	; Write the string to the screen memory.
 	strpi [sp, -4], r1
 	call _puts
 	ldrip r1, [sp, 4]
+
+	; Now get the string size so we can advance the cursor.
 	call strlen
 	call _advance_cursor
+
+	; Flush the screen buffer.
 	call flush
 	ret
 @endf puts
@@ -143,6 +148,7 @@ return_no_key:
 	; r0: returns the size of the string.
 	; r1: pointer to null terminated string buffer.
 	mov r0, 0
+
 loop:
 	; Load the current 2 values in the string.
 	ldr r2, [r1]
@@ -170,6 +176,7 @@ loop:
 done:
 	ret
 @endf strlen
+
 ; ========================== Internal functions ============================= ;
 ; ==== _PutCAt: Prints a charcater on the screen in text mode.
 @infunc _putc_at:
