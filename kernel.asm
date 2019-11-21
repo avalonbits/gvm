@@ -72,7 +72,7 @@ reset_handler:
 
 KERNEL_MAIN:
 	; Print startup message.
-	mov r0, startup_msg
+	mov r1, startup_msg
 	call textmode.puts
 
 	wfi

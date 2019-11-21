@@ -77,6 +77,7 @@ loop:
 @func putc:
 	; r0: Character unicode value.
 	call _putc
+	mov r0, 1
 	call _advance_cursor
 	call flush
 	ret
@@ -129,11 +130,46 @@ return_no_key:
 
 ; ==== PutS: Writes a string on the screen in text mode at the current cursor position.
 @func puts:
+	call strlen
+	mov r10, r0
 	call _puts
+	mov r0, r10
+	call _advance_cursor
 	call flush
 	ret
 @endf puts
 
+@func strlen:
+	; r0: returns the size of the string.
+	; r1: pointer to null terminated string buffer.
+	mov r0, 0
+loop:
+	; Load the current 2 values in the string.
+	ldr r2, [r1]
+
+	; We mask out the last 16 bits to make sure we are not reading garbage.
+	and r2, r2, 0xFFFF
+
+	; If it's the null terminator than we are done.
+	jeq r2, done
+
+	; Increment size count.
+	add r0, r0, 1
+
+	; Get the next char
+	lsr r2, r2, 16
+
+	; If it's the null terminator, we are done.
+	jeq r1, done
+
+	; We have another char. Increment the count and increment the buffer pointer.
+	add r0, r0, 1
+	add r1, r1, 4
+	jmp loop
+
+done:
+	ret
+@endf strlen
 ; ========================== Internal functions ============================= ;
 ; ==== _PutCAt: Prints a charcater on the screen in text mode.
 @infunc _putc_at:
@@ -237,16 +273,17 @@ done:
 @endf _puts
 
 @infunc _advance_cursor:
+	; r0: the amount to move the cursor.
 	; Increment the x position.
 	ldr r1, [cursor_x]
-	add r1, r1, 1
+	add r1, r1, r0
 
 	; If we are not at the edge we are done.
 	sub r2, r1, 100
 	jlt r2, done
 
 	; We need to go to the next line.
-	mov r1, 0
+	mov r1, r2
 
 	; Increment the y position.
 	ldr r2, [cursor_y]
