@@ -72,14 +72,15 @@ reset_handler:
 
 KERNEL_MAIN:
 	; Print startup message.
-	; mov r1, startup_msg
-	; call textmode.puts
+	mov r1, startup_msg
+	call textmode.puts
 
+loop:
 	wfi
 	call textmode.getc
 	jeq r0, KERNEL_MAIN
 	call textmode.putc
-	jmp KERNEL_MAIN
+	jmp loop
 
 ; ============ Character font.
 .org 0x1100000

@@ -130,10 +130,10 @@ return_no_key:
 
 ; ==== PutS: Writes a string on the screen in text mode at the current cursor position.
 @func puts:
-	call strlen
-	mov r10, r0
+	strpi [sp, -4], r1
 	call _puts
-	mov r0, r10
+	ldrip r1, [sp, 4]
+	call strlen
 	call _advance_cursor
 	call flush
 	ret
@@ -148,10 +148,10 @@ loop:
 	ldr r2, [r1]
 
 	; We mask out the last 16 bits to make sure we are not reading garbage.
-	and r2, r2, 0xFFFF
+	and r3, r2, 0xFFFF
 
 	; If it's the null terminator than we are done.
-	jeq r2, done
+	jeq r3, done
 
 	; Increment size count.
 	add r0, r0, 1
@@ -160,7 +160,7 @@ loop:
 	lsr r2, r2, 16
 
 	; If it's the null terminator, we are done.
-	jeq r1, done
+	jeq r2, done
 
 	; We have another char. Increment the count and increment the buffer pointer.
 	add r0, r0, 1
@@ -262,12 +262,12 @@ done:
 @endf _putc
 
 @infunc _puts:
-	; r0: Pointer to null terminated string buffer.
+	; r1: Pointer to null terminated string buffer.
+	mov r5, r1
 	ldr r1, [cursor_x]
 	ldr r2, [cursor_y]
 	ldr r3, [fg_color]
 	ldr r4, [bg_color]
-	mov r5, r0
 	call _puts_at
 	ret
 @endf _puts
