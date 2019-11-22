@@ -20,18 +20,19 @@
 #define _GVM_MEMORY_BUS_H_
 
 #include <cstdint>
+#include <cstring>
 #include <utility>
 
 namespace gvm {
 
-class Memory {
+class MemoryBus {
  public:
-  MemoryBus(uint32_t* mem, uint32_t) noexcept : mem_(mem), size_(size) {}
+  MemoryBus(uint32_t* mem, uint32_t size) noexcept : mem_(mem), size_(size) {}
 
   // Move ctor
-  MemoryBus(Memory&& m) noexcept : mem_(std::move(m.mem)), size_(size) {}
+  MemoryBus(MemoryBus&& m) noexcept : mem_(std::move(m.mem_)), size_(m.size_) {}
 
-  MemoryBus(const Memory&) = default;
+  MemoryBus(const MemoryBus&) = default;
   MemoryBus& operator=(const MemoryBus&) = default;
 
   constexpr uint32_t Read(uint32_t addr) const noexcept {
@@ -39,7 +40,7 @@ class Memory {
   }
 
   uint32_t& Write(uint32_t addr) noexcept {
-    return mem_[addr/4]
+    return mem_[addr/4];
   }
 
   constexpr uint32_t size() const noexcept {
