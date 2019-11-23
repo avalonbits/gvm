@@ -23,9 +23,11 @@
 #include <memory>
 #include <utility>
 
+#include "core.h"
 #include "cpu.h"
 #include "disk_controller.h"
 #include "input_controller.h"
+#include "memory_bus.h"
 #include "rom.h"
 #include "sync_types.h"
 #include "timer.h"
@@ -36,7 +38,8 @@ namespace gvm {
 class Computer {
  public:
   // Owns cpu and video_display.
-  Computer(CPU* cpu, VideoController* video_controller, DiskController* disk_controller);
+  Computer(CPU* cpu, Core<MemoryBus>* core, VideoController* video_controller,
+           DiskController* disk_controller);
 
   // Takes ownership of rom.
   void LoadRom(const Rom* rom);
@@ -50,6 +53,7 @@ class Computer {
   const uint32_t mem_size_bytes_;
   std::unique_ptr<uint32_t> mem_;
   std::unique_ptr<CPU> cpu_;
+  std::unique_ptr<Core<MemoryBus>> core_;
   std::unique_ptr<VideoController> video_controller_;
   std::unique_ptr<InputController> input_controller_;
   std::unique_ptr<DiskController> disk_controller_;

@@ -22,12 +22,14 @@
 #include <memory>
 
 #include "computer.h"
+#include "core.h"
 #include "cpu.h"
 #include "cxxopts.hpp"
 #include "disk.h"
 #include "disk_controller.h"
 #include "gfs.h"
 #include "isa.h"
+#include "memory_bus.h"
 #include "null_video_display.h"
 #include "sdl2_video_display.h"
 
@@ -107,7 +109,8 @@ int main(int argc, char* argv[]) {
   auto* display = CreateSDL2Display(mode);
   auto* video_controller = new gvm::VideoController(print_fps, display);
   auto* cpu = new gvm::CPU();
-  gvm::Computer computer(cpu, video_controller, disk_controller);
+  auto* core = new gvm::Core<gvm::MemoryBus>();
+  gvm::Computer computer(cpu, core, video_controller, disk_controller);
   const std::string prgrom = result["prgrom"].as<std::string>();
   const gvm::Rom* rom = nullptr;
   rom = ReadRom(prgrom);

@@ -27,6 +27,7 @@ namespace gvm {
 
 class MemoryBus {
  public:
+  MemoryBus() noexcept : mem_(nullptr), size_(0) {}
   MemoryBus(uint32_t* mem, uint32_t size) noexcept : mem_(mem), size_(size) {}
 
   // Move ctor

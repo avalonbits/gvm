@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "isa.h"
+#include "memory_bus.h"
 
 namespace gvm {
 
@@ -81,34 +82,37 @@ constexpr const uint32_t reladdr21(const uint32_t v) {
 
 }  // namespace
 
-Core::Core()
+template <typename MEMORY>
+Core<MEMORY>::Core()
     : pc_(reg_[kRegCount-2]), sp_(reg_[kRegCount-4]), fp_(reg_[kRegCount-3]),
       op_count_(0), mask_interrupt_(false), interrupt_(0) {
   std::memset(reg_, 0, kRegCount * sizeof(uint32_t));
 }
 
-void Core::ConnectMemory(uint32_t* mem, uint32_t mem_size_bytes, uint32_t user_ram_limit) {
-  assert(mem != nullptr);
+template <typename MEMORY>
+void Core<MEMORY>::ConnectMemory(MEMORY mem, uint32_t user_ram_limit) {
   mem_ = mem;
-  mem_size_ = mem_size_bytes;
+  mem_.clear();
   user_ram_limit_ = user_ram_limit;
-  std::memset(mem_, 0, m2w(mem_size_bytes));
   fp_ = sp_ = user_ram_limit_;
 }
 
-void Core::SetPC(const uint32_t pc) {
+template <typename MEMORY>
+void Core<MEMORY>::SetPC(const uint32_t pc) {
   assert(pc % kWordSize == 0);
   pc_ = pc;
-  assert(pc_ < mem_size_);
+  assert(pc_ < mem_.size());
 }
 
-uint64_t Core::PowerOn() {
+template <typename MEMORY>
+uint64_t Core<MEMORY>::PowerOn() {
   Reset();
   Run();
   return op_count_;
 }
 
-uint64_t Core::Reset() {
+template <typename MEMORY>
+uint64_t Core<MEMORY>::Reset() {
   mask_interrupt_ = true;
   const uint64_t op_count = op_count_;
   interrupt_ = 1;  // Mask out all interrupts and set bit 0 to 1, signaling reset.
@@ -116,37 +120,43 @@ uint64_t Core::Reset() {
   return op_count;
 }
 
-void Core::Timer() {
+template <typename MEMORY>
+void Core<MEMORY>::Timer() {
   if (mask_interrupt_) return;
   interrupt_ |= 0x02;
   interrupt_event_.notify_all();
 }
 
-void Core::Input() {
+template <typename MEMORY>
+void Core<MEMORY>::Input() {
   if (mask_interrupt_) return;
   interrupt_ |= 0x04;
   interrupt_event_.notify_all();
 }
 
-void Core::RecurringTimer() {
+template <typename MEMORY>
+void Core<MEMORY>::RecurringTimer() {
   if (mask_interrupt_) return;
   interrupt_ |= 0x08;
   interrupt_event_.notify_all();
 }
 
-void Core::Timer2() {
+template <typename MEMORY>
+void Core<MEMORY>::Timer2() {
   if (mask_interrupt_) return;
   interrupt_ |= 0x10;
   interrupt_event_.notify_all();
 }
 
-void Core::RecurringTimer2() {
+template <typename MEMORY>
+void Core<MEMORY>::RecurringTimer2() {
   if (mask_interrupt_) return;
   interrupt_ |= 0x20;
   interrupt_event_.notify_all();
 }
 
-void Core::Run() {
+template <typename MEMORY>
+void Core<MEMORY>::Run() {
   static void* opcodes[] = {
     &&NOP, &&HALT, &&LOAD_RI, &&LOAD_IX, &&LOAD_PC, &&LOAD_IXR, &&LOAD_PI,
     &&LOAD_IP, &&LDP_PI, &&LDP_IP, &&STOR_RI, &&STOR_IX, &&STOR_PC, &&STOR_PI,
@@ -162,7 +172,7 @@ void Core::Run() {
 #define interrupt_dispatch() \
   if (interrupt_ == 0) {\
     pc += 4;\
-    word =  mem_[m2w(pc)];\
+    word =  mem_.Read(pc);\
     ++op_count_;\
     goto *opcodes[word&0x3F];\
   }\
@@ -213,7 +223,7 @@ void Core::Run() {
       const uint32_t idx = reg1(word);
       const uint32_t addr = (word >> 11) & 0x1FFFFF;
       int32_t v;
-      TIMER_READ(addr, v, mem_[m2w(addr)]);
+      TIMER_READ(addr, v, mem_.Read(addr));
       reg_[idx] = v;
       DISPATCH();
   }
@@ -221,7 +231,7 @@ void Core::Run() {
       const uint32_t idx = reg1(word);
       const uint32_t addr = regv(reg2(word), pc, reg_) + ext16bit(word);
       int32_t v;
-      TIMER_READ(addr, v, mem_[m2w(addr)]);
+      TIMER_READ(addr, v, mem_.Read(addr));
       reg_[idx] = v;
       DISPATCH();
   }
@@ -229,7 +239,7 @@ void Core::Run() {
       const uint32_t idx = reg1(word);
       const uint32_t addr = pc + reladdr21(word);
       int32_t v;
-      TIMER_READ(addr, v, mem_[m2w(addr)]);
+      TIMER_READ(addr, v, mem_.Read(addr));
       reg_[idx] = v;
       DISPATCH();
   }
@@ -238,7 +248,7 @@ void Core::Run() {
       const uint32_t addr =
          regv(reg2(word), pc, reg_) + regv(reg3(word), pc, reg_);
       int32_t v;
-      TIMER_READ(addr, v, mem_[m2w(addr)]);
+      TIMER_READ(addr, v, mem_.Read(addr));
       reg_[idx] = v;
       DISPATCH();
   }
@@ -247,7 +257,7 @@ void Core::Run() {
       const uint32_t idx = reg1(word);
       const uint32_t next = regv(idx2, pc, reg_) + ext16bit(word);
       int32_t v;
-      TIMER_READ(next, v, mem_[m2w(next)]);
+      TIMER_READ(next, v, mem_.Read(next));
       reg_[idx] = v;
       reg_[idx2] = next;
       DISPATCH();
@@ -258,7 +268,7 @@ void Core::Run() {
       const uint32_t cur = regv(idx2, pc, reg_);
       const uint32_t next = cur + ext16bit(word);
       int32_t v;
-      TIMER_READ(cur, v, mem_[m2w(cur)]);
+      TIMER_READ(cur, v, mem_.Read(cur));
       reg_[idx] = v;
       reg_[idx2] = next;
       DISPATCH();
@@ -269,9 +279,9 @@ void Core::Run() {
       const uint32_t dest2 = reg2(word);
       const uint32_t next = regv(src, pc, reg_) + ext11bit(word);
       int32_t v;
-      TIMER_READ(next, v, mem_[m2w(next)]);
+      TIMER_READ(next, v, mem_.Read(next));
       reg_[dest1] = v;
-      TIMER_READ(next+4, v, mem_[m2w(next+4)]);
+      TIMER_READ(next+4, v, mem_.Read(next+4));
       reg_[dest2] = v;
       reg_[src] = next;
       DISPATCH();
@@ -283,9 +293,9 @@ void Core::Run() {
       const uint32_t cur = regv(src, pc, reg_);
       const uint32_t next = cur + ext11bit(word);
       int32_t v;
-      TIMER_READ(cur, v, mem_[m2w(cur)]);
+      TIMER_READ(cur, v, mem_.Read(cur));
       reg_[dest1] = v;
-      TIMER_READ(cur+4, v, mem_[m2w(cur+4)]);
+      TIMER_READ(cur+4, v, mem_.Read(cur+4));
       reg_[dest2] = v;
       reg_[src] = next;
       DISPATCH();
@@ -293,7 +303,7 @@ void Core::Run() {
   STOR_RI: {
       const uint32_t addr = (word >> 11) & 0x1FFFFF;
       const auto v = regv(reg1(word), pc, reg_);
-      mem_[m2w(addr)] = v;
+      mem_.Write(addr) = v;
       VSIG(addr);
       TIMER_WRITE(addr, v);
       DISPATCH();
@@ -301,7 +311,7 @@ void Core::Run() {
   STOR_IX: {
       const uint32_t addr = regv(reg1(word), pc, reg_) + ext16bit(word);
       const auto v = regv(reg2(word), pc, reg_);
-      mem_[m2w(addr)] = v;
+      mem_.Write(addr) = v;
       VSIG(addr);
       TIMER_WRITE(addr, v);
       DISPATCH();
@@ -309,7 +319,7 @@ void Core::Run() {
   STOR_PC: {
       const uint32_t addr = pc + reladdr21(word);
       const auto v = regv(reg1(word), pc, reg_);
-      mem_[m2w(addr)] = v;
+      mem_.Write(addr) = v;
       VSIG(addr);
       TIMER_WRITE(addr, v);
       DISPATCH();
@@ -318,7 +328,7 @@ void Core::Run() {
       const uint32_t idx = reg1(word);
       const uint32_t next = regv(idx, pc, reg_) + ext16bit(word);
       const auto v = regv(reg2(word), pc, reg_);
-      mem_[m2w(next)] = v;
+      mem_.Write(next) = v;
       reg_[idx] = next;
       VSIG(next);
       TIMER_WRITE(next, v);
@@ -329,7 +339,7 @@ void Core::Run() {
       const uint32_t cur = regv(idx, pc, reg_);
       const uint32_t next = cur + ext16bit(word);
       const auto v = regv(reg2(word), pc, reg_);
-      mem_[m2w(cur)] = v;
+      mem_.Write(cur) = v;
       reg_[idx] = next;
       VSIG(cur);
       TIMER_WRITE(cur, v);
@@ -338,10 +348,12 @@ void Core::Run() {
   STP_PI: {
       const uint32_t dest = reg1(word);
       const uint32_t next = regv(dest, pc, reg_) + ext11bit(word);
-      auto v = mem_[m2w(next)] = regv(reg2(word), pc, reg_);
+      auto v = regv(reg2(word), pc, reg_);
+      mem_.Write(next) = v;
       VSIG(next);
       TIMER_WRITE(next, v);
-      v = mem_[m2w(next+4)] = regv(reg3(word), pc, reg_);
+      v = regv(reg3(word), pc, reg_);
+      mem_.Write(next+4) = v;
       VSIG(next+4);
       TIMER_WRITE(next+4, v);
       reg_[dest] = next;
@@ -351,10 +363,12 @@ void Core::Run() {
       const uint32_t dest = reg1(word);
       const uint32_t cur = regv(dest, pc, reg_);
       const uint32_t next = cur + ext11bit(word);
-      auto v = mem_[m2w(cur)] = regv(reg2(word), pc, reg_);
+      auto v = regv(reg2(word), pc, reg_);
+      mem_.Write(cur) = v;
       TIMER_WRITE(cur, v);
       VSIG(cur);
-      v = mem_[m2w(cur+4)] = regv(reg3(word), pc, reg_);
+      v  = regv(reg3(word), pc, reg_);
+      mem_.Write(cur+4) = v;
       TIMER_WRITE(cur+4, v);
       VSIG(cur+4);
       reg_[dest] = next;
@@ -408,25 +422,25 @@ void Core::Run() {
       DISPATCH();
   CALLI:
       sp_ -= 4;
-      mem_[m2w(sp_)] = pc;
+      mem_.Write(sp_) = pc;
       sp_ -= 4;
-      mem_[m2w(sp_)] = fp_;
+      mem_.Write(sp_) = fp_;
       fp_ = sp_;
       pc = pc + reladdr26(word >> 6) - 4;
       DISPATCH();
   CALLR:
       sp_ -= 4;
-      mem_[m2w(sp_)] = pc;
+      mem_.Write(sp_) = pc;
       sp_ -= 4;
-      mem_[m2w(sp_)] = fp_;
+      mem_.Write(sp_) = fp_;
       fp_ = sp_;
       pc = reg_[reg1(word)] - 4;
       DISPATCH();
   RET:
       sp_ = fp_;
-      fp_ = mem_[m2w(sp_)];
+      fp_ = mem_.Read(sp_);
       sp_ += 4;
-      pc = mem_[m2w(sp_)];
+      pc = mem_.Read(sp_);
       sp_ += 4;
       mask_interrupt_ = false;
       DISPATCH();
@@ -559,9 +573,9 @@ void Core::Run() {
     } else {
       mask_interrupt_ = true;
       sp_ -= 4;
-      mem_[m2w(sp_)] = pc;
+      mem_.Write(sp_) = pc;
       sp_ -= 4;
-      mem_[m2w(sp_)] = fp_;
+      mem_.Write(sp_) = fp_;
       fp_ = sp_;
 
       // Process signals in bit order. Lower bits have higher priority than higher bits.
@@ -595,7 +609,8 @@ void Core::Run() {
   }
 }
 
-const std::string Core::PrintRegisters(bool hex) {
+template <typename MEMORY>
+const std::string Core<MEMORY>::PrintRegisters(bool hex) {
   std::stringstream ss;
 
   ss << "[";
@@ -614,24 +629,26 @@ const std::string Core::PrintRegisters(bool hex) {
   return ss.str();
 }
 
-const std::string Core::PrintMemory(uint32_t from, uint32_t to) {
+template <typename MEMORY>
+const std::string Core<MEMORY>::PrintMemory(uint32_t from, uint32_t to) {
   assert(from <= to);
   assert(from % 4 == 0);
   assert(to % 4 == 0);
-  assert(from < mem_size_);
-  assert(to < mem_size_);
+  assert(from < mem_.size());
+  assert(to < mem_.size());
 
   std::stringstream ss;
 
   ss << "Memory from 0x" << std::hex << from << " to 0x" << std::hex << to
      << ":\n";
   for (uint32_t i = from; i <= to; i+=4) {
-    ss << "0x" << std::hex << i << ": " << std::dec << mem_[i/kWordSize] << "\n";
+    ss << "0x" << std::hex << i << ": " << std::dec << mem_.Read(i) << "\n";
   }
   return ss.str();
 }
 
-std::string Core::PrintInstruction(const Word word) {
+template <typename MEMORY>
+std::string Core<MEMORY>::PrintInstruction(const Word word) {
   std::ostringstream ss;
   const auto opcode = word & 0x3F;
   auto pc = pc_;
@@ -842,5 +859,7 @@ std::string Core::PrintInstruction(const Word word) {
   }
   return ss.str();
 }
+
+template class Core<MemoryBus>;
 
 }  // namespace gvm

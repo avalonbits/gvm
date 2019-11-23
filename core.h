@@ -32,6 +32,8 @@
 #include "video_controller.h"
 
 namespace gvm {
+
+template<typename MEMORY>
 class Core {
  public:
   Core();
@@ -40,8 +42,7 @@ class Core {
   Core(const Core&) = delete;
   Core& operator=(const Core&) = delete;
 
-  void ConnectMemory(
-      uint32_t* mem, uint32_t mem_size_bytes, uint32_t user_ram_limit);
+  void ConnectMemory(MEMORY, uint32_t user_ram_limit);
 
   uint64_t PowerOn();
   uint64_t Reset();
@@ -87,9 +88,8 @@ class Core {
   std::string PrintInstruction(const Word word);
 
   uint32_t& pc_;
-  uint32_t* mem_;
+  MEMORY mem_;
   uint32_t reg_[kRegCount];
-  uint32_t mem_size_;
   uint32_t user_ram_limit_;
   uint32_t& sp_;
   uint32_t& fp_;
