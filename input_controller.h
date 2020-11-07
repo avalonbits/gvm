@@ -20,6 +20,7 @@
 #define _GVM_INPUT_CONTROLLER_H_
 
 #include <functional>
+#include <stdint.h>
 
 namespace gvm {
 class InputController {
