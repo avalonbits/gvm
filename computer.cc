@@ -44,7 +44,7 @@ const uint32_t kOneShotReg = kTimerReg + 4;
 const uint32_t kRecurringReg = kOneShotReg + 4;
 const uint32_t kOneShot2Reg = kRecurringReg + 4;
 const uint32_t kRecurring2Reg = kOneShot2Reg + 4;
-const uint32_t kDisksReg = kRecurring2Reg + 4;
+//const uint32_t kDisksReg = kRecurring2Reg + 4;
 const int kFrameBufferW = 640;
 const int kFrameBufferH = 360;
 

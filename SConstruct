@@ -16,6 +16,12 @@
 
 ccflags = ['-O3', '-g', '-Wall', '-Werror', '-std=c++14', '-march=native']
 
+clang = ARGUMENTS.get('clang', '0')
+if int(clang):
+  CXX='clang++'
+else:
+  CXX='g++'
+
 dstep = ARGUMENTS.get('dstep', '0')
 if int(dstep):
   ccflags.append('-DDEBUG_DISPATCH')
@@ -33,7 +39,7 @@ if int(debug):
 
 libs = ['SDL2', 'pthread']
 
-env = Environment(CCFLAGS=' '.join(ccflags), LIBS=libs)
+env = Environment(CCFLAGS=' '.join(ccflags), LIBS=libs, CXX=CXX)
 srcs = [
   'computer.cc', 'core.cc', 'cpu.cc', 'disk.cc', 'disk_controller.cc', 'gfs.cc',
   'input_controller.cc', 'isa.cc', 'main.cc', 'rom.cc', 'sdl2_video_display.cc',

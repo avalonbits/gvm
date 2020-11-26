@@ -78,7 +78,7 @@ void Rom::ToFile(std::ofstream& out) const {
 
 const uint32_t Rom::Size() const {
   uint32_t size = 0;
-  for (const auto kv : rom_) {
+  for (const auto& kv : rom_) {
     size += kv.second.size();
   }
   return size * sizeof(Word);

@@ -33,9 +33,6 @@
 namespace gvm {
 
 namespace {
-constexpr const uint32_t m2w(const uint32_t idx) {
-  return idx >> 2;
-}
 constexpr const uint32_t regv(const uint32_t idx, const uint32_t pc, uint32_t* regs) {
   if (idx < 30) return regs[idx];
   if (idx == 30) return pc;
@@ -555,8 +552,10 @@ void Core<MEMORY>::Run() {
   }
   WFI: {
     // Wait on mutex.
-    std::unique_lock<std::mutex> ul(interrupt_mutex_);
-    interrupt_event_.wait(ul, [this]{return interrupt_ != 0;});
+    {
+      std::unique_lock<std::mutex> ul(interrupt_mutex_);
+      interrupt_event_.wait(ul, [this]{return interrupt_ != 0;});
+    }
     DISPATCH();
     return;
   }

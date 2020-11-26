@@ -19,4 +19,6 @@
 : "${BENCH:=benchmark.asm}"
 : "${CPU:=0}"
 : "${DEBUG:=0}"
-killall -9 gvm; cd $HOME/gvm/gsm && go install && cd .. && time gsm -o bench.rom $BENCH && scons -j6 dstep=$DEBUG handlers=$CPU  && time ./gvm --prgrom=bench.rom --video_mode=null
+: "${CXX:=0}
+: "${M:=6}
+killall -9 gvm; cd $HOME/gvm/gsm && go install && cd .. && time gsm -o bench.rom $BENCH && scons -j$M dstep=$DEBUG handlers=$CPU clang=$CXX  && time ./gvm --prgrom=bench.rom --video_mode=null

@@ -29,7 +29,7 @@ void Timer::Recurring(
     const std::chrono::nanoseconds exp_sleep(nsecs/hz);
     std::chrono::nanoseconds sleep = exp_sleep;
 
-    register uint64_t ticks = 0;
+    uint64_t ticks = 0;
     while (!done->load()) {
       std::this_thread::sleep_for(sleep);
       recurring(Elapsed().count() / 1000000);

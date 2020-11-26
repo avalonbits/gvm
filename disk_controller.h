@@ -82,7 +82,7 @@ class DiskController {
  private:
   SyncChan<uint32_t>* chan_;
   std::vector<Disk*> disks_;
-  uint32_t* mem_;
+  //uint32_t* mem_;
 };
 
 }  // namespace gvm

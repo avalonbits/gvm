@@ -48,7 +48,6 @@ class VideoController {
   SyncPoint* signal_;
   uint32_t mem_reg_;
   uint32_t mem_addr_;
-  uint32_t mem_size_bytes_;
   uint32_t* mem_;
   std::unique_ptr<VideoDisplay> display_;
   std::unique_ptr<InputController> input_controller_;
